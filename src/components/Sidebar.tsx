@@ -8,6 +8,7 @@ import {
   PanelLeftOpen,
   RefreshCw,
   GraduationCap,
+  Star,
 } from "lucide-react";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { SyncStatusTooltip } from "./SyncStatusTooltip";
@@ -15,7 +16,13 @@ import { DeadlineBell } from "./notifications/DeadlineBell";
 import { useUpdateAvailable } from "../hooks/useAppUpdater";
 import type { SyncStepInfo } from "../context/SyncContext";
 
-export type NavTab = "home" | "courses" | "grade" | "my-course" | "settings";
+export type NavTab =
+  | "home"
+  | "courses"
+  | "grade"
+  | "my-course"
+  | "evaluations"
+  | "settings";
 
 export interface SidebarProps {
   currentTab: NavTab;
@@ -28,7 +35,7 @@ export interface SidebarProps {
   hasConnectedAccounts?: boolean;
   hasUpdateAvailable?: boolean;
   syncSteps?: Record<
-    "sigaa" | "aprender3" | "teams" | "myCourse" | "ghPages",
+    "sigaa" | "aprender3" | "teams" | "myCourse" | "ghPages" | "planilha",
     SyncStepInfo
   >;
   /** Estado do popover de status (controlado pelo ritual pós-cadastro no AppShell) */
@@ -117,6 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "courses" as NavTab, label: "Disciplinas", icon: BookOpen },
     { id: "grade" as NavTab, label: "Montar Grade", icon: CalendarDays },
     { id: "my-course" as NavTab, label: "Meu Curso", icon: GraduationCap },
+    { id: "evaluations" as NavTab, label: "Avaliar Professor", icon: Star },
     { id: "settings" as NavTab, label: "Configurações", icon: Settings },
   ];
 
@@ -140,7 +148,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const activeSyncStep = syncSteps
-    ? (["sigaa", "aprender3", "myCourse", "teams", "ghPages"] as const)
+    ? ([
+        "sigaa",
+        "aprender3",
+        "myCourse",
+        "teams",
+        "ghPages",
+        "planilha",
+      ] as const)
         .map((id) => syncSteps[id])
         .find((s) => s?.status === "syncing")
     : undefined;

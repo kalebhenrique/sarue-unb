@@ -10,6 +10,11 @@ const STORAGE_KEY = 'sarue_academic_profile_v1';
 const LEGACY_STORAGE_KEY = 'unb_aggregator_academic_profile_v1';
 
 let sharedCurriculaCache: CurriculumStructure[] | null = null;
+
+/** Dentro do Tauri, fetch de hosts externos pelo webview pende/mata o processo. */
+function isTauriRuntime(): boolean {
+  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+}
 let sharedCurriculaPromise: Promise<CurriculumStructure[]> | null = null;
 export const sharedDisciplineNameMap = new Map<string, string>();
 
@@ -126,11 +131,13 @@ export class InMemoryAcademicProfileRepository implements IAcademicProfileReposi
 
     sharedCurriculaPromise = (async () => {
       if (typeof fetch !== 'undefined') {
-        const candidateUrls = [
-          '/data/curricula.json',
-          'https://kalebhenrique.github.io/sarue-unb/data/curricula.json',
-          'https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/curricula.json',
-        ];
+        const candidateUrls = isTauriRuntime()
+          ? ['/data/curricula.json']
+          : [
+              '/data/curricula.json',
+              'https://kalebhenrique.github.io/sarue-unb/data/curricula.json',
+              'https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/curricula.json',
+            ];
 
         for (const url of candidateUrls) {
           try {
@@ -251,11 +258,13 @@ export class InMemoryAcademicProfileRepository implements IAcademicProfileReposi
 
     const promise = (async () => {
       if (typeof fetch !== 'undefined') {
-        const candidateUrls = [
-          `/data/curricula/${courseId}.json`,
-          `https://kalebhenrique.github.io/sarue-unb/data/curricula/${courseId}.json`,
-          `https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/curricula/${courseId}.json`,
-        ];
+        const candidateUrls = isTauriRuntime()
+          ? [`/data/curricula/${courseId}.json`]
+          : [
+              `/data/curricula/${courseId}.json`,
+              `https://kalebhenrique.github.io/sarue-unb/data/curricula/${courseId}.json`,
+              `https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/curricula/${courseId}.json`,
+            ];
 
         for (const url of candidateUrls) {
           try {

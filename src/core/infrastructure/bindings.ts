@@ -16,6 +16,7 @@ export const commands = {
 } | null) => typedError<SyncResult, string>(__TAURI_INVOKE("sync_platforms", { platforms, sigaa, aprender3, teams })),
 	checkVaultStatus: () => __TAURI_INVOKE<VaultStatus>("check_vault_status"),
 	getSigaaDepartments: () => typedError<Department[], string>(__TAURI_INVOKE("get_sigaa_departments")),
+	getSigaaProfessors: () => typedError<ScrapedProfessor[], string>(__TAURI_INVOKE("get_sigaa_professors")),
 	scrapeSigaaClasses: (departmentId: string, year: string, period: string) => typedError<ScrapedDiscipline[], string>(__TAURI_INVOKE("scrape_sigaa_classes", { departmentId, year, period })),
 	getCoursesCatalog: () => typedError<CourseCatalogItem[], string>(__TAURI_INVOKE("get_courses_catalog")),
 	getCourseCurriculum: (courseId: string) => typedError<CurriculumStructure[], string>(__TAURI_INVOKE("get_course_curriculum", { courseId })),
@@ -32,6 +33,9 @@ export const commands = {
 	deleteVaultFile: (filename: string) => typedError<null, string>(__TAURI_INVOKE("delete_vault_file", { filename })),
 	backupVaultFile: (filename: string) => typedError<string, string>(__TAURI_INVOKE("backup_vault_file", { filename })),
 	restoreVaultFile: (filename: string) => typedError<null, string>(__TAURI_INVOKE("restore_vault_file", { filename })),
+	fetchProfessorEvaluationsCsv: (forceRefresh: boolean) => typedError<string, string>(__TAURI_INVOKE("fetch_professor_evaluations_csv", { forceRefresh })),
+	/**  Log de depuração vindo do frontend — aparece no terminal como `[web]`. */
+	debugLog: (message: string) => __TAURI_INVOKE<void>("debug_log", { message }),
 };
 
 /* Types */
@@ -99,6 +103,11 @@ export type Department = {
 export type DiscenteAcademicHistoryPayload = {
 	profile: DiscenteProfile,
 	pdfBase64: string | null,
+	/**
+	 *  Texto do PDF já extraído no Rust: parsear no webview (unpdf/pdf.js)
+	 *  estourava o WebProcess e recarregava a página em loop.
+	 */
+	pdfText: string | null,
 };
 
 export type DiscenteProfile = {
@@ -176,6 +185,18 @@ export type ScrapedDiscipline = {
 	classes: ScrapedClass[],
 	acronym?: string | null,
 	acronyms?: string[],
+};
+
+export type ScrapedProfessor = {
+	id: string,
+	siape?: string | null,
+	name: string,
+	department_id: string,
+	department_name: string,
+	department_ids?: string[],
+	discipline_codes?: string[],
+	photo_url?: string | null,
+	public_url?: string | null,
 };
 
 export type SigaaCreds = {

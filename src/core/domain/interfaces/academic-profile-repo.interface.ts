@@ -4,6 +4,8 @@ import type { SigaaCredentials } from '../entities/credential';
 
 export interface SigaaHistoryRawResponse {
   pdfBase64?: string;
+  /** Texto do PDF já extraído no Rust: presente, o unpdf do webview é pulado. */
+  pdfText?: string;
   matricula: string;
   nome?: string;
   curso: string;

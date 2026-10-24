@@ -2,7 +2,6 @@ use crate::models::{
     Aprender3Creds, Course, FeedItem, PlatformType, SigaaCreds, SyncResult, TeamsCreds,
 };
 use crate::moodle::MoodleClient;
-use crate::scraper::HiddenWebviewScraper;
 use crate::sigaa::SigaaClient;
 use std::collections::HashMap;
 
@@ -164,6 +163,11 @@ pub async fn sync_platforms(
     aprender3: Option<Aprender3Creds>,
     teams: Option<TeamsCreds>,
 ) -> Result<SyncResult, String> {
+    let t0 = std::time::Instant::now();
+    eprintln!(
+        "[sync] início platforms={:?}",
+        platforms
+    );
     let mut all_items: Vec<FeedItem> = Vec::new();
     let mut all_courses: Vec<Course> = Vec::new();
     let mut errors: HashMap<PlatformType, String> = HashMap::new();
@@ -171,6 +175,8 @@ pub async fn sync_platforms(
     let moodle = MoodleClient::new();
 
     for platform in platforms {
+        let p_name = format!("{:?}", platform);
+        eprintln!("[sync] plataforma {} início (t={:.1}s)", p_name, t0.elapsed().as_secs_f32());
         match platform {
             PlatformType::Aprender3 => {
                 let (cpf, senha) = match &aprender3 {
@@ -208,32 +214,45 @@ pub async fn sync_platforms(
                 }
             }
             PlatformType::Teams => {
-                let is_connected = teams.as_ref().and_then(|t| t.is_connected).unwrap_or(false);
-                let email = teams.as_ref().and_then(|t| t.email.as_deref()).unwrap_or("");
-                if is_connected {
-                    match HiddenWebviewScraper::sync_teams(&app, email, "").await {
-                        Ok((items, courses)) => {
-                            all_items.extend(items);
-                            all_courses.extend(courses);
-                        }
-                        Err(e) => {
-                            errors.insert(PlatformType::Teams, e);
-                        }
-                    }
-                }
+                // A sync via webview oculto (até 35s carregando o app inteiro
+                // do Teams) derrubava o WebProcess no Linux: a página principal
+                // recarregava sozinha e, às vezes, o app inteiro morria.
+                // Desligado até existir um caminho mais leve; a autenticação
+                // interativa (janela teams-auth) continua funcionando.
+                let _ = (&app, &teams);
             }
         }
+        eprintln!(
+            "[sync] plataforma {} fim (t={:.1}s, itens acumulados={})",
+            p_name,
+            t0.elapsed().as_secs_f32(),
+            all_items.len()
+        );
     }
 
     // Ordenação estrita por data decrescente
     all_items.sort_by(|a, b| b.created_at.cmp(&a.created_at));
 
+    eprintln!(
+        "[sync] fim total em {:.1}s (itens={} cursos={} erros={})",
+        t0.elapsed().as_secs_f32(),
+        all_items.len(),
+        all_courses.len(),
+        errors.len()
+    );
     Ok(SyncResult {
         items: all_items,
         courses: all_courses,
         synced_at: chrono_like_timestamp(),
         errors: if errors.is_empty() { None } else { Some(errors) },
     })
+}
+
+/// Log de depuração vindo do frontend — aparece no terminal como `[web]`.
+#[command]
+#[specta::specta]
+pub fn debug_log(message: String) {
+    eprintln!("[web] {}", message);
 }
 
 #[command]
@@ -254,12 +273,28 @@ pub async fn get_sigaa_departments() -> Result<Vec<crate::grade_scraper::Departm
 
 #[command]
 #[specta::specta]
+pub async fn get_sigaa_professors() -> Result<Vec<crate::grade_scraper::ScrapedProfessor>, String> {
+    crate::grade_scraper::SigaaGradeScraper::fetch_professors().await
+}
+
+#[command]
+#[specta::specta]
 pub async fn scrape_sigaa_classes(
     department_id: String,
     year: String,
     period: String,
 ) -> Result<Vec<crate::grade_scraper::ScrapedDiscipline>, String> {
-    crate::grade_scraper::SigaaGradeScraper::scrape_department_classes(&department_id, &year, &period).await
+    let t0 = std::time::Instant::now();
+    eprintln!("[scrape] dept={} início", department_id);
+    let result = crate::grade_scraper::SigaaGradeScraper::scrape_department_classes(&department_id, &year, &period).await;
+    eprintln!(
+        "[scrape] dept={} fim em {:.1}s ({} disciplinas, err={:?})",
+        department_id,
+        t0.elapsed().as_secs_f32(),
+        result.as_ref().map(|v| v.len()).unwrap_or(0),
+        result.as_ref().err()
+    );
+    result
 }
 
 #[command]
@@ -288,10 +323,21 @@ pub async fn fetch_sigaa_academic_history(
     matricula: String,
     senha: String,
 ) -> Result<crate::models::DiscenteAcademicHistoryPayload, String> {
+    let t0 = std::time::Instant::now();
+    eprintln!("[historico] download do histórico iniciado");
     let client = crate::sigaa::SigaaClient::new();
-    client
+    let result = client
         .fetch_discente_profile_and_historico(&matricula, &senha)
-        .await
+        .await;
+    match &result {
+        Ok(_) => eprintln!("[historico] ok em {:.1}s", t0.elapsed().as_secs_f32()),
+        Err(e) => eprintln!(
+            "[historico] ERRO em {:.1}s: {}",
+            t0.elapsed().as_secs_f32(),
+            e
+        ),
+    }
+    result
 }
 
 #[command]
@@ -683,6 +729,60 @@ pub async fn disconnect_teams(app: AppHandle) -> Result<(), String> {
     log::info!("Microsoft Teams desconectado e janelas auxiliares encerradas.");
     Ok(())
 }
+
+const PROFESSOR_EVALUATIONS_CSV_URL: &str = "https://docs.google.com/spreadsheets/d/1RK3N-2DtuKShO_2fpd5Cag_GsHYNIARD8WHLpCLTdCk/export?format=csv&gid=1411813915";
+static EVALUATIONS_CSV_CACHE: std::sync::OnceLock<tokio::sync::RwLock<Option<String>>> =
+    std::sync::OnceLock::new();
+
+fn get_evaluations_csv_lock() -> &'static tokio::sync::RwLock<Option<String>> {
+    EVALUATIONS_CSV_CACHE.get_or_init(|| tokio::sync::RwLock::new(None))
+}
+
+#[command]
+#[specta::specta]
+pub async fn fetch_professor_evaluations_csv(force_refresh: bool) -> Result<String, String> {
+    eprintln!("[csv-planilha] início (force={})", force_refresh);
+    if !force_refresh {
+        let lock = get_evaluations_csv_lock().read().await;
+        if let Some(cached) = &*lock {
+            return Ok(cached.clone());
+        }
+    }
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .user_agent("Sarue-UnB/0.2.2 (Desktop App; Tauri)")
+        .build()
+        .map_err(|e| format!("Falha ao inicializar cliente HTTP: {}", e))?;
+
+    let response = client
+        .get(PROFESSOR_EVALUATIONS_CSV_URL)
+        .send()
+        .await
+        .map_err(|e| format!("Falha ao conectar à planilha de avaliações: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "Planilha retornou status HTTP {}",
+            response.status()
+        ));
+    }
+
+    let text = response
+        .text()
+        .await
+        .map_err(|e| format!("Falha ao ler conteúdo CSV da planilha: {}", e))?;
+
+    if text.trim().is_empty() {
+        return Err("Planilha de avaliações retornou conteúdo vazio.".into());
+    }
+
+    let mut lock = get_evaluations_csv_lock().write().await;
+    *lock = Some(text.clone());
+
+    Ok(text)
+}
+
 
 
 

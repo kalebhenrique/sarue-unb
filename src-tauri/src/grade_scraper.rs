@@ -11,6 +11,7 @@ static CLASSES_CACHE: OnceLock<RwLock<Option<Vec<ScrapedDiscipline>>>> = OnceLoc
 static DEPARTMENTS_CACHE: OnceLock<RwLock<Option<Vec<Department>>>> = OnceLock::new();
 static COURSES_CACHE: OnceLock<RwLock<Option<Vec<CourseCatalogItem>>>> = OnceLock::new();
 static CURRICULA_CACHE: OnceLock<RwLock<Option<Vec<CurriculumStructure>>>> = OnceLock::new();
+static PROFESSORS_CACHE: OnceLock<RwLock<Option<Vec<ScrapedProfessor>>>> = OnceLock::new();
 
 fn get_classes_lock() -> &'static RwLock<Option<Vec<ScrapedDiscipline>>> {
     CLASSES_CACHE.get_or_init(|| RwLock::new(None))
@@ -26,6 +27,10 @@ fn get_courses_lock() -> &'static RwLock<Option<Vec<CourseCatalogItem>>> {
 
 fn get_curricula_lock() -> &'static RwLock<Option<Vec<CurriculumStructure>>> {
     CURRICULA_CACHE.get_or_init(|| RwLock::new(None))
+}
+
+fn get_professors_lock() -> &'static RwLock<Option<Vec<ScrapedProfessor>>> {
+    PROFESSORS_CACHE.get_or_init(|| RwLock::new(None))
 }
 
 static COURSE_CURRICULA_CACHE: OnceLock<RwLock<Option<(String, Vec<CurriculumStructure>)>>> = OnceLock::new();
@@ -83,6 +88,24 @@ pub struct ScrapedDiscipline {
     pub acronym: Option<String>,
     #[serde(default)]
     pub acronyms: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+pub struct ScrapedProfessor {
+    pub id: String,
+    #[serde(default)]
+    pub siape: Option<String>,
+    pub name: String,
+    pub department_id: String,
+    pub department_name: String,
+    #[serde(default)]
+    pub department_ids: Vec<String>,
+    #[serde(default)]
+    pub discipline_codes: Vec<String>,
+    #[serde(default)]
+    pub photo_url: Option<String>,
+    #[serde(default)]
+    pub public_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
@@ -409,6 +432,69 @@ impl SigaaGradeScraper {
                 Ok(vec![])
             }
         }
+    }
+
+    /// Obtém o catálogo de docentes do SIGAA (a partir de professors.json ou sintetizado de classes.json)
+    pub async fn fetch_professors() -> Result<Vec<ScrapedProfessor>, String> {
+        {
+            let lock = get_professors_lock().read().await;
+            if let Some(cached) = &*lock {
+                return Ok(cached.clone());
+            }
+        }
+
+        if let Ok(professors) = Self::fetch_static_json::<Vec<ScrapedProfessor>>("professors.json").await {
+            if !professors.is_empty() {
+                let mut lock = get_professors_lock().write().await;
+                *lock = Some(professors.clone());
+                return Ok(professors);
+            }
+        }
+
+        // Fallback: sintetiza a lista oficial de docentes a partir das turmas de classes.json
+        let all_disciplines = Self::scrape_department_classes("ALL", "2026", "2").await.unwrap_or_default();
+        let all_depts = Self::fetch_departments().await.unwrap_or_default();
+        let dept_map: std::collections::HashMap<String, String> =
+            all_depts.into_iter().map(|d| (d.id, d.name)).collect();
+
+        let mut by_name: std::collections::BTreeMap<String, ScrapedProfessor> = std::collections::BTreeMap::new();
+
+        for disc in all_disciplines {
+            let dept_name = dept_map.get(&disc.department_id).cloned().unwrap_or_else(|| "UnB".to_string());
+            for cls in disc.classes {
+                for t in cls.teachers {
+                    let clean = t.trim().to_string();
+                    if clean.is_empty() || clean.eq_ignore_ascii_case("A definir") {
+                        continue;
+                    }
+                    let key = clean.to_uppercase();
+                    let entry = by_name.entry(key.clone()).or_insert_with(|| ScrapedProfessor {
+                        id: format!("prof-{}-{}", disc.department_id, key.replace(' ', "-")),
+                        siape: None,
+                        name: clean.clone(),
+                        department_id: disc.department_id.clone(),
+                        department_name: dept_name.clone(),
+                        department_ids: vec![disc.department_id.clone()],
+                        discipline_codes: vec![],
+                        photo_url: None,
+                        public_url: None,
+                    });
+                    if !entry.discipline_codes.contains(&disc.code) {
+                        entry.discipline_codes.push(disc.code.clone());
+                    }
+                    if !entry.department_ids.contains(&disc.department_id) {
+                        entry.department_ids.push(disc.department_id.clone());
+                    }
+                }
+            }
+        }
+
+        let synthesized: Vec<ScrapedProfessor> = by_name.into_values().collect();
+        if !synthesized.is_empty() {
+            let mut lock = get_professors_lock().write().await;
+            *lock = Some(synthesized.clone());
+        }
+        Ok(synthesized)
     }
 
     /// Lista padrão de departamentos UnB para contingência offline

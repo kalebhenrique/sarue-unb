@@ -10,14 +10,16 @@ import {
   School,
   Clock,
   MessageSquare,
+  Sheet,
 } from "lucide-react";
-import type { SyncStepInfo, SyncStepStatus } from "../context/SyncContext";
+import type {
+  SyncStepId,
+  SyncStepInfo,
+  SyncStepStatus,
+} from "../context/SyncContext";
 
 interface SyncStatusTooltipProps {
-  steps: Record<
-    "sigaa" | "aprender3" | "teams" | "myCourse" | "ghPages",
-    SyncStepInfo
-  >;
+  steps: Record<SyncStepId, SyncStepInfo>;
   isSyncing: boolean;
   lastSyncedAt: string | null;
 }
@@ -28,6 +30,7 @@ const STEP_ICONS = {
   teams: MessageSquare,
   myCourse: GraduationCap,
   ghPages: Globe,
+  planilha: Sheet,
 };
 
 function StatusIndicator({ status }: { status: SyncStepStatus }) {
@@ -77,6 +80,7 @@ export const SyncStatusTooltip: React.FC<SyncStatusTooltipProps> = ({
     steps.teams,
     steps.myCourse,
     steps.ghPages,
+    steps.planilha,
   ];
 
   return (

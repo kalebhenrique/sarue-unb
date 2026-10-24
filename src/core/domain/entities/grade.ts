@@ -44,6 +44,18 @@ export interface ScrapedDiscipline {
   acronyms?: string[];
 }
 
+export interface ScrapedProfessor {
+  id: string;
+  siape?: string;
+  name: string;
+  departmentId: string;
+  departmentName: string;
+  departmentIds: string[];
+  disciplineCodes: string[];
+  photoUrl?: string;
+  publicUrl?: string;
+}
+
 export interface ScheduleOption {
   id: string;
   classes: ScrapedClass[];

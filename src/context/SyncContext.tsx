@@ -14,7 +14,13 @@ import { toast } from "@/components/ui";
 import type { CurriculumStructure } from "@/core";
 import { checkForUpdates } from "../hooks/useAppUpdater";
 
-export type SyncStepId = "sigaa" | "aprender3" | "teams" | "myCourse" | "ghPages";
+export type SyncStepId =
+  | "sigaa"
+  | "aprender3"
+  | "teams"
+  | "myCourse"
+  | "ghPages"
+  | "planilha";
 
 export type SyncStepStatus =
   "idle" | "syncing" | "success" | "error" | "skipped";
@@ -70,6 +76,13 @@ const INITIAL_STEPS: Record<SyncStepId, SyncStepInfo> = {
     id: "ghPages",
     label: "Catálogo UnB",
     sublabel: "Matrizes curriculares e turmas ofertadas",
+    status: "idle",
+    message: "Pronto para sincronizar",
+  },
+  planilha: {
+    id: "planilha",
+    label: "Planilha de Avaliações",
+    sublabel: "Relatos da comunidade",
     status: "idle",
     message: "Pronto para sincronizar",
   },
@@ -394,6 +407,34 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
       // o perfil (com o curso do discente) na primeira sincronização.
       await runGhPagesStep();
       if (isCancelled()) return;
+
+      // 6. Planilha de avaliações de professores (relatos da comunidade):
+      // aquece o cache usado pela tela Avaliar Professor.
+      updateStep("planilha", {
+        status: "syncing",
+        message: "Buscando relatos da comunidade...",
+      });
+      try {
+        const evaluations = await useCases.getProfessorEvaluations.execute(
+          undefined,
+          false
+        );
+        if (isCancelled()) return;
+        updateStep("planilha", {
+          status: "success",
+          message: `${evaluations.length} relatos de professores disponíveis`,
+          lastUpdated: new Date().toISOString(),
+        });
+      } catch (err) {
+        if (isCancelled()) return;
+        updateStep("planilha", {
+          status: "error",
+          message:
+            err instanceof Error
+              ? err.message
+              : "Falha ao sincronizar a planilha",
+        });
+      }
 
       const now = new Date().toISOString();
       setLastSyncedAt(now);

@@ -16,6 +16,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         commands::sync_platforms,
         commands::check_vault_status,
         commands::get_sigaa_departments,
+        commands::get_sigaa_professors,
         commands::scrape_sigaa_classes,
         commands::get_courses_catalog,
         commands::get_course_curriculum,
@@ -32,6 +33,8 @@ pub fn builder() -> Builder<tauri::Wry> {
         commands::delete_vault_file,
         commands::backup_vault_file,
         commands::restore_vault_file,
+        commands::fetch_professor_evaluations_csv,
+        commands::debug_log,
     ])
 }
 

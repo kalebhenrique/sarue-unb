@@ -47,6 +47,18 @@ export interface ScrapedDiscipline {
   acronyms?: string[];
 }
 
+export interface ScrapedProfessor {
+  id: string;
+  siape?: string;
+  name: string;
+  department_id: string;
+  department_name: string;
+  department_ids: string[];
+  discipline_codes: string[];
+  photo_url?: string;
+  public_url?: string;
+}
+
 const STOPWORDS = new Set([
   'de', 'da', 'do', 'das', 'dos',
   'e',
@@ -134,6 +146,8 @@ export function generateAcronyms(name: string): { acronym: string; acronyms: str
 const SIGAA_HOME_URL = 'https://sigaa.unb.br/sigaa/public/home.jsf';
 const SIGAA_TURMAS_URL = 'https://sigaa.unb.br/sigaa/public/turmas/listar.jsf?aba=p-ensino';
 const SIGAA_POST_URL = 'https://sigaa.unb.br/sigaa/public/turmas/listar.jsf';
+const SIGAA_DOCENTES_URL = 'https://sigaa.unb.br/sigaa/public/docente/busca_docentes.jsf?aba=p-academico';
+const SIGAA_DOCENTES_POST_URL = 'https://sigaa.unb.br/sigaa/public/docente/busca_docentes.jsf';
 
 export class GradeScraper {
   private jar = new CookieJar();
@@ -412,6 +426,250 @@ export class GradeScraper {
 
     return disciplines;
   }
+
+  async initDocentesSession(): Promise<string> {
+    const resHome = await fetchWithRetry(SIGAA_HOME_URL, {
+      headers: { 'User-Agent': USER_AGENT },
+    });
+    this.jar.update(resHome.headers);
+
+    const resDocentes = await fetchWithRetry(SIGAA_DOCENTES_URL, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        Cookie: this.jar.header(),
+        Referer: SIGAA_HOME_URL,
+      },
+    });
+    this.jar.update(resDocentes.headers);
+    return resDocentes.text();
+  }
+
+  parseDocenteDepartments(html: string): Department[] {
+    const selectMatch = html.match(
+      /<select[^>]+name="form:departamento"[^>]*>([\s\S]*?)<\/select>/i
+    );
+    if (!selectMatch) return [];
+
+    const optionRegex = /<option[^>]+value="([^"]+)"[^>]*>([^<]+)<\/option>/g;
+    const departments: Department[] = [];
+    let m: RegExpExecArray | null;
+
+    while ((m = optionRegex.exec(selectMatch[1])) !== null) {
+      const id = m[1].trim();
+      const name = decodeHtmlEntities(m[2].trim());
+      if (id && id !== '0' && name) {
+        departments.push({ id, name });
+      }
+    }
+
+    return departments;
+  }
+
+  async scrapeDocentesDepartment(
+    deptId: string,
+    deptName: string,
+    initialHtml?: string
+  ): Promise<ScrapedProfessor[]> {
+    let html = initialHtml;
+    if (!html) {
+      html = await this.initDocentesSession();
+    }
+
+    const vsMatch = html.match(
+      /name="javax\.faces\.ViewState"[^>]*value="([^"]+)"/i
+    );
+    const viewState = vsMatch ? vsMatch[1] : 'j_id1';
+
+    let btnName = 'form:buscar';
+    const btnMatch =
+      html.match(/<input[^>]+name="([^"]+)"[^>]+value="Buscar"/i) ||
+      html.match(/<input[^>]+value="Buscar"[^>]+name="([^"]+)"/i);
+    if (btnMatch) {
+      btnName = btnMatch[1];
+    }
+
+    const body = new URLSearchParams({
+      form: 'form',
+      'form:nome': '',
+      'form:departamento': deptId,
+      [btnName]: 'Buscar',
+      'javax.faces.ViewState': viewState,
+    });
+
+    const res = await fetchWithRetry(SIGAA_DOCENTES_POST_URL, {
+      method: 'POST',
+      headers: {
+        'User-Agent': USER_AGENT,
+        Cookie: this.jar.header(),
+        Referer: SIGAA_DOCENTES_URL,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    });
+    this.jar.update(res.headers);
+
+    const postHtml = await res.text();
+    return this.parseDocentesTable(postHtml, deptId, deptName);
+  }
+
+  parseDocentesTable(
+    html: string,
+    deptId: string,
+    fallbackDeptName: string
+  ): ScrapedProfessor[] {
+    const tableMatch = html.match(
+      /<table[^>]+class="listagem"[^>]*>([\s\S]*?)<\/table>/i
+    );
+    if (!tableMatch) return [];
+
+    const tableHtml = tableMatch[1];
+    const rowRegex =
+      /<tr[^>]+class="linha(?:Par|Impar)[^"]*"[^>]*>([\s\S]*?)<\/tr>/gi;
+    const professors: ScrapedProfessor[] = [];
+
+    let rowMatch: RegExpExecArray | null;
+    while ((rowMatch = rowRegex.exec(tableHtml)) !== null) {
+      const rowContent = rowMatch[1];
+
+      const nameMatch = rowContent.match(
+        /<span[^>]+class="nome"[^>]*>([\s\S]*?)<\/span>/i
+      );
+      if (!nameMatch) continue;
+
+      const rawName = decodeHtmlEntities(
+        nameMatch[1].replace(/<[^>]+>/g, '').trim()
+      );
+      if (!rawName) continue;
+
+      const deptMatch = rowContent.match(
+        /<span[^>]+class="departamento"[^>]*>([\s\S]*?)<\/span>/i
+      );
+      const deptName = deptMatch
+        ? decodeHtmlEntities(deptMatch[1].replace(/<[^>]+>/g, '').trim())
+        : fallbackDeptName;
+
+      const siapeMatch = rowContent.match(/portal\.jsf\?siape=(\d+)/i);
+      const siape = siapeMatch ? siapeMatch[1].trim() : undefined;
+
+      const imgMatch = rowContent.match(/<img[^>]+src="([^"]+)"/i);
+      const rawImg = imgMatch ? imgMatch[1].trim() : undefined;
+      const photoUrl =
+        rawImg && !rawImg.includes('no_picture')
+          ? rawImg.startsWith('http')
+            ? rawImg
+            : `https://sigaa.unb.br${rawImg}`
+          : undefined;
+
+      const publicUrl = siape
+        ? `https://sigaa.unb.br/sigaa/public/docente/portal.jsf?siape=${siape}`
+        : undefined;
+
+      const normKey = rawName
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      professors.push({
+        id: siape || `prof-${deptId}-${normKey.replace(/[^A-Z0-9]/g, '-')}`,
+        siape,
+        name: rawName,
+        department_id: deptId,
+        department_name: deptName || fallbackDeptName,
+        department_ids: [deptId],
+        discipline_codes: [],
+        photo_url: photoUrl,
+        public_url: publicUrl,
+      });
+    }
+
+    return professors;
+  }
+
+  static buildProfessorsCatalog(
+    directoryProfessors: ScrapedProfessor[],
+    allDisciplines: ScrapedDiscipline[],
+    departments: Department[]
+  ): ScrapedProfessor[] {
+    const deptNameById = new Map<string, string>(
+      departments.map((d) => [d.id, d.name])
+    );
+
+    const norm = (v: string) =>
+      v
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^A-Z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const byNormName = new Map<string, ScrapedProfessor>();
+
+    for (const p of directoryProfessors) {
+      const key = norm(p.name);
+      if (!key) continue;
+      const existing = byNormName.get(key);
+      if (existing) {
+        if (!existing.siape && p.siape) existing.siape = p.siape;
+        if (!existing.photo_url && p.photo_url) existing.photo_url = p.photo_url;
+        if (!existing.public_url && p.public_url)
+          existing.public_url = p.public_url;
+        for (const dId of p.department_ids) {
+          if (!existing.department_ids.includes(dId)) {
+            existing.department_ids.push(dId);
+          }
+        }
+      } else {
+        byNormName.set(key, {
+          ...p,
+          department_ids: [...p.department_ids],
+          discipline_codes: [...p.discipline_codes],
+        });
+      }
+    }
+
+    // Cruza com todos os docentes que lecionam turmas em classes.json
+    for (const disc of allDisciplines) {
+      const code = disc.code.trim().toUpperCase();
+      const deptId = disc.department_id;
+      const deptName = deptNameById.get(deptId) || 'UnB';
+
+      for (const cls of disc.classes || []) {
+        for (const rawTeacher of cls.teachers || []) {
+          const cleanName = rawTeacher.trim();
+          if (!cleanName || cleanName.toUpperCase() === 'A DEFINIR') continue;
+
+          const key = norm(cleanName);
+          if (!key) continue;
+
+          const existing = byNormName.get(key);
+          if (existing) {
+            if (!existing.discipline_codes.includes(code)) {
+              existing.discipline_codes.push(code);
+            }
+            if (deptId && !existing.department_ids.includes(deptId)) {
+              existing.department_ids.push(deptId);
+            }
+          } else {
+            byNormName.set(key, {
+              id: `prof-${deptId}-${key.replace(/\s+/g, '-')}`,
+              name: cleanName,
+              department_id: deptId,
+              department_name: deptName,
+              department_ids: deptId ? [deptId] : [],
+              discipline_codes: [code],
+            });
+          }
+        }
+      }
+    }
+
+    return Array.from(byNormName.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, 'pt-BR')
+    );
+  }
 }
 
 // Fallback seed departments
@@ -516,6 +774,66 @@ async function main() {
   await fs.writeFile(classesPath, JSON.stringify(allDisciplines, null, 2), 'utf-8');
   console.log(`[GradeScraper] Salvo: ${classesPath} (${allDisciplines.length} disciplinas coletadas)`);
 
+  // Coleta catálogo de docentes do diretório público do SIGAA e unifica com os docentes das turmas
+  const directoryProfessors: ScrapedProfessor[] = [];
+  try {
+    const docentesInitHtml = await scraper.initDocentesSession();
+    let docenteDepts = scraper.parseDocenteDepartments(docentesInitHtml);
+    if (targetDept) {
+      docenteDepts = docenteDepts.filter((d) => d.id === targetDept);
+    }
+    if (limit && limit > 0) {
+      docenteDepts = docenteDepts.slice(0, limit);
+    }
+
+    console.log(
+      `[GradeScraper] Coletando diretório público de docentes para ${docenteDepts.length} unidades...`
+    );
+
+    let profDeptProcessed = 0;
+    for (const dept of docenteDepts) {
+      try {
+        const profs = await scraper.scrapeDocentesDepartment(
+          dept.id,
+          dept.name,
+          docentesInitHtml
+        );
+        directoryProfessors.push(...profs);
+        profDeptProcessed++;
+        if (profs.length > 0) {
+          console.log(
+            `[GradeScraper] [Docentes ${profDeptProcessed}/${docenteDepts.length}] ${dept.name} (${dept.id}): ${profs.length} docentes.`
+          );
+        }
+      } catch (e) {
+        console.warn(
+          `[GradeScraper] Erro ao raspar docentes do depto ${dept.id} (${dept.name}):`,
+          e
+        );
+      }
+      await new Promise((r) => setTimeout(r, 150));
+    }
+  } catch (e) {
+    console.warn(
+      `[GradeScraper] Falha ao consultar busca_docentes.jsf (${e}). Construindo catálogo a partir das turmas.`
+    );
+  }
+
+  const allProfessors = GradeScraper.buildProfessorsCatalog(
+    directoryProfessors,
+    allDisciplines,
+    departments
+  );
+  const professorsPath = path.join(outDir, 'professors.json');
+  await fs.writeFile(
+    professorsPath,
+    JSON.stringify(allProfessors, null, 2),
+    'utf-8'
+  );
+  console.log(
+    `[GradeScraper] Salvo: ${professorsPath} (${allProfessors.length} professores catalogados)`
+  );
+
   const metaPath = path.join(outDir, 'grade-meta.json');
   const meta = {
     scraped_at: new Date().toISOString(),
@@ -525,18 +843,20 @@ async function main() {
     total_departments: departments.length,
     total_disciplines: allDisciplines.length,
     total_classes: allDisciplines.reduce((acc, d) => acc + d.classes.length, 0),
+    total_professors: allProfessors.length,
   };
   await fs.writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
   console.log(`[GradeScraper] Concluído com sucesso! Metadados em ${metaPath}`);
 
-  // Sincroniza cópia para public/data/ para desenvolvimento local transparente
+  // Sincroniza cópia para public/data/ para desenvolvimento local transparente (apenas em coleta completa)
   const publicDataDir = path.resolve('public', 'data');
-  if (path.resolve(outDir) !== publicDataDir) {
+  if (!targetDept && !limit && path.resolve(outDir) !== publicDataDir) {
     try {
       await fs.mkdir(publicDataDir, { recursive: true });
       await fs.copyFile(classesPath, path.join(publicDataDir, 'classes.json'));
       await fs.copyFile(deptPath, path.join(publicDataDir, 'departments.json'));
       await fs.copyFile(semPath, path.join(publicDataDir, 'semesters.json'));
+      await fs.copyFile(professorsPath, path.join(publicDataDir, 'professors.json'));
       await fs.copyFile(metaPath, path.join(publicDataDir, 'grade-meta.json'));
       console.log(`[GradeScraper] Sincronizado para ${publicDataDir}`);
     } catch {}

@@ -6,6 +6,7 @@ import type { IAcademicProfileRepository } from './domain/interfaces/academic-pr
 import type { IIraScenarioRepository } from './domain/interfaces/ira-scenario-repo.interface';
 import type { IDeadlineNotificationRepository } from './domain/interfaces/deadline-notification-repo.interface';
 import type { IOSNotifier } from './domain/interfaces/os-notifier.interface';
+import type { IProfessorEvaluationRepository } from './domain/interfaces/professor-evaluation-repo.interface';
 
 import { SaveCredentialsUseCase } from './application/save-credentials.use-case';
 import { GetCredentialsUseCase } from './application/get-credentials.use-case';
@@ -25,6 +26,7 @@ import { GetAcademicCalendarUseCase } from './application/get-academic-calendar.
 import { CalculateIraUseCase } from './application/calculate-ira.use-case';
 import { BuildIraScenarioUseCase } from './application/build-ira-scenario.use-case';
 import { ManageIraScenarioUseCase } from './application/manage-ira-scenario.use-case';
+import { GetProfessorEvaluationsUseCase } from './application/get-professor-evaluations.use-case';
 
 import { StrongholdCredentialsRepository } from './infrastructure/stronghold-credentials.repo';
 import { TauriSyncRepository } from './infrastructure/tauri-sync.repo';
@@ -41,6 +43,8 @@ import { SqliteDeadlineNotificationRepository } from './infrastructure/sqlite-de
 import { InMemoryDeadlineNotificationRepository } from './infrastructure/in-memory-deadline-notification.repo';
 import { TauriOSNotifier } from './infrastructure/tauri-os-notifier';
 import { NullNotifier } from './infrastructure/tauri-os-notifier';
+import { TauriProfessorEvaluationRepository } from './infrastructure/tauri-professor-evaluation.repo';
+import { InMemoryProfessorEvaluationRepository } from './infrastructure/in-memory-professor-evaluation.repo';
 
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -55,6 +59,7 @@ export interface Repositories {
   iraScenarioRepo: IIraScenarioRepository;
   deadlineNotificationRepo: IDeadlineNotificationRepository;
   osNotifier: IOSNotifier;
+  professorEvaluationRepo: IProfessorEvaluationRepository;
 }
 
 export interface UseCases {
@@ -76,6 +81,7 @@ export interface UseCases {
   getFlowchart: GetFlowchartUseCase;
   parseHistorico: ParseHistoricoUseCase;
   getAcademicCalendar: GetAcademicCalendarUseCase;
+  getProfessorEvaluations: GetProfessorEvaluationsUseCase;
 }
 
 export interface Container {
@@ -122,6 +128,12 @@ export function createContainer(overrides?: ContainerOverrides): Container {
   const osNotifier: IOSNotifier =
     overrides?.repos?.osNotifier ?? (tauri ? new TauriOSNotifier() : new NullNotifier());
 
+  const professorEvaluationRepo: IProfessorEvaluationRepository =
+    overrides?.repos?.professorEvaluationRepo ??
+    (tauri
+      ? new TauriProfessorEvaluationRepository()
+      : new InMemoryProfessorEvaluationRepository());
+
   const repos: Repositories = {
     credentialsRepo,
     syncRepo,
@@ -131,6 +143,7 @@ export function createContainer(overrides?: ContainerOverrides): Container {
     iraScenarioRepo,
     deadlineNotificationRepo,
     osNotifier,
+    professorEvaluationRepo,
   };
 
   const useCases: UseCases = {
@@ -149,13 +162,20 @@ export function createContainer(overrides?: ContainerOverrides): Container {
     scrapeClasses: new ScrapeClassesUseCase(gradeRepo),
     solveSchedule: new SolveScheduleUseCase(gradeRepo),
     manageGrade: new ManageGradeUseCase(gradeRepo),
-    manageAcademicProfile: new ManageAcademicProfileUseCase(academicProfileRepo),
+    manageAcademicProfile: new ManageAcademicProfileUseCase(
+      academicProfileRepo,
+      gradeRepo
+    ),
     calculateIra: new CalculateIraUseCase(),
     buildIraScenario: new BuildIraScenarioUseCase(),
     manageIraScenario: new ManageIraScenarioUseCase(iraScenarioRepo),
     getFlowchart: new GetFlowchartUseCase(),
     parseHistorico: new ParseHistoricoUseCase(),
     getAcademicCalendar: new GetAcademicCalendarUseCase(),
+    getProfessorEvaluations: new GetProfessorEvaluationsUseCase(
+      professorEvaluationRepo,
+      gradeRepo,
+    ),
   };
 
   return {

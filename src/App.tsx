@@ -4,6 +4,7 @@ import { DashboardScreen } from './screens/DashboardScreen';
 import { CoursesScreen } from './screens/CoursesScreen';
 import { GradeBuilderScreen } from './screens/GradeBuilderScreen';
 import { MyCourseScreen } from './screens/MyCourseScreen';
+import { ProfessorEvaluationsScreen } from './screens/ProfessorEvaluationsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { Sidebar, type NavTab } from './components/Sidebar';
 import { TooltipProvider, Toaster, ErrorBoundary } from '@/components/ui';
@@ -174,6 +175,7 @@ const AppShell: React.FC = () => {
             {currentTab === 'courses' && <CoursesScreen />}
             {currentTab === 'grade' && <GradeBuilderScreen />}
             {currentTab === 'my-course' && <MyCourseScreen />}
+            {currentTab === 'evaluations' && <ProfessorEvaluationsScreen />}
             {currentTab === 'settings' && (
               <SettingsScreen
                 onResetCredentials={() => {

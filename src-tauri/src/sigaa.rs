@@ -344,20 +344,39 @@ impl SigaaClient {
             .await
             .map_err(|e| format!("Falha ao baixar PDF do histórico: {}", e))?;
 
-        let pdf_base64 = if bytes.starts_with(b"%PDF") {
-            log::info!(
-                "[SigaaClient] Histórico escolar obtido com sucesso em formato PDF ({} bytes).",
-                bytes.len()
-            );
-            Some(base64_encode(&bytes))
-        } else {
+        if !bytes.starts_with(b"%PDF") {
             log::warn!("[SigaaClient] Resposta do histórico não iniciou com %PDF.");
-            None
-        };
+            return Ok(DiscenteAcademicHistoryPayload {
+                profile,
+                pdf_base64: None,
+                pdf_text: None,
+            });
+        }
+
+        log::info!(
+            "[SigaaClient] Histórico escolar obtido com sucesso em formato PDF ({} bytes).",
+            bytes.len()
+        );
+
+        // Extrai o texto aqui no Rust: o parse no webview derrubava o WebProcess.
+        let pdf_text = pdf_extract::extract_text_from_mem(&bytes)
+            .map_err(|e| {
+                log::warn!("[SigaaClient] Falha ao extrair texto do PDF: {}", e);
+                e
+            })
+            .ok();
 
         Ok(DiscenteAcademicHistoryPayload {
             profile,
-            pdf_base64,
+            // Base64 só como fallback quando a extração falhou: com texto
+            // disponível, o payload IPC fica leve — vários MB de base64+texto
+            // atravessando a fronteira estouravam o webview.
+            pdf_base64: if pdf_text.is_some() {
+                None
+            } else {
+                Some(base64_encode(&bytes))
+            },
+            pdf_text,
         })
     }
 

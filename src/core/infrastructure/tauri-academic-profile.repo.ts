@@ -174,6 +174,7 @@ export class TauriAcademicProfileRepository implements IAcademicProfileRepositor
         const d = response.data;
         return {
           pdfBase64: d.pdfBase64 ?? undefined,
+          pdfText: d.pdfText ?? undefined,
           matricula: d.profile.matricula,
           nome: d.profile.nome ?? undefined,
           curso: d.profile.curso,

@@ -3,6 +3,7 @@ import type {
   SemesterOption,
   ScrapedClass,
   ScrapedDiscipline,
+  ScrapedProfessor,
   ScheduleOption,
   ScheduleSlot,
   SavedGrade,
@@ -67,6 +68,32 @@ export class TauriGradeRepository implements IGradeRepository {
 
   async getSemesters(): Promise<SemesterOption[]> {
     return this.fallbackRepo.getSemesters();
+  }
+
+  async getProfessors(): Promise<ScrapedProfessor[]> {
+    try {
+      const { commands } = await import('@/core/infrastructure/bindings');
+      const response = await commands.getSigaaProfessors();
+      if (response.status === 'error') {
+        throw new Error(response.error);
+      }
+      if (response.data && response.data.length > 0) {
+        return response.data.map((p) => ({
+          id: p.id,
+          siape: p.siape ?? undefined,
+          name: p.name,
+          departmentId: p.department_id,
+          departmentName: p.department_name,
+          departmentIds: p.department_ids || [],
+          disciplineCodes: p.discipline_codes || [],
+          photoUrl: p.photo_url ?? undefined,
+          publicUrl: p.public_url ?? undefined,
+        }));
+      }
+    } catch {
+      // Fallback
+    }
+    return this.fallbackRepo.getProfessors();
   }
 
   async getCoursesCatalog(): Promise<CourseCatalogItem[]> {

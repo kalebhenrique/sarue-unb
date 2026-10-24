@@ -121,4 +121,7 @@ pub struct DiscenteProfile {
 pub struct DiscenteAcademicHistoryPayload {
     pub profile: DiscenteProfile,
     pub pdf_base64: Option<String>,
+    /// Texto do PDF já extraído no Rust: parsear no webview (unpdf/pdf.js)
+    /// estourava o WebProcess e recarregava a página em loop.
+    pub pdf_text: Option<String>,
 }

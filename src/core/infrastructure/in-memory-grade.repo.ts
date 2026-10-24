@@ -3,6 +3,7 @@ import type {
   SemesterOption,
   ScrapedClass,
   ScrapedDiscipline,
+  ScrapedProfessor,
   ScheduleOption,
   ScheduleSlot,
   SavedGrade,
@@ -323,23 +324,49 @@ export class InMemoryGradeRepository implements IGradeRepository {
   private classesCache: ScrapedDiscipline[] | null = null;
   private coursesCache: CourseCatalogItem[] | null = null;
   private curriculaCache: CurriculumStructure[] | null = null;
+  private professorsCache: ScrapedProfessor[] | null = null;
+
+  private isUnitTest(): boolean {
+    return (
+      typeof process !== 'undefined' &&
+      Boolean(process.env?.VITEST || process.env?.NODE_ENV === 'test')
+    );
+  }
+
+  /**
+   * Dentro do Tauri (WebKitGTK), fetch do webview para hosts externos pende
+   * até o loader interno desistir: o fallback remoto nunca deve rodar aqui —
+   * o comando Rust correspondente é o caminho canônico e o /data local basta.
+   */
+  private isTauriRuntime(): boolean {
+    return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  }
 
   async getDepartments(): Promise<Department[]> {
     if (this.departmentsCache && this.departmentsCache.length > 0) {
       return this.departmentsCache;
     }
 
-    if (typeof fetch !== 'undefined') {
-      try {
-        const res = await fetch('/data/departments.json');
-        if (res.ok) {
-          const data = (await res.json()) as Department[];
-          if (Array.isArray(data) && data.length > 0) {
-            this.departmentsCache = data;
-            return data;
+    if (typeof fetch !== 'undefined' && !this.isUnitTest()) {
+      const urls = this.isTauriRuntime()
+        ? ['/data/departments.json']
+        : [
+            '/data/departments.json',
+            'https://kalebhenrique.github.io/sarue-unb/data/departments.json',
+            'https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/departments.json',
+          ];
+      for (const url of urls) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = (await res.json()) as Department[];
+            if (Array.isArray(data) && data.length > 0) {
+              this.departmentsCache = data;
+              return data;
+            }
           }
-        }
-      } catch {}
+        } catch {}
+      }
     }
 
     return DEMO_DEPARTMENTS;
@@ -393,92 +420,101 @@ export class InMemoryGradeRepository implements IGradeRepository {
     _year: string,
     _period: string
   ): Promise<ScrapedDiscipline[]> {
-    if (!this.classesCache && typeof fetch !== 'undefined') {
-      try {
-        const res = await fetch('/data/classes.json');
-        if (res.ok) {
-          const raw = (await res.json()) as Array<{
-            code: string;
-            name: string;
-            department_id: string;
-            acronym?: string;
-            acronyms?: string[];
-            classes: Array<{
-              id: string;
-              discipline_code: string;
-              discipline_name: string;
-              class_code: string;
-              teachers?: string[];
-              classroom?: string;
-              schedule_code: string;
-              schedule_description?: string;
-              date_range?: string;
-              schedule_slots?: Array<{
-                day: number;
-                day_name?: string;
-                dayName?: string;
-                shift: ScheduleSlot['shift'];
-                period: number;
-                time_range?: string;
-                timeRange?: string;
-                global_slot_index?: number;
-                globalSlotIndex?: number;
+    if (!this.classesCache && typeof fetch !== 'undefined' && !this.isUnitTest()) {
+      const candidateUrls = this.isTauriRuntime()
+        ? ['/data/classes.json']
+        : [
+            '/data/classes.json',
+            'https://kalebhenrique.github.io/sarue-unb/data/classes.json',
+            'https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/classes.json',
+          ];
+      for (const url of candidateUrls) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            const raw = (await res.json()) as Array<{
+              code: string;
+              name: string;
+              department_id: string;
+              acronym?: string;
+              acronyms?: string[];
+              classes: Array<{
+                id: string;
+                discipline_code: string;
+                discipline_name: string;
+                class_code: string;
+                teachers?: string[];
+                classroom?: string;
+                schedule_code: string;
+                schedule_description?: string;
+                date_range?: string;
+                schedule_slots?: Array<{
+                  day: number;
+                  day_name?: string;
+                  dayName?: string;
+                  shift: ScheduleSlot['shift'];
+                  period: number;
+                  time_range?: string;
+                  timeRange?: string;
+                  global_slot_index?: number;
+                  globalSlotIndex?: number;
+                }>;
+                vacancies?: number;
+                occupied?: number;
               }>;
-              vacancies?: number;
-              occupied?: number;
             }>;
-          }>;
 
-          if (Array.isArray(raw)) {
-            this.classesCache = raw.map((d) => {
-              const gen = generateAcronyms(d.name);
-              return {
-                code: d.code,
-                name: d.name,
-                departmentId: d.department_id || deptId,
-                acronym: d.acronym || gen.acronym || undefined,
-                acronyms: d.acronyms || (gen.acronyms.length > 0 ? gen.acronyms : undefined),
-                classes: (d.classes || []).map((c) => {
-                  // Suporte tanto ao novo formato do scraper quanto ao formato antigo
-                  const vacancies =
-                    c.vacancies !== undefined
-                      ? c.vacancies
-                      : c.occupied !== undefined
-                      ? c.occupied
-                      : undefined;
-                  const occupied =
-                    c.vacancies !== undefined ? c.occupied : c.occupied !== undefined ? 0 : undefined;
+            if (Array.isArray(raw) && raw.length > 0) {
+              this.classesCache = raw.map((d) => {
+                const gen = generateAcronyms(d.name);
+                return {
+                  code: d.code,
+                  name: d.name,
+                  departmentId: d.department_id || deptId,
+                  acronym: d.acronym || gen.acronym || undefined,
+                  acronyms: d.acronyms || (gen.acronyms.length > 0 ? gen.acronyms : undefined),
+                  classes: (d.classes || []).map((c) => {
+                    const vacancies =
+                      c.vacancies !== undefined
+                        ? c.vacancies
+                        : c.occupied !== undefined
+                        ? c.occupied
+                        : undefined;
+                    const occupied =
+                      c.vacancies !== undefined ? c.occupied : c.occupied !== undefined ? 0 : undefined;
 
-                  return {
-                    id: c.id,
-                    disciplineCode: c.discipline_code,
-                    disciplineName: c.discipline_name,
-                    classCode: c.class_code,
-                    teachers: c.teachers || [],
-                    classroom: c.classroom || 'A definir',
-                    scheduleCode: c.schedule_code,
-                    scheduleDescription: c.schedule_description,
-                    dateRange: c.date_range,
-                    scheduleSlots: (c.schedule_slots || []).map((s) => ({
-                      day: s.day,
-                      dayName: s.dayName || s.day_name || '',
-                      shift: s.shift,
-                      period: s.period,
-                      timeRange: s.timeRange || s.time_range || '',
-                      globalSlotIndex:
-                        s.globalSlotIndex !== undefined
-                          ? s.globalSlotIndex
-                          : s.global_slot_index || 0,
-                    })),
-                    vacancies,
-                    occupied,
-                  };
-                }),
-              };
-            });
+                    return {
+                      id: c.id,
+                      disciplineCode: c.discipline_code,
+                      disciplineName: c.discipline_name,
+                      classCode: c.class_code,
+                      teachers: c.teachers || [],
+                      classroom: c.classroom || 'A definir',
+                      scheduleCode: c.schedule_code,
+                      scheduleDescription: c.schedule_description,
+                      dateRange: c.date_range,
+                      scheduleSlots: (c.schedule_slots || []).map((s) => ({
+                        day: s.day,
+                        dayName: s.dayName || s.day_name || '',
+                        shift: s.shift,
+                        period: s.period,
+                        timeRange: s.timeRange || s.time_range || '',
+                        globalSlotIndex:
+                          s.globalSlotIndex !== undefined
+                            ? s.globalSlotIndex
+                            : s.global_slot_index || 0,
+                      })),
+                      vacancies,
+                      occupied,
+                    };
+                  }),
+                };
+              });
+              break;
+            }
           }
-        }
-      } catch {}
+        } catch {}
+      }
     }
 
     if (this.classesCache) {
@@ -521,6 +557,92 @@ export class InMemoryGradeRepository implements IGradeRepository {
         acronyms: d.acronyms || (gen.acronyms.length > 0 ? gen.acronyms : undefined),
       };
     });
+  }
+
+  async getProfessors(): Promise<ScrapedProfessor[]> {
+    if (this.professorsCache && this.professorsCache.length > 0) {
+      return this.professorsCache;
+    }
+
+    if (typeof fetch !== 'undefined' && !this.isUnitTest()) {
+      const candidateUrls = this.isTauriRuntime()
+        ? ['/data/professors.json']
+        : [
+            '/data/professors.json',
+            'https://kalebhenrique.github.io/sarue-unb/data/professors.json',
+            'https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/professors.json',
+          ];
+      for (const url of candidateUrls) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            const raw = (await res.json()) as Array<{
+              id: string;
+              siape?: string;
+              name: string;
+              department_id: string;
+              department_name: string;
+              department_ids?: string[];
+              discipline_codes?: string[];
+              photo_url?: string;
+              public_url?: string;
+            }>;
+            if (Array.isArray(raw) && raw.length > 0) {
+              this.professorsCache = raw.map((p) => ({
+                id: p.id,
+                siape: p.siape,
+                name: p.name,
+                departmentId: p.department_id,
+                departmentName: p.department_name,
+                departmentIds: p.department_ids || [],
+                disciplineCodes: p.discipline_codes || [],
+                photoUrl: p.photo_url,
+                publicUrl: p.public_url,
+              }));
+              return this.professorsCache;
+            }
+          }
+        } catch {}
+      }
+    }
+
+    // Sintetiza a partir de scrapeDepartmentClasses('ALL')
+    const allDisciplines = await this.scrapeDepartmentClasses('ALL', '2026', '2');
+    const allDepts = await this.getDepartments();
+    const deptNameMap = new Map(allDepts.map((d) => [d.id, d.name]));
+    const byName = new Map<string, ScrapedProfessor>();
+
+    for (const disc of allDisciplines) {
+      const deptName = deptNameMap.get(disc.departmentId) || 'UnB';
+      for (const cls of disc.classes || []) {
+        for (const t of cls.teachers || []) {
+          const clean = t.replace(/^Prof\.?\s+/i, '').trim();
+          if (!clean || clean.toUpperCase() === 'A DEFINIR') continue;
+          const key = clean.toUpperCase();
+          const existing = byName.get(key);
+          if (existing) {
+            if (!existing.disciplineCodes.includes(disc.code)) {
+              existing.disciplineCodes.push(disc.code);
+            }
+            if (!existing.departmentIds.includes(disc.departmentId)) {
+              existing.departmentIds.push(disc.departmentId);
+            }
+          } else {
+            byName.set(key, {
+              id: `prof-${disc.departmentId}-${key.replace(/\s+/g, '-')}`,
+              name: clean.toUpperCase(),
+              departmentId: disc.departmentId,
+              departmentName: deptName,
+              departmentIds: [disc.departmentId],
+              disciplineCodes: [disc.code],
+            });
+          }
+        }
+      }
+    }
+
+    this.professorsCache = Array.from(byName.values());
+    return this.professorsCache;
   }
 
   async checkConflicts(classes: ScrapedClass[]): Promise<string[]> {
@@ -660,11 +782,13 @@ export class InMemoryGradeRepository implements IGradeRepository {
 
   async getCourseCurriculum(courseId: string): Promise<CurriculumStructure[]> {
     if (!this.curriculaCache && typeof fetch !== 'undefined') {
-      const candidateUrls = [
-        '/data/curricula.json',
-        'https://kalebhenrique.github.io/sarue-unb/data/curricula.json',
-        'https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/curricula.json',
-      ];
+      const candidateUrls = this.isTauriRuntime()
+        ? ['/data/curricula.json']
+        : [
+            '/data/curricula.json',
+            'https://kalebhenrique.github.io/sarue-unb/data/curricula.json',
+            'https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/curricula.json',
+          ];
 
       for (const url of candidateUrls) {
         try {
