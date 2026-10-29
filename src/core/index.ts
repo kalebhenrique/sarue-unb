@@ -9,6 +9,7 @@ export * from './domain/entities/academic-calendar';
 export * from './domain/entities/deadline-notification';
 export * from './domain/entities/professor-evaluation';
 export * from './domain/grade-acronym';
+export * from './domain/course-shift';
 
 // Interfaces / Ports
 export * from './domain/interfaces/credentials-repo.interface';

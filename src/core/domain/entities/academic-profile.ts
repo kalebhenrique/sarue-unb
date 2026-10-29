@@ -31,6 +31,9 @@ export interface StudentAcademicProfile {
   admissionYear: string;
   curriculumCode?: string;
   curriculumId?: string;
+  /** Código da matriz curricular selecionada explicitamente pelo discente (sobrepõe inferência automática). */
+  userSelectedCurriculumCode?: string;
+  userSelectedCurriculumId?: string;
   /** Matriz customizada editada pelo discente (com matérias incluídas, equivalências e optativas de interesse) */
   customCurriculum?: CurriculumStructure;
   completedDisciplines: CompletedDiscipline[];

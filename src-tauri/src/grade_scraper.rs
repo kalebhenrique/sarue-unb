@@ -173,9 +173,8 @@ impl SigaaGradeScraper {
             .unwrap_or_else(|_| reqwest::Client::new())
     }
 
-    /// Busca um arquivo JSON a partir do disco local (dev/build), CDN GitHub Pages ou raw.githubusercontent.com
+    /// Busca um arquivo JSON a partir do disco local ou CDN
     async fn fetch_static_json<T: for<'de> Deserialize<'de>>(file_name: &str) -> Result<T, String> {
-        // 1. Tenta carregar do disco local se disponível (desenvolvimento ou build local)
         let mut candidates = vec![
             std::path::PathBuf::from(format!("public/data/{}", file_name)),
             std::path::PathBuf::from(format!("../public/data/{}", file_name)),
@@ -192,6 +191,31 @@ impl SigaaGradeScraper {
             }
         }
 
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                candidates.push(exe_dir.join("public").join("data").join(file_name));
+                candidates.push(exe_dir.join("data").join(file_name));
+                candidates.push(
+                    exe_dir
+                        .join("resources")
+                        .join("public")
+                        .join("data")
+                        .join(file_name),
+                );
+                candidates.push(exe_dir.join("resources").join("data").join(file_name));
+                if let Some(contents_dir) = exe_dir.parent() {
+                    candidates.push(
+                        contents_dir
+                            .join("Resources")
+                            .join("public")
+                            .join("data")
+                            .join(file_name),
+                    );
+                    candidates.push(contents_dir.join("Resources").join("data").join(file_name));
+                }
+            }
+        }
+
         for path in &candidates {
             if path.exists() {
                 if let Ok(content) = std::fs::read_to_string(path) {
@@ -202,7 +226,6 @@ impl SigaaGradeScraper {
             }
         }
 
-        // 2. Tenta GitHub Pages
         let client = Self::http_client();
         let url_pages = format!("{}/{}", GITHUB_PAGES_BASE_URL, file_name);
         if let Ok(res) = client.get(&url_pages).send().await {
@@ -213,7 +236,6 @@ impl SigaaGradeScraper {
             }
         }
 
-        // 3. Tenta raw.githubusercontent.com
         let url_raw = format!("{}/{}", CDN_BASE_URL, file_name);
         match client.get(&url_raw).send().await {
             Ok(res) if res.status().is_success() => res
@@ -382,8 +404,6 @@ impl SigaaGradeScraper {
                     .collect();
                 if !filtered.is_empty() {
                     return Ok(filtered);
-                } else {
-                    return Ok(Self::fallback_curricula_for_course(course_id));
                 }
             }
         }
@@ -399,19 +419,18 @@ impl SigaaGradeScraper {
                 let mut lock = get_curricula_lock().write().await;
                 *lock = Some(all_curricula);
 
-                if filtered.is_empty() {
-                    Ok(Self::fallback_curricula_for_course(course_id))
-                } else {
-                    Ok(filtered)
-                }
+                Ok(filtered)
             }
             Err(e) => {
                 log::warn!(
-                    "[SigaaData] Erro ao buscar currículos estáticos ({}), usando fallback local para curso {}",
+                    "[SigaaData] Erro ao buscar currículos estáticos ({}) para o curso {}",
                     e,
                     course_id
                 );
-                Ok(Self::fallback_curricula_for_course(course_id))
+                Err(format!(
+                    "Falha ao carregar matrizes do curso {}: {}",
+                    course_id, e
+                ))
             }
         }
     }

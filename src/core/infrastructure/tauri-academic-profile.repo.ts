@@ -73,7 +73,31 @@ async function ensureAcademicTable(db: NonNullable<Awaited<ReturnType<typeof get
         updated_at TEXT NOT NULL
       );
     `);
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS curricula_cache (
+        course_id TEXT PRIMARY KEY,
+        payload TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
     academicTableCreated = true;
+  }
+}
+
+async function saveCurriculaToDb(
+  db: NonNullable<Awaited<ReturnType<typeof getDatabase>>>,
+  courseId: string,
+  curricula: CurriculumStructure[]
+): Promise<void> {
+  try {
+    await ensureAcademicTable(db);
+    await db.execute(
+      `INSERT INTO curricula_cache (course_id, payload, updated_at) VALUES ($1, $2, $3)
+       ON CONFLICT(course_id) DO UPDATE SET payload = $2, updated_at = $3;`,
+      [courseId, JSON.stringify(curricula), new Date().toISOString()]
+    );
+  } catch (e) {
+    console.warn('[TauriAcademicProfileRepository] Falha ao salvar matrizes no SQLite:', e);
   }
 }
 
@@ -133,8 +157,6 @@ export class TauriAcademicProfileRepository implements IAcademicProfileRepositor
   }
 
   async getAllCurricula(): Promise<CurriculumStructure[]> {
-    // Carrega via fetch('/data/curricula.json') em chunks não-bloqueantes com cache compartilhado,
-    // evitando serializar 40 MB via evaluateJavaScript na Main Thread do macOS (WKWebView).
     const fromStaticAsset = await this.fallbackRepo.getAllCurricula();
     if (fromStaticAsset.length > 0) {
       return fromStaticAsset;
@@ -154,16 +176,46 @@ export class TauriAcademicProfileRepository implements IAcademicProfileRepositor
   }
 
   async getCurriculaForCourse(courseId: string): Promise<CurriculumStructure[]> {
+    if (!courseId) return [];
+    const db = await getDatabase();
+
     try {
       const { commands } = await import('@/core/infrastructure/bindings');
       const response = await commands.getCourseCurriculum(courseId);
       if (response.status === 'ok' && response.data && response.data.length > 0) {
-        return mapCurriculaDto(response.data);
+        const mapped = mapCurriculaDto(response.data);
+        if (db) await saveCurriculaToDb(db, courseId, mapped);
+        return mapped;
       }
     } catch (e) {
       console.warn('[TauriAcademicProfileRepository] Erro ao buscar matrizes do curso via bindings Tauri:', e);
     }
-    return this.fallbackRepo.getCurriculaForCourse(courseId);
+
+    // Cache offline SQLite
+    if (db) {
+      try {
+        await ensureAcademicTable(db);
+        const rows = await db.select<{ payload: string }[]>(
+          'SELECT payload FROM curricula_cache WHERE course_id = $1 LIMIT 1;',
+          [courseId]
+        );
+        if (rows && rows.length > 0) {
+          const cached = JSON.parse(rows[0].payload) as CurriculumStructure[];
+          if (Array.isArray(cached) && cached.length > 0) {
+            return cached;
+          }
+        }
+      } catch (e) {
+        console.warn('[TauriAcademicProfileRepository] Falha ao recuperar matrizes do cache SQLite:', e);
+      }
+    }
+
+    // Fallback estático
+    const fromFallback = await this.fallbackRepo.getCurriculaForCourse(courseId);
+    if (fromFallback.length > 0 && db) {
+      await saveCurriculaToDb(db, courseId, fromFallback);
+    }
+    return fromFallback;
   }
 
   async fetchSigaaHistory(creds: SigaaCredentials): Promise<SigaaHistoryRawResponse> {

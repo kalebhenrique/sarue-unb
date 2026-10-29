@@ -2,7 +2,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useContainer } from '../context/ContainerContext';
 import { useCredentials } from './useCredentials';
 import { toast } from '@/components/ui';
-import { normalizeCourseText } from '@/core';
+import {
+  preferShiftCompatible,
+  resolveCourseIdFromCatalog,
+  resolveCurriculumByAdmissionYear,
+  shiftFamilyFromSigaaToken,
+} from '@/core';
 import type {
   StudentAcademicProfile,
   FlowchartData,
@@ -10,15 +15,13 @@ import type {
   IGradeRepository,
 } from '@/core';
 
-// Notificador global entre instâncias ativas do hook useMyCourse
 const myCourseListeners = new Set<() => void>();
 
 export function notifyMyCourseListeners() {
   myCourseListeners.forEach((fn) => fn());
 }
 
-// Resolve o course_id do curso do perfil no catálogo de cursos (courses.json, ~47 KB).
-// Com ele, o app baixa só as matrizes do curso em vez do catálogo inteiro da UnB.
+/** Resolve o course_id no catálogo com desambiguação de turno. */
 export async function resolveCourseIdForProfile(
   profile: StudentAcademicProfile,
   gradeRepo: IGradeRepository,
@@ -26,30 +29,17 @@ export async function resolveCourseIdForProfile(
   if (!profile.courseName) return null;
   try {
     const catalog = (await gradeRepo.getCoursesCatalog?.()) || [];
-    if (catalog.length === 0) return null;
-    const target = normalizeCourseText(profile.courseName);
-    const hit =
-      catalog.find((c) => normalizeCourseText(c.name) === target) ||
-      catalog.find((c) => {
-        const n = normalizeCourseText(c.name);
-        return n.length >= 4 && (n.includes(target) || target.includes(n));
-      });
-    return hit ? hit.id : null;
+    return resolveCourseIdFromCatalog(catalog, profile.courseName, profile.shift);
   } catch (e) {
     console.warn('[useMyCourse] Não foi possível resolver o curso no catálogo:', e);
     return null;
   }
 }
 
-// Cache de sessão: voltar à aba remonta o hook e hidrata daqui, sem tela de
-// carregamento — o catálogo de matrizes é estático na sessão e o perfil vem de
-// leitura local barata. `undefined` = nunca carregado (primeira carga da sessão).
+// Cache de sessão para navegação instantânea
 let cachedCurricula: CurriculumStructure[] | null = null;
-// Escopo do cache de matrizes: course_id do curso carregado ou 'ALL' (catálogo completo)
 let cachedCurriculaScope: string | null = null;
 let cachedProfile: StudentAcademicProfile | null | undefined;
-// Matriz resolvida: sem ela o primeiro render pós-cache renderia a página sem
-// stats e sem lista, e o conteúdo inteiro entraria de uma vez depois (layout shift)
 let cachedSelectedCurriculum: CurriculumStructure | null = null;
 
 export function resetMyCourseCache() {
@@ -71,15 +61,11 @@ export function useMyCourse() {
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
 
-  // Carrega currículos e perfil. Com cache quente, só o perfil é relido (barato):
-  // conteúdo troca no lugar, sem skeleton intermediário (@DESIGN.md — piscar é shift).
   const loadData = useCallback(async () => {
     try {
       const currentProfile = await useCases.manageAcademicProfile.getProfile();
 
-      // Com perfil (login SIGAA), baixa apenas as matrizes do curso do usuário
-      // (arquivo por curso no CDN) em vez do catálogo inteiro da UnB (~40 MB).
-      // Sem perfil (modo explorar) ou sem casamento no catálogo, cai no fetch completo.
+      // Baixa matrizes específicas do curso quando logado
       let curricula: CurriculumStructure[] = [];
       let curriculaScope: string | null = null;
       if (currentProfile) {
@@ -102,14 +88,29 @@ export function useMyCourse() {
         curriculaScope = 'ALL';
       }
 
+      // Fallback: recarrega catálogo completo se a matriz não constar no arquivo do curso
+      const curriculumPrefix = currentProfile?.curriculumCode?.match(/^(\d{3,5})\//)?.[1];
+      if (
+        curriculaScope !== 'ALL' &&
+        curriculumPrefix &&
+        curricula.length > 0 &&
+        !curricula.some((c) => c.code.startsWith(curriculumPrefix))
+      ) {
+        try {
+          curricula = await useCases.manageAcademicProfile.getAllCurricula();
+          curriculaScope = 'ALL';
+        } catch (e) {
+          console.warn('[useMyCourse] Auto-cura com catálogo completo falhou:', e);
+        }
+      }
+
       cachedCurricula = curricula;
       cachedCurriculaScope = curriculaScope;
       cachedProfile = currentProfile;
       setAllCurricula(curricula);
 
       if (currentProfile && curricula.length > 0) {
-        // Auto-cura: se alguma disciplina salva no perfil tem nome igual ao código ou vazio,
-        // recupera o nome real a partir do catálogo de matrizes carregadas (apenas quando necessário)
+        // Recupera nomes oficiais para disciplinas sem nome
         let healed = false;
         const missingNameItems = currentProfile.completedDisciplines.filter(
           (cd) => !cd.name || cd.name === cd.code,
@@ -167,7 +168,6 @@ export function useMyCourse() {
           }
         }
 
-        // Se ainda houver alguma disciplina sem nome oficial, tenta recuperar do classes.json
         const stillMissing = currentProfile.completedDisciplines.some((cd) => !cd.name || cd.name === cd.code);
         if (stillMissing && typeof fetch !== 'undefined') {
           try {
@@ -199,46 +199,69 @@ export function useMyCourse() {
 
         setProfile(currentProfile);
 
-        // Encontra a matriz correspondente
+        // Resolução de matriz com prioridade para seleção manual
         let matched: CurriculumStructure | undefined;
 
-        if (currentProfile.curriculumCode) {
-          matched = curricula.find((c) => c.code === currentProfile.curriculumCode);
-        }
-
-        // Dentro do mesmo prefixo, a versão cuja CH total bate com o histórico oficial do
-        // SIGAA ganha da versão gravada por engano no perfil (ex.: 1741/3 vs 1741/1)
-        if (matched && currentProfile.chTotalCurriculo) {
-          const prefix = currentProfile.curriculumCode!.split('/')[0];
-          const byHours = curricula.find(
-            (c) => c.code.startsWith(`${prefix}/`) && c.totalHours === currentProfile.chTotalCurriculo,
+        if (currentProfile.userSelectedCurriculumCode) {
+          matched = curricula.find(
+            (c) =>
+              c.code === currentProfile.userSelectedCurriculumCode ||
+              (currentProfile.userSelectedCurriculumId && c.id === currentProfile.userSelectedCurriculumId)
           );
-          if (byHours && matched.totalHours !== currentProfile.chTotalCurriculo) {
-            matched = byHours;
-          }
         }
 
-        if (!matched && currentProfile.curriculumCode) {
-          const prefix = currentProfile.curriculumCode.split('/')[0];
-          if (currentProfile.chTotalCurriculo) {
-            matched = curricula.find((c) => c.code.startsWith(prefix) && c.totalHours === currentProfile.chTotalCurriculo);
+        if (!matched) {
+          if (currentProfile.curriculumCode) {
+            matched = curricula.find((c) => c.code === currentProfile.curriculumCode);
           }
-          if (!matched) {
-            matched =
-              curricula.find((c) => c.code.startsWith(`${prefix}/`) && c.status === 'Ativa') ||
-              curricula.find((c) => c.code.startsWith(prefix));
-          }
-        }
 
-        if (!matched && currentProfile.courseName) {
-          const normCourse = currentProfile.courseName.toUpperCase().trim();
-          if (currentProfile.chTotalCurriculo) {
-            matched = curricula.find((c) => c.courseName.toUpperCase().includes(normCourse) && c.totalHours === currentProfile.chTotalCurriculo);
+          if (matched && currentProfile.chTotalCurriculo) {
+            const prefix = currentProfile.curriculumCode!.split('/')[0];
+            const byHours = curricula.find(
+              (c) => c.code.startsWith(`${prefix}/`) && c.totalHours === currentProfile.chTotalCurriculo,
+            );
+            if (byHours && matched.totalHours !== currentProfile.chTotalCurriculo) {
+              matched = byHours;
+            }
           }
-          if (!matched) {
-            matched =
-              curricula.find((c) => c.courseName.toUpperCase().includes(normCourse) && c.status === 'Ativa') ||
-              curricula.find((c) => c.courseName.toUpperCase().includes(normCourse));
+
+          if (!matched && currentProfile.curriculumCode) {
+            const prefix = currentProfile.curriculumCode.split('/')[0];
+            const candidates = preferShiftCompatible(
+              curricula.filter((c) => c.code.startsWith(`${prefix}/`) || c.code.startsWith(prefix)),
+              shiftFamilyFromSigaaToken(currentProfile.shift)
+            );
+
+            if (currentProfile.chTotalCurriculo) {
+              matched = candidates.find((c) => c.totalHours === currentProfile.chTotalCurriculo);
+            }
+
+            if (!matched && currentProfile.admissionYear) {
+              matched = resolveCurriculumByAdmissionYear(candidates, currentProfile.admissionYear);
+            }
+
+            if (!matched) {
+              matched =
+                candidates.find((c) => c.status === 'Ativa') ||
+                candidates[0];
+            }
+          }
+
+          if (!matched && currentProfile.courseName) {
+            const normCourse = currentProfile.courseName.toUpperCase().trim();
+            const byName = preferShiftCompatible(
+              curricula.filter((c) => c.courseName.toUpperCase().includes(normCourse)),
+              shiftFamilyFromSigaaToken(currentProfile.shift)
+            );
+            if (currentProfile.chTotalCurriculo) {
+              matched = byName.find((c) => c.totalHours === currentProfile.chTotalCurriculo);
+            }
+            if (!matched && currentProfile.admissionYear) {
+              matched = resolveCurriculumByAdmissionYear(byName, currentProfile.admissionYear);
+            }
+            if (!matched) {
+              matched = byName.find((c) => c.status === 'Ativa') || byName[0];
+            }
           }
         }
 
@@ -283,14 +306,11 @@ export function useMyCourse() {
     return selectedCurriculum;
   }, [profile?.customCurriculum, selectedCurriculum]);
 
-  // Calcula o fluxograma quando houver perfil e matriz
   const flowchartData: FlowchartData | null = useMemo(() => {
     if (!activeCurriculum || !profile) return null;
     return useCases.getFlowchart.execute(activeCurriculum, profile, allCurricula);
   }, [activeCurriculum, profile, allCurricula, useCases]);
 
-  // Mapa código → nome de disciplina: todas as matrizes carregadas
-  // + matriz selecionada + histórico cursado, garantindo nomes reais para qualquer código
   const disciplineNames: Map<string, string> = useMemo(() => {
     const map = new Map<string, string>();
     for (const c of allCurricula) {
@@ -317,7 +337,6 @@ export function useMyCourse() {
     return map;
   }, [allCurricula, activeCurriculum, profile]);
 
-  // Alterna uma disciplina manualmente (a UI passa o estado efetivo atual do card)
   const toggleDiscipline = useCallback(async (code: string, isEffectivelyCompleted?: boolean) => {
     try {
       const updated = await useCases.manageAcademicProfile.toggleDiscipline(code, isEffectivelyCompleted);
@@ -340,7 +359,6 @@ export function useMyCourse() {
     }
   }, [useCases]);
 
-  // Redefine overrides manuais
   const resetOverrides = useCallback(async () => {
     try {
       const updated = await useCases.manageAcademicProfile.resetManualOverrides();
@@ -361,7 +379,6 @@ export function useMyCourse() {
     }
   }, [useCases]);
 
-  // Sincroniza com o SIGAA usando as credenciais salvas
   const syncSigaa = useCallback(async () => {
     const creds = allCredentials.sigaa;
     if (!creds || !creds.matricula || !creds.senha) {
@@ -402,7 +419,6 @@ export function useMyCourse() {
     }
   }, [allCredentials.sigaa, useCases]);
 
-  // Troca manualmente a matriz curricular ativa
   const selectCurriculum = useCallback(async (curr: CurriculumStructure) => {
     try {
       const updated = await useCases.manageAcademicProfile.setCurriculum(curr);
@@ -425,7 +441,6 @@ export function useMyCourse() {
     }
   }, [useCases]);
 
-  // Salva currículo customizado editado pelo discente
   const saveCustomCurriculum = useCallback(async (curr: CurriculumStructure) => {
     try {
       const updated = await useCases.manageAcademicProfile.saveCustomCurriculum(curr);
@@ -447,7 +462,6 @@ export function useMyCourse() {
     }
   }, [useCases]);
 
-  // Restaura o currículo para a matriz original da UnB
   const resetCustomCurriculum = useCallback(async () => {
     try {
       const updated = await useCases.manageAcademicProfile.resetCustomCurriculum();
@@ -468,7 +482,6 @@ export function useMyCourse() {
     }
   }, [useCases]);
 
-  // Relações ativas de hover (para destacar pré-requisitos e pós-requisitos)
   const hoverRelations = useMemo(() => {
     if (!hoveredCode || !flowchartData) {
       return { prereqs: new Set<string>(), postreqs: new Set<string>() };

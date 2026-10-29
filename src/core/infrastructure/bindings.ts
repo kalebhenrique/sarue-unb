@@ -106,10 +106,7 @@ export type Department = {
 export type DiscenteAcademicHistoryPayload = {
 	profile: DiscenteProfile,
 	pdfBase64: string | null,
-	/**
-	 *  Texto do PDF já extraído no Rust: parsear no webview (unpdf/pdf.js)
-	 *  estourava o WebProcess e recarregava a página em loop.
-	 */
+	/**  Texto do PDF já extraído no backend para evitar overhead no webview. */
 	pdfText: string | null,
 };
 
@@ -117,6 +114,8 @@ export type DiscenteProfile = {
 	matricula: string,
 	nome: string | null,
 	curso: string,
+	/**  Turno informado pelo SIGAA (ex.: "MT", "N", "DIURNO"). */
+	turno?: string | null,
 	nivel: string,
 	status: string,
 	entrada: string,

@@ -3,7 +3,7 @@ import type { CurriculumStructure } from '../domain/entities/course';
 import type { SigaaCredentials } from '../domain/entities/credential';
 import type { IAcademicProfileRepository } from '../domain/interfaces/academic-profile-repo.interface';
 import type { IGradeRepository } from '../domain/interfaces/grade-repo.interface';
-import { normalizeCourseText } from './get-courses.use-case';
+import { resolveCourseIdFromCatalog } from './get-courses.use-case';
 import { ParseHistoricoUseCase } from './parse-historico.use-case';
 
 export class ManageAcademicProfileUseCase {
@@ -171,6 +171,8 @@ export class ManageAcademicProfileUseCase {
       courseName: curriculum.courseName,
       curriculumCode: curriculum.code,
       curriculumId: curriculum.id,
+      userSelectedCurriculumCode: curriculum.code,
+      userSelectedCurriculumId: curriculum.id,
       updatedAt: new Date().toISOString(),
     };
 
@@ -184,12 +186,11 @@ export class ManageAcademicProfileUseCase {
   }> {
     const rawRes = await this.repo.fetchSigaaHistory(creds);
 
-    // O catálogo completo (curricula.json) tem ~43MB: resolve o curso no
-    // catálogo pequeno (courses.json, ~48KB) e baixa só as matrizes dele.
-    // O catálogo completo é último recurso.
+    // Baixa apenas matrizes do curso para evitar download do catálogo completo
     let curriculaCatalog: CurriculumStructure[] = [];
+    let usedFullCatalog = false;
     try {
-      const courseId = await this.resolveCourseId(rawRes.curso);
+      const courseId = await this.resolveCourseId(rawRes.curso, rawRes.turno);
       if (courseId) {
         curriculaCatalog = await this.repo.getCurriculaForCourse(courseId);
       }
@@ -201,9 +202,10 @@ export class ManageAcademicProfileUseCase {
     }
     if (curriculaCatalog.length === 0) {
       curriculaCatalog = await this.repo.getAllCurricula();
+      usedFullCatalog = true;
     }
 
-    const parseResult = await this.parseHistoricoUseCase.execute({
+    const parseInput = {
       rawText: rawRes.pdfText,
       pdfBase64: rawRes.pdfBase64,
       defaultProfile: {
@@ -219,16 +221,74 @@ export class ManageAcademicProfileUseCase {
         chTotalCurriculo: rawRes.chTotalCurriculo,
         chComplementarPendente: rawRes.chComplementarPendente,
         percentualIntegralizado: rawRes.percentualIntegralizado,
+        shift: rawRes.turno ?? undefined,
       },
       curriculaCatalog,
-    });
+    };
+
+    let parseResult = await this.parseHistoricoUseCase.execute(parseInput);
+
+    // Auto-cura: se a matriz não constar no arquivo do curso, tenta o catálogo completo
+    const curriculumPrefix = parseResult.profile.curriculumCode?.match(/^(\d{3,5})\//)?.[1];
+    if (
+      !usedFullCatalog &&
+      curriculumPrefix &&
+      !curriculaCatalog.some((c) => c.code.startsWith(curriculumPrefix))
+    ) {
+      try {
+        const fullCatalog = await this.repo.getAllCurricula();
+        if (fullCatalog.some((c) => c.code.startsWith(curriculumPrefix))) {
+          parseResult = await this.parseHistoricoUseCase.execute({
+            ...parseInput,
+            curriculaCatalog: fullCatalog,
+          });
+        }
+      } catch (e) {
+        console.warn(
+          '[ManageAcademicProfile] Auto-cura com catálogo completo falhou:',
+          e
+        );
+      }
+    }
 
     const currentProfile = await this.repo.getProfile();
-    // Preserva eventuais marcações manuais e matriz customizada anteriores
     if (currentProfile) {
       parseResult.profile.manualCompletedCodes = currentProfile.manualCompletedCodes || [];
       parseResult.profile.manualUncompletedCodes = currentProfile.manualUncompletedCodes || [];
       parseResult.profile.customCurriculum = currentProfile.customCurriculum;
+
+      // Preserva histórico anterior caso o PDF venha sem disciplinas
+      if (
+        (!parseResult.profile.completedDisciplines || parseResult.profile.completedDisciplines.length === 0) &&
+        (currentProfile.completedDisciplines?.length || 0) > 0
+      ) {
+        console.warn(
+          '[ManageAcademicProfile] Emissão de histórico sem disciplinas válidas; mantendo histórico escolar anterior.'
+        );
+        parseResult.profile.completedDisciplines = currentProfile.completedDisciplines;
+        parseResult.profile.trancadaEvents = currentProfile.trancadaEvents || [];
+        if (!parseResult.profile.curriculumCode && currentProfile.curriculumCode) {
+          parseResult.profile.curriculumCode = currentProfile.curriculumCode;
+          parseResult.profile.curriculumId = currentProfile.curriculumId;
+        }
+      }
+
+      // Preserva matriz escolhida manualmente pelo discente
+      if (currentProfile.userSelectedCurriculumCode) {
+        parseResult.profile.userSelectedCurriculumCode = currentProfile.userSelectedCurriculumCode;
+        parseResult.profile.userSelectedCurriculumId = currentProfile.userSelectedCurriculumId;
+
+        const manualCurr = curriculaCatalog.find(
+          (c) =>
+            c.code === currentProfile.userSelectedCurriculumCode ||
+            (currentProfile.userSelectedCurriculumId && c.id === currentProfile.userSelectedCurriculumId)
+        );
+        if (manualCurr) {
+          parseResult.matchedCurriculum = manualCurr;
+          parseResult.profile.curriculumCode = manualCurr.code;
+          parseResult.profile.curriculumId = manualCurr.id;
+        }
+      }
     }
 
     // Se o usuário apagou os dados/credenciais enquanto o histórico era baixado, não regrava o perfil
@@ -248,19 +308,14 @@ export class ManageAcademicProfileUseCase {
   }
 
   /** Resolve o course_id no catálogo pequeno de cursos (~48KB, via Rust). */
-  private async resolveCourseId(courseName: string): Promise<string | null> {
+  private async resolveCourseId(
+    courseName: string,
+    shiftToken?: string | null
+  ): Promise<string | null> {
     if (!courseName || !this.gradeRepo?.getCoursesCatalog) return null;
     try {
       const catalog = (await this.gradeRepo.getCoursesCatalog()) || [];
-      if (catalog.length === 0) return null;
-      const target = normalizeCourseText(courseName);
-      const hit =
-        catalog.find((c) => normalizeCourseText(c.name) === target) ||
-        catalog.find((c) => {
-          const n = normalizeCourseText(c.name);
-          return n.length >= 4 && (n.includes(target) || target.includes(n));
-        });
-      return hit ? hit.id : null;
+      return resolveCourseIdFromCatalog(catalog, courseName, shiftToken);
     } catch {
       return null;
     }

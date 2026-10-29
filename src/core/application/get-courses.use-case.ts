@@ -1,5 +1,6 @@
-import type { Course, CourseAssociation, Discipline } from '../domain/entities/course';
+import type { Course, CourseAssociation, CourseCatalogItem, Discipline } from '../domain/entities/course';
 import type { IFeedRepository } from '../domain/interfaces/feed-repo.interface';
+import { catalogShiftMatchesFamily, shiftFamilyFromSigaaToken } from '../domain/course-shift';
 
 export interface GetDisciplinesResult {
   disciplines: Discipline[];
@@ -17,6 +18,38 @@ export function normalizeCourseText(text: string): string {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+/** Resolve o course_id no catálogo desambiguando cursos homônimos pelo turno. */
+export function resolveCourseIdFromCatalog(
+  catalog: Pick<CourseCatalogItem, 'id' | 'name' | 'shift'>[],
+  courseName: string,
+  shiftToken?: string | null
+): string | null {
+  if (!courseName || catalog.length === 0) return null;
+  const target = normalizeCourseText(courseName);
+  const sameName = catalog.filter((c) => normalizeCourseText(c.name) === target);
+  const partial =
+    sameName.length === 0
+      ? catalog.filter((c) => {
+          const n = normalizeCourseText(c.name);
+          return n.length >= 4 && (n.includes(target) || target.includes(n));
+        })
+      : [];
+  const pool = sameName.length > 0 ? sameName : partial;
+  if (pool.length === 0) return null;
+  if (pool.length === 1) return pool[0].id;
+
+  const family = shiftFamilyFromSigaaToken(shiftToken);
+  if (family) {
+    const compatible = pool.filter((c) => catalogShiftMatchesFamily(c.shift, family));
+    const initial = family[0];
+    const exact = compatible.filter((c) => normalizeCourseText(c.shift ?? '')[0] === initial);
+    if (exact.length > 0) return exact[0].id;
+    if (compatible.length > 0) return compatible[0].id;
+  }
+  return pool[0].id;
+}
+
 
 export function getCourseAcronym(name: string): string {
   const stopWords = new Set([

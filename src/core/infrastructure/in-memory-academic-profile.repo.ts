@@ -256,6 +256,21 @@ export class InMemoryAcademicProfileRepository implements IAcademicProfileReposi
     const cached = sharedCurriculaByCourse.get(courseId);
     if (cached) return cached;
 
+    // Cache local web
+    const storageKey = `sarue_curricula_course_${courseId}`;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const rawLocal = localStorage.getItem(storageKey);
+        if (rawLocal) {
+          const parsed = JSON.parse(rawLocal) as CurriculumStructure[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            sharedCurriculaByCourse.set(courseId, Promise.resolve(parsed));
+            return parsed;
+          }
+        }
+      } catch {}
+    }
+
     const promise = (async () => {
       if (typeof fetch !== 'undefined') {
         const candidateUrls = isTauriRuntime()
@@ -272,7 +287,13 @@ export class InMemoryAcademicProfileRepository implements IAcademicProfileReposi
             if (!res.ok) continue;
             const raw = (await res.json()) as RawCurriculumStructure[];
             if (Array.isArray(raw) && raw.length > 0) {
-              return raw.map(mapCurriculumStructure);
+              const mapped = raw.map(mapCurriculumStructure);
+              if (typeof localStorage !== 'undefined') {
+                try {
+                  localStorage.setItem(storageKey, JSON.stringify(mapped));
+                } catch {}
+              }
+              return mapped;
             }
           } catch (e) {
             console.warn(`[InMemoryAcademicProfileRepository] Erro ao carregar matrizes do curso ${courseId} em ${url}:`, e);

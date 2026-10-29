@@ -1,6 +1,11 @@
 import { extractText } from 'unpdf';
 import type { CompletedDiscipline, StudentAcademicProfile } from '../domain/entities/academic-profile';
 import type { CurriculumStructure } from '../domain/entities/course';
+import {
+  preferShiftCompatible,
+  resolveCurriculumByAdmissionYear,
+  shiftFamilyFromSigaaToken,
+} from '../domain/course-shift';
 
 export interface ParseHistoricoInput {
   pdfData?: Uint8Array;
@@ -94,13 +99,7 @@ export function extractPrecedingDisciplineName(fullText: string, matchIndex: num
   return undefined;
 }
 
-/**
- * Extrai o período letivo (ex.: "2020.1") do agrupamento em que a disciplina
- * está no histórico escolar. O SIGAA imprime uma linha "2020.1 NOME DA
- * DISCIPLINA" imediatamente antes de cada registro; o último token de período
- * antes do match é o semestre do registro. Janela de 400 caracteres: cada
- * agrupamento tem até ~8 disciplinas e o token se repete a cada registro.
- */
+/** Extrai o período letivo (ex.: "2020.1") do agrupamento da disciplina no histórico escolar. */
 export function extractPrecedingPeriod(fullText: string, matchIndex: number): string | undefined {
   const windowStart = Math.max(0, matchIndex - 400);
   const textBefore = fullText.slice(windowStart, matchIndex);
@@ -109,12 +108,7 @@ export function extractPrecedingPeriod(fullText: string, matchIndex: number): st
   return last ? last[1] : undefined;
 }
 
-
-/**
- * Normaliza situações do histórico para os códigos curtos canônicos:
- * APROVADO->APR, REPROVADO->REP, TRANCADO->TR, CANCELADO->CANC,
- * DISPENSADO->DISP, MATRICULADO->MATR.
- */
+/** Normaliza situações do histórico para códigos curtos (APR, REP, TR, CANC, DISP, MATR). */
 function normalizeSituation(raw: string): string {
   const s = raw.toUpperCase();
   if (s.startsWith('MATR')) return 'MATR';
@@ -126,11 +120,7 @@ function normalizeSituation(raw: string): string {
   return s;
 }
 
-/**
- * Extrai a sigla canônica de menção de um token do histórico: o SIGAA imprime
- * sufixos como "MSe" (exame), "SS*" (ajuste), "MI&", "--#" — a sigla válida
- * para o IRA são os dois primeiros caracteres (SS/MS/MM/MI/II/SR).
- */
+/** Extrai a sigla canônica de menção (SS/MS/MM/MI/II/SR). */
 export function extractMentionCode(token: string | undefined): string {
   const raw = (token || '').trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
   const m = raw.match(/^(SS|MS|MM|MI|II|SR|AP|CC)/);
@@ -192,6 +182,11 @@ export class ParseHistoricoUseCase {
     const anoMatch = fullText.match(/(?:Ano\s*\/\s*Per[íi]odo\s*Letivo\s*Inicial|Entrada):\s*(\d{4}\.[12]|\d{4})/i);
     const admissionYear = anoMatch?.[1] || input.defaultProfile?.admissionYear || '';
 
+    // Turno do curso: token do SIGAA ou palavra-chave no cabeçalho
+    const shiftWord = headerPortion.match(/\b(DIURNO|NOTURNO|INTEGRAL|MATUTINO|VESPERTINO)\b/i)?.[1];
+    const shift =
+      shiftFamilyFromSigaaToken(input.defaultProfile?.shift || shiftWord) || 'DIURNO';
+
     // Nível
     const nivelMatch = fullText.match(/N[íi]vel:\s*([^\n\r]+)/i);
     const level = nivelMatch?.[1]?.trim() || input.defaultProfile?.level || 'Graduação';
@@ -203,9 +198,7 @@ export class ParseHistoricoUseCase {
 
     // 3. Extração das disciplinas cursadas e em andamento
     const completedMap = new Map<string, CompletedDiscipline>();
-    // Eventos de trancamento (um por linha TR do histórico): o fator de
-    // trancamento do IRA conta cada evento, mesmo que a disciplina tenha sido
-    // aprovada depois — o dedup por código do completedMap perderia esses.
+    // Eventos de trancamento preservados individualmente para cálculo de IRA
     const trancadaEvents: { code: string; period?: string }[] = [];
     const trancadaKeys = new Set<string>();
     const recordTrancada = (code: string, period?: string) => {
@@ -408,7 +401,8 @@ export class ParseHistoricoUseCase {
       matchedCurriculum = curricula.find((c) => c.code === curriculumCode);
       if (!matchedCurriculum) {
         const prefix = curriculumCode.split('/')[0];
-        const candidates = curricula.filter((c) => c.code.startsWith(`${prefix}/`) || c.code.startsWith(prefix));
+        let candidates = curricula.filter((c) => c.code.startsWith(`${prefix}/`) || c.code.startsWith(prefix));
+        candidates = preferShiftCompatible(candidates, shift);
 
         // Prioridade 1: Carga horária total correspondente (ex: 3480h)
         if (input.defaultProfile?.chTotalCurriculo) {
@@ -417,16 +411,7 @@ export class ParseHistoricoUseCase {
 
         // Prioridade 2: Ano de criação compatível com ano de ingresso (<= ingresso)
         if (!matchedCurriculum && admissionYear) {
-          const admYear = parseInt(admissionYear.split('.')[0], 10);
-          if (!isNaN(admYear)) {
-            const compatible = candidates.filter((c) => {
-              const yr = c.createdYear ? parseInt(c.createdYear, 10) : undefined;
-              return yr ? yr <= admYear : true;
-            });
-            if (compatible.length > 0) {
-              matchedCurriculum = compatible[compatible.length - 1]; // Mais recente até o ingresso
-            }
-          }
+          matchedCurriculum = resolveCurriculumByAdmissionYear(candidates, admissionYear);
         }
 
         if (!matchedCurriculum) {
@@ -438,9 +423,10 @@ export class ParseHistoricoUseCase {
     // Se não encontrou por código de currículo, tenta por nome de curso normalizado
     if (!matchedCurriculum && courseName && curricula.length > 0) {
       const normCourse = normalizeName(courseName);
-      const candidates = curricula.filter(
+      let candidates = curricula.filter(
         (c) => normalizeName(c.courseName) === normCourse || normalizeName(c.courseName).includes(normCourse)
       );
+      candidates = preferShiftCompatible(candidates, shift);
 
       // Prioridade 1: Carga horária total correspondente
       if (input.defaultProfile?.chTotalCurriculo) {
@@ -449,16 +435,7 @@ export class ParseHistoricoUseCase {
 
       // Prioridade 2: Ano de ingresso compatível
       if (!matchedCurriculum && admissionYear) {
-        const admYear = parseInt(admissionYear.split('.')[0], 10);
-        if (!isNaN(admYear)) {
-          const compatible = candidates.filter((c) => {
-            const yr = c.createdYear ? parseInt(c.createdYear, 10) : undefined;
-            return yr ? yr <= admYear : true;
-          });
-          if (compatible.length > 0) {
-            matchedCurriculum = compatible[compatible.length - 1];
-          }
-        }
+        matchedCurriculum = resolveCurriculumByAdmissionYear(candidates, admissionYear);
       }
 
       if (!matchedCurriculum) {
@@ -553,7 +530,7 @@ export class ParseHistoricoUseCase {
       studentName,
       courseName,
       degree: input.defaultProfile?.degree || 'Bacharelado',
-      shift: input.defaultProfile?.shift || 'DIURNO',
+      shift,
       level,
       admissionYear,
       curriculumCode: curriculumCode || matchedCurriculum?.code,

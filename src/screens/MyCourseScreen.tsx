@@ -50,6 +50,7 @@ export const MyCourseScreen: React.FC = () => {
     toggleDiscipline,
     resetOverrides,
     selectCurriculum,
+    reload,
   } = useMyCourse();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -65,7 +66,6 @@ export const MyCourseScreen: React.FC = () => {
     setViewMode(mode);
   };
 
-  // Filtra as disciplinas para o modo lista
   const filteredDisciplinesForList = useMemo(() => {
     if (!flowchartData) return [];
     const all: (typeof flowchartData.semesters)[0]["disciplines"] = [];
@@ -73,7 +73,6 @@ export const MyCourseScreen: React.FC = () => {
       all.push(...sem.disciplines);
     }
 
-    // Busca normalizada: sem acento e sem diferença de caixa
     const norm = (v: string) =>
       v
         .toUpperCase()
@@ -103,7 +102,6 @@ export const MyCourseScreen: React.FC = () => {
     return new Set(filteredDisciplinesForList.map((d) => d.code));
   }, [filteredDisciplinesForList]);
 
-  // Disciplinas matriculadas (MATRICULADA no SIGAA): já ordenadas alfabeticamente pelo use-case
   const inProgressDisciplines = useMemo(() => {
     if (!flowchartData) return [];
     if (
@@ -117,7 +115,6 @@ export const MyCourseScreen: React.FC = () => {
     );
   }, [flowchartData]);
 
-  // Trocar Matriz só oferece estruturas do próprio curso — o curso vem do histórico SIGAA
   const courseCurricula = useMemo(() => {
     const norm = (v: string) =>
       v
@@ -126,12 +123,9 @@ export const MyCourseScreen: React.FC = () => {
         .replace(/[\u0300-\u036f]/g, "");
     const course = norm(profile?.courseName || "");
     if (!course) return allCurricula;
-    // Direção única: o nome da matriz precisa conter o nome completo do curso do
-    // histórico — o inverso deixava passar cursos como "Engenharia" e "Computação"
     const matched = allCurricula.filter((c) =>
       norm(c.courseName || "").includes(course),
     );
-    // Nunca deixa o diálogo vazio se o casamento por nome falhar
     return matched.length > 0 ? matched : allCurricula;
   }, [allCurricula, profile?.courseName]);
 
@@ -162,7 +156,6 @@ export const MyCourseScreen: React.FC = () => {
 
   return (
     <PageContainer>
-      {/* Cabeçalho da Página com Ações Rápidas */}
       <PageHeader
         title="Meu Curso"
         icon={GraduationCap}
@@ -212,48 +205,56 @@ export const MyCourseScreen: React.FC = () => {
         }
       />
 
-      {!profile ? (
-        <EmptyState
-          title="Nenhum Perfil Acadêmico Carregado"
-          description={
-            <>
-              Sincronize com o SIGAA na aba <strong>Configurações</strong> para
-              carregar seu curso, disciplinas cursadas, IRA e acompanhar seu
-              progresso no fluxograma.
-            </>
-          }
-          className="mb-6"
-        />
-      ) : (
-        <>
-          {/* Banner de Identificação do Discente (@DESIGN.md) */}
-          <div className="bg-paper border-2 border-ink rounded-lg p-5 mb-6 shadow-neo">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center flex-wrap">
-                <span className="text-lg font-black text-black tracking-tight">
-                  {profile.courseName ||
-                    curriculum?.courseName ||
-                    "Curso de Graduação"}
-                </span>
+      <ErrorBoundary
+        key="my-course-overview"
+        fallbackTitle="Não foi possível carregar a visualização do curso"
+        fallbackDescription="Ocorreu um erro inesperado ao processar os dados curriculares. Tente recarregar ou selecionar uma matriz diferente."
+        onReset={() => reload()}
+      >
+        {!profile ? (
+          <EmptyState
+            title="Nenhum Perfil Acadêmico Carregado"
+            description={
+              <>
+                Sincronize com o SIGAA na aba <strong>Configurações</strong> para
+                carregar seu curso, disciplinas cursadas, IRA e acompanhar seu
+                progresso no fluxograma.
+              </>
+            }
+            className="mb-6"
+          />
+        ) : (
+          <>
+            <div className="bg-paper border-2 border-ink rounded-lg p-5 mb-6 shadow-neo">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center flex-wrap">
+                  <span className="text-lg font-black text-black tracking-tight">
+                    {profile.courseName ||
+                      curriculum?.courseName ||
+                      "Curso de Graduação"}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Painel de Métricas e Integralização */}
-          {flowchartData && (
-            <FlowchartStats
-              metrics={flowchartData.metrics}
-              onOpenIraCalculator={() => setView("ira-calculator")}
-            />
-          )}
+            {flowchartData ? (
+              <FlowchartStats
+                metrics={flowchartData.metrics}
+                onOpenIraCalculator={() => setView("ira-calculator")}
+              />
+            ) : !isLoading ? (
+              <EmptyState
+                title="Matriz Curricular Não Encontrada"
+                description="Não foi possível mapear automaticamente a estrutura curricular deste curso. Clique em 'Trocar Matriz' acima para selecionar ou carregar sua matriz oficial."
+                className="mb-6"
+              />
+            ) : null}
 
-          {/* Painel "Cursando agora" — resposta direta a "o que estou fazendo neste semestre?" */}
           <CurrentlyEnrolledPanel
             disciplines={inProgressDisciplines}
             searchQuery={searchQuery}
           />
 
-          {/* Lista de disciplinas: busca embutida no cabeçalho do card */}
           {flowchartData && (
             <section
               className="bg-paper border-2 border-ink rounded-lg shadow-neo"
@@ -264,7 +265,6 @@ export const MyCourseScreen: React.FC = () => {
               }
             >
               <div className="p-4 border-b-2 border-ink space-y-3">
-                {/* Linha 1: Campo de busca amplo + Alternador Lista | Mapa */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="relative flex-1 min-w-0">
                     <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none text-neutral-500 stroke-[2.5]" />
@@ -279,13 +279,11 @@ export const MyCourseScreen: React.FC = () => {
                     />
                   </div>
 
-                  {/* Alternador Lista | Mapa — o adesivo de ação desliza para a cavidade do segmento ativo */}
                   <div
                     role="group"
                     aria-label="Modo de visualização do fluxograma"
                     className="relative grid grid-cols-2 gap-0.5 p-0.5 bg-paper border-2 border-ink rounded-xl shrink-0 self-end sm:self-auto"
                   >
-                    {/* Thumb-adesivo: pill Azul Caneta que desliza entre as cavidades (transform, 150ms) */}
                     <span
                       aria-hidden="true"
                       className={`pointer-events-none absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-3px)] rounded-lg bg-neo-blue transition-transform duration-150 ease-out ${
@@ -325,7 +323,6 @@ export const MyCourseScreen: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Linha 2: Barra de Filtros com espaçamento generoso */}
                 <div className="flex flex-wrap items-center gap-2 text-xs font-bold pt-0.5">
                   <Button
                     type="button"
@@ -448,7 +445,6 @@ export const MyCourseScreen: React.FC = () => {
             </section>
           )}
 
-          {/* Seção de Optativas Cursadas pelo Discente */}
           {(flowchartData?.electiveCompletedDisciplines?.length || 0) > 0 && (
             <div className="mt-8 bg-paper border-2 border-ink rounded-xl p-5 shadow-neo">
               <div className="flex items-center gap-2 mb-3">
@@ -494,8 +490,8 @@ export const MyCourseScreen: React.FC = () => {
           )}
         </>
       )}
+      </ErrorBoundary>
 
-      {/* Diálogos modais */}
       <CurriculumSelectorDialog
         isOpen={isCurriculumDialogOpen}
         onClose={() => setIsCurriculumDialogOpen(false)}

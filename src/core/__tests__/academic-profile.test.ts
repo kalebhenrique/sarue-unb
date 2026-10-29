@@ -3,6 +3,7 @@ import {
   ParseHistoricoUseCase,
   GetFlowchartUseCase,
   ManageAcademicProfileUseCase,
+  resolveCurriculumByAdmissionYear,
   type StudentAcademicProfile,
   type CurriculumStructure,
 } from '@/core';
@@ -174,6 +175,65 @@ Currículo: 1741/1
       expect(mat0025).toBeDefined();
       expect(mat0025?.situation).toBe('MATR');
       expect(mat0025?.isCompleted).toBe(false);
+    });
+
+    it('deve casar a matriz do turno do discente quando o curso existe em diurno e noturno', async () => {
+      // Farmácia real: curso homônimo com matrizes distintas por turno
+      // (7013 diurno, 7609 noturno). Sem pista de turno, o nome casa com as
+      // duas e o app escolhia a errada — o turno do histórico desempata.
+      const historicoFarmacia = `
+Histórico Escolar
+Matrícula: 202000000
+Nome: Discente Demonstração
+FARMÁCIA/CBC - BACHARELADO - NOTURNO
+Curso:
+
+Componentes Curriculares Cursados/Cursando
+2023.1 FARMACOLOGIA APLICADA
+01 APRFAR0101 60 90,0 MS
+`;
+      const matrizDiurna: CurriculumStructure = {
+        id: '15687684',
+        courseId: '414906',
+        courseName: 'FARMÁCIA',
+        code: '7013/2',
+        createdYear: '2024',
+        status: 'Ativa',
+        shift: 'Matutino e Vespertino',
+        totalHours: 3675,
+        mandatoryDisciplines: [],
+        electiveDisciplines: [],
+        complementaryDisciplines: [],
+      };
+      const matrizNoturna: CurriculumStructure = {
+        id: '2071865',
+        courseId: '414287',
+        courseName: 'FARMÁCIA',
+        code: '7609/2',
+        createdYear: '2018',
+        status: 'Ativa',
+        shift: 'Noturno',
+        totalHours: 3210,
+        mandatoryDisciplines: [],
+        electiveDisciplines: [],
+        complementaryDisciplines: [],
+      };
+
+      const noturno = await parseUseCase.execute({
+        rawText: historicoFarmacia,
+        curriculaCatalog: [matrizDiurna, matrizNoturna],
+      });
+      expect(noturno.profile.shift).toBe('NOTURNO');
+      expect(noturno.matchedCurriculum?.id).toBe('2071865');
+
+      // Token compacto do portal do discente (ex.: "MT") também desempata
+      const diurno = await parseUseCase.execute({
+        rawText: historicoFarmacia.replace('NOTURNO', 'DIURNO'),
+        defaultProfile: { shift: 'MT' },
+        curriculaCatalog: [matrizDiurna, matrizNoturna],
+      });
+      expect(diurno.profile.shift).toBe('DIURNO');
+      expect(diurno.matchedCurriculum?.id).toBe('15687684');
     });
 
     it('deve capturar disciplinas MATR com variações de espaço e traços', async () => {
@@ -778,6 +838,167 @@ Currículo: 1741/1
       // Como CIC0004 não está concluída, OPT0001 deve estar bloqueada
       expect(opt?.status).toBe('locked');
       expect(opt?.missingPrerequisites.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Correções de Bugs - Resiliência e Matrizes Antigas', () => {
+    it('deve selecionar a matriz mais recente compatível com o ano de ingresso em vez de forçar a ativa mais nova', async () => {
+      const curriculaCatalog: CurriculumStructure[] = [
+        {
+          id: 'curr-2026',
+          courseId: '414610',
+          courseName: 'ENGENHARIA DE COMPUTAÇÃO',
+          code: '1741/3',
+          createdYear: '2026',
+          status: 'Ativa',
+          totalHours: 2610,
+          mandatoryDisciplines: [],
+          electiveDisciplines: [],
+          complementaryDisciplines: [],
+        },
+        {
+          id: 'curr-2024',
+          courseId: '414610',
+          courseName: 'ENGENHARIA DE COMPUTAÇÃO',
+          code: '1741/2',
+          createdYear: '2024',
+          status: 'Inativa',
+          totalHours: 2460,
+          mandatoryDisciplines: [],
+          electiveDisciplines: [],
+          complementaryDisciplines: [],
+        },
+        {
+          id: 'curr-2016',
+          courseId: '414610',
+          courseName: 'ENGENHARIA DE COMPUTAÇÃO',
+          code: '1741/1',
+          createdYear: '2016',
+          status: 'Inativa',
+          totalHours: 2760,
+          mandatoryDisciplines: [],
+          electiveDisciplines: [],
+          complementaryDisciplines: [],
+        },
+      ];
+
+      const parser = new ParseHistoricoUseCase();
+      // Discente ingressou em 2018 e tem código de matriz sem versão ou apenas prefixo "1741"
+      const res = await parser.execute({
+        rawText: `
+          Dados do Vínculo do(a) Discente
+          Curso: ENGENHARIA DE COMPUTAÇÃO - BACHARELADO - DIURNO
+          Estrutura Curricular: 1741
+          Ano / Período Letivo Inicial: 2018.1
+          Matrícula: 180000000
+        `,
+        curriculaCatalog,
+      });
+
+      // Deve casar com 1741/1 (2016), que era a matriz vigente no ingresso (2016 <= 2018 < 2024), e NÃO 1741/3 (Ativa 2026)
+      expect(res.matchedCurriculum?.code).toBe('1741/1');
+      expect(res.matchedCurriculum?.createdYear).toBe('2016');
+    });
+
+    it('syncWithSigaa não deve zerar disciplinas salvas se a emissão do PDF falhar ou retornar vazia', async () => {
+      const repo = new InMemoryAcademicProfileRepository();
+      await repo.saveProfile({
+        matricula: '202000000',
+        courseName: 'ENGENHARIA DE COMPUTAÇÃO',
+        level: 'GRADUAÇÃO',
+        admissionYear: '2020.1',
+        curriculumCode: '1741/1',
+        completedDisciplines: [
+          { code: 'CIC0004', name: 'APC', isCompleted: true },
+          { code: 'MAT0025', name: 'CÁLCULO 1', isCompleted: true },
+        ],
+        manualCompletedCodes: [],
+        manualUncompletedCodes: [],
+        updatedAt: new Date().toISOString(),
+      });
+
+      repo.fetchSigaaHistory = async () => ({
+        matricula: '202000000',
+        nome: 'Discente Teste',
+        curso: 'ENGENHARIA DE COMPUTAÇÃO',
+        nivel: 'GRADUAÇÃO',
+        status: 'ATIVO',
+        entrada: '2020.1',
+        ira: 4.5,
+        pdfText: undefined,
+        pdfBase64: undefined,
+      });
+
+      const useCase = new ManageAcademicProfileUseCase(repo);
+      const result = await useCase.syncWithSigaa({ matricula: '202000000', senha: '123' });
+
+      expect(result.profile.completedDisciplines.length).toBe(2);
+      expect(result.profile.completedDisciplines.map((d) => d.code)).toEqual(['CIC0004', 'MAT0025']);
+      expect(result.profile.ira).toBe(4.5);
+    });
+
+    it('syncWithSigaa deve respeitar a matriz selecionada manualmente pelo discente (userSelectedCurriculumCode)', async () => {
+      const repo = new InMemoryAcademicProfileRepository();
+      const curriculaCatalog: CurriculumStructure[] = [
+        {
+          id: 'curr-2026',
+          courseId: '414610',
+          courseName: 'ENGENHARIA DE COMPUTAÇÃO',
+          code: '1741/3',
+          createdYear: '2026',
+          status: 'Ativa',
+          mandatoryDisciplines: [],
+          electiveDisciplines: [],
+          complementaryDisciplines: [],
+        },
+        {
+          id: 'curr-2016',
+          courseId: '414610',
+          courseName: 'ENGENHARIA DE COMPUTAÇÃO',
+          code: '1741/1',
+          createdYear: '2016',
+          status: 'Inativa',
+          mandatoryDisciplines: [],
+          electiveDisciplines: [],
+          complementaryDisciplines: [],
+        },
+      ];
+      repo.getAllCurricula = async () => curriculaCatalog;
+      repo.getCurriculaForCourse = async () => curriculaCatalog;
+
+      const useCase = new ManageAcademicProfileUseCase(repo);
+      await useCase.setCurriculum(curriculaCatalog[1]);
+
+      const profileBefore = await repo.getProfile();
+      expect(profileBefore?.userSelectedCurriculumCode).toBe('1741/1');
+
+      repo.fetchSigaaHistory = async () => ({
+        matricula: '202000000',
+        nome: 'Discente Teste',
+        curso: 'ENGENHARIA DE COMPUTAÇÃO',
+        nivel: 'GRADUAÇÃO',
+        status: 'ATIVO',
+        entrada: '2020.1',
+        pdfText: MOCK_HISTORICO_TEXT,
+      });
+
+      const syncResult = await useCase.syncWithSigaa({ matricula: '202000000', senha: '123' });
+
+      expect(syncResult.profile.userSelectedCurriculumCode).toBe('1741/1');
+      expect(syncResult.matchedCurriculum?.code).toBe('1741/1');
+    });
+
+    it('resolveCurriculumByAdmissionYear deve tolerar matrizes sem createdYear sem descartá-las', () => {
+      const candidates = [
+        { code: 'CUSTOM/1', createdYear: undefined },
+        { code: '1741/1', createdYear: '2016' },
+      ];
+      const matched = resolveCurriculumByAdmissionYear(candidates, '2020.1');
+      expect(matched?.code).toBe('1741/1');
+
+      const customOnly = [{ code: 'CUSTOM/1', createdYear: undefined }];
+      const matchedCustom = resolveCurriculumByAdmissionYear(customOnly, '2020.1');
+      expect(matchedCustom?.code).toBe('CUSTOM/1');
     });
   });
 });

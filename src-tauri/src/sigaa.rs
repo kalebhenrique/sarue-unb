@@ -391,6 +391,25 @@ impl SigaaClient {
             .trim()
             .to_string();
 
+        // Turno informado pelo SIGAA (ex.: "- MT" ou "(NOTURNO)")
+        let turno_re = Regex::new(
+            r"(?i)\b((?:DIURNO|NOTURNO|INTEGRAL|MATUTINO|VESPERTINO)(?:\s+E\s+(?:DIURNO|NOTURNO|INTEGRAL|MATUTINO|VESPERTINO))?|[MVTNDI]{1,3})\b",
+        )
+        .ok();
+        let turno = turno_re.and_then(|re| {
+            let suffix = raw_curso.rsplit_once(" - ").map(|(_, s)| s.trim());
+            suffix
+                .and_then(|s| re.captures(s))
+                .or_else(|| re.captures(&raw_curso))
+                .map(|c| c[1].to_uppercase())
+        });
+
+        // Remove turno parentesado do nome
+        let curso = Regex::new(r"(?i)\s*\((?:DIURNO|NOTURNO|INTEGRAL|MATUTINO|VESPERTINO)\)\s*$")
+            .ok()
+            .map(|re| re.replace(&curso, "").trim().to_string())
+            .unwrap_or(curso);
+
         let nivel_re = Regex::new(r#"N[íi]vel:\s*</td>\s*<td>\s*([^<]+)</td>"#).unwrap();
         let nivel = nivel_re
             .captures(&clean_html)
@@ -462,6 +481,7 @@ impl SigaaClient {
             matricula,
             nome,
             curso,
+            turno,
             nivel,
             status,
             entrada,
@@ -1306,6 +1326,8 @@ mod tests {
         let profile = SigaaClient::parse_discente_profile(html, "202000000");
         assert_eq!(profile.matricula, "202000000");
         assert_eq!(profile.curso, "ENGENHARIA DE COMPUTAÇÃO");
+        // Turno anexado pelo SIGAA ao campo Curso (último segmento após " - ")
+        assert_eq!(profile.turno.as_deref(), Some("MT"));
         assert_eq!(profile.nivel, "GRADUAÇÃO");
         assert_eq!(profile.status, "ATIVO");
         assert_eq!(profile.entrada, "2022.1");
@@ -1319,8 +1341,56 @@ mod tests {
         let profile_comma = SigaaClient::parse_discente_profile(&html_comma, "202000000");
         assert_eq!(profile_comma.ira, Some(3.6238));
         assert_eq!(profile_comma.mp, Some(3.5493));
-        assert_eq!(profile.ch_total_curriculo, Some(3480));
-        assert_eq!(profile.ch_complementar_pendente, Some(0));
-        assert_eq!(profile.percentual_integralizado, Some(65.0));
+        assert_eq!(profile_comma.ch_total_curriculo, Some(3480));
+        assert_eq!(profile_comma.ch_complementar_pendente, Some(0));
+        assert_eq!(profile_comma.percentual_integralizado, Some(65.0));
+    }
+
+    #[test]
+    fn test_parse_discente_profile_shift() {
+        // Turno explícito de curso ofertado em diurno e noturno: é o que
+        // impede o casamento com o curso homônimo de outro turno no catálogo.
+        let html_noturno = r##"
+            <div id="agenda-docente">
+                <table>
+                    <tr>
+                        <td valign="top"> Curso: </td>
+                        <td> FARMÁCIA/CBC - Bacharelado - N </td>
+                    </tr>
+                </table>
+            </div>
+        "##;
+        let profile = SigaaClient::parse_discente_profile(html_noturno, "202000000");
+        assert_eq!(profile.curso, "FARMÁCIA");
+        assert_eq!(profile.turno.as_deref(), Some("N"));
+
+        // Turno entre parênteses e curso sem turno nenhum
+        let html_parenteses = r##"
+            <div id="agenda-docente">
+                <table>
+                    <tr>
+                        <td valign="top"> Curso: </td>
+                        <td> ENFERMAGEM (DIURNO)/CBS - Bacharelado </td>
+                    </tr>
+                </table>
+            </div>
+        "##;
+        let profile = SigaaClient::parse_discente_profile(html_parenteses, "202000000");
+        assert_eq!(profile.curso, "ENFERMAGEM");
+        assert_eq!(profile.turno.as_deref(), Some("DIURNO"));
+
+        let html_sem_turno = r##"
+            <div id="agenda-docente">
+                <table>
+                    <tr>
+                        <td valign="top"> Curso: </td>
+                        <td> ADMINISTRAÇÃO/RAV </td>
+                    </tr>
+                </table>
+            </div>
+        "##;
+        let profile = SigaaClient::parse_discente_profile(html_sem_turno, "202000000");
+        assert_eq!(profile.curso, "ADMINISTRAÇÃO");
+        assert_eq!(profile.turno, None);
     }
 }

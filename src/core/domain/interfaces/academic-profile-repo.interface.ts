@@ -9,6 +9,8 @@ export interface SigaaHistoryRawResponse {
   matricula: string;
   nome?: string;
   curso: string;
+  /** Token de turno do SIGAA no campo Curso (ex.: "MT", "N", "DIURNO"). */
+  turno?: string;
   nivel: string;
   status: string;
   entrada: string;
