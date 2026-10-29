@@ -22,6 +22,17 @@ export interface PatchNotesEntry {
 
 export const PATCH_NOTES: PatchNotesEntry[] = [
   {
+    version: "0.3.1",
+    date: "29/10/2026",
+    title: "Correções na Tela Meu Curso e no Scraping de Cursos",
+    items: [
+      "Correção de erro da tela Meu Curso não funcionar offline.",
+      "Seleção manual de matriz curricular preservada sem ser sobrescrita na sincronização.",
+      "Correção de erro do sistema não detectar corretamente cursos igual com turnos diferentes @MauroSon.",
+      "Proteção contra falhas ou emissão incompleta do histórico do SIGAA.",
+    ],
+  },
+  {
     version: "0.3.0",
     date: "28/10/2026",
     title: "Avaliação de Professores, Modo Escuro e Acessibilidade",
