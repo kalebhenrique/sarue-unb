@@ -28,7 +28,7 @@ export const PATCH_NOTES: PatchNotesEntry[] = [
     items: [
       "Correção de erro da tela Meu Curso não funcionar offline.",
       "Seleção manual de matriz curricular preservada sem ser sobrescrita na sincronização.",
-      "Correção de erro do sistema não detectar corretamente cursos igual com turnos diferentes @MauroSon.",
+      "Correção de erro do sistema não identificar corretamente cursos iguais com turnos distintos (obrigado @MauroSon).",
       "Proteção contra falhas ou emissão incompleta do histórico do SIGAA.",
     ],
   },
