@@ -5,7 +5,7 @@
     "period": "2",
     "label": "2026 • 2º semestre",
     "isCurrent": true,
-    "updatedAt": "2026-10-30T11:28:40.793Z",
+    "updatedAt": "2026-10-31T10:59:50.095Z",
     "pdfUrl": "https://saa.unb.br/wp-content/uploads/2026/06/2026_2_Calend_Mat_Grad_25_06_2026.pdf",
     "periodoAulas": {
       "inicio": "2026-08-10",
@@ -52,7 +52,7 @@
     "period": "1",
     "label": "2026 • 1º semestre",
     "isCurrent": false,
-    "updatedAt": "2026-10-30T11:28:41.166Z",
+    "updatedAt": "2026-10-31T10:59:50.388Z",
     "pdfUrl": "https://saa.unb.br/wp-content/uploads/2026/02/2026_1_Calend_Mat_Grad_27_02_2026.pdf",
     "periodoAulas": {
       "inicio": "2026-03-16",
@@ -99,7 +99,7 @@
     "period": "4",
     "label": "2025 • 4º semestre",
     "isCurrent": false,
-    "updatedAt": "2026-10-30T11:28:19.083Z",
+    "updatedAt": "2026-10-31T10:59:31.321Z",
     "pdfUrl": "https://saa.unb.br/wp-content/uploads/2026/01/2025_4_Calend_Ativ_Grad_29_12_2025.pdf",
     "periodoMatricula": {
       "inicio": "2025-12-24",
@@ -122,7 +122,7 @@
     "period": "2",
     "label": "2025 • 2º semestre",
     "isCurrent": false,
-    "updatedAt": "2026-10-30T11:28:41.534Z",
+    "updatedAt": "2026-10-31T10:59:50.684Z",
     "pdfUrl": "https://saa.unb.br/wp-content/uploads/2025/09/2025_2_Calend_Mat_Grad_31_07_2025.pdf",
     "periodoAulas": {
       "inicio": "2025-08-18",
@@ -169,7 +169,7 @@
     "period": "1",
     "label": "2025 • 1º semestre",
     "isCurrent": false,
-    "updatedAt": "2026-10-30T11:28:41.898Z",
+    "updatedAt": "2026-10-31T10:59:50.975Z",
     "pdfUrl": "https://saa.unb.br/wp-content/uploads/2025/09/2025_1_Calend_Mat_Grad_02_12_2024.pdf",
     "periodoAulas": {
       "inicio": "2025-03-24",
@@ -216,7 +216,7 @@
     "period": "2",
     "label": "2024 • 2º semestre",
     "isCurrent": false,
-    "updatedAt": "2026-10-30T11:28:42.263Z",
+    "updatedAt": "2026-10-31T10:59:51.265Z",
     "pdfUrl": "https://saa.unb.br/wp-content/uploads/2025/09/2024_2_Calend_Mat_Grad_16_09_2024.pdf",
     "periodoAulas": {
       "inicio": "2024-10-14",
@@ -258,7 +258,7 @@
     "period": "1",
     "label": "2024 • 1º semestre",
     "isCurrent": false,
-    "updatedAt": "2026-10-30T11:28:42.632Z",
+    "updatedAt": "2026-10-31T10:59:51.558Z",
     "pdfUrl": "https://saa.unb.br/wp-content/uploads/2025/09/2024_1_Calend_Mat_Grad_07_12_2023.pdf",
     "periodoAulas": {
       "inicio": "2024-03-18",
@@ -291,7 +291,7 @@
     "period": "4",
     "label": "2023 • 4º semestre",
     "isCurrent": false,
-    "updatedAt": "2026-10-30T11:28:19.465Z",
+    "updatedAt": "2026-10-31T10:59:31.638Z",
     "pdfUrl": "https://saa.unb.br/wp-content/uploads/2025/09/2023_4_Calend_Ativ_Grad_07_12_2023.pdf",
     "periodoMatricula": {
       "inicio": "29/12/2023 a\n02/01/2024",
@@ -314,7 +314,7 @@
     "period": "2",
     "label": "2023 • 2º semestre",
     "isCurrent": false,
-    "updatedAt": "2026-10-30T11:28:42.991Z",
+    "updatedAt": "2026-10-31T10:59:51.714Z",
     "pdfUrl": "https://saa.unb.br/wp-content/uploads/2025/09/2023_2_Calend_Mat_Grad_05_07_2023_v2.pdf",
     "periodoMatricula": {
       "inicio": "2023-08-17",
@@ -338,7 +338,7 @@
     "period": "1",
     "label": "2023 • 1º semestre",
     "isCurrent": false,
-    "updatedAt": "2026-10-30T11:28:43.428Z",
+    "updatedAt": "2026-10-31T10:59:52.006Z",
     "pdfUrl": "https://saa.unb.br/wp-content/uploads/2025/09/2023_1_Calend_Matricula_Grad_27_03_2023.pdf",
     "periodoAulas": {
       "inicio": "2023-03-28",
