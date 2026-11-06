@@ -1,5 +1,5 @@
 {
-  "scraped_at": "2026-11-05T13:19:30.647Z",
+  "scraped_at": "2026-11-06T13:01:01.401Z",
   "year": "2026",
   "period": "2",
   "semesters": [
@@ -19,6 +19,6 @@
     }
   ],
   "total_departments": 211,
-  "total_disciplines": 4676,
-  "total_classes": 9070
+  "total_disciplines": 4669,
+  "total_classes": 9093
 }
