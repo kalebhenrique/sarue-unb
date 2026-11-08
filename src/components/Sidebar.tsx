@@ -3,7 +3,7 @@ import {
   Home,
   BookOpen,
   CalendarDays,
-  CalendarRange,
+  SquareKanban,
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
@@ -124,9 +124,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { id: "home" as NavTab, label: "Home", icon: Home },
     { id: "courses" as NavTab, label: "Disciplinas", icon: BookOpen },
-    { id: "grade" as NavTab, label: "Montar Grade", icon: CalendarRange },
+    { id: "grade" as NavTab, label: "Montar Grade", icon: SquareKanban },
     { id: "calendar" as NavTab, label: "Calendário", icon: CalendarDays },
-    { id: "evaluations" as NavTab, label: "Avaliar Professor", icon: MessageSquareQuote },
+    {
+      id: "evaluations" as NavTab,
+      label: "Avaliar Professor",
+      icon: MessageSquareQuote,
+    },
     { id: "my-course" as NavTab, label: "Meu Curso", icon: GraduationCap },
     { id: "settings" as NavTab, label: "Configurações", icon: Settings },
   ];
@@ -151,14 +155,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const activeSyncStep = syncSteps
-    ? ([
-        "sigaa",
-        "aprender3",
-        "myCourse",
-        "teams",
-        "ghPages",
-        "planilha",
-      ] as const)
+    ? (
+        [
+          "sigaa",
+          "aprender3",
+          "myCourse",
+          "teams",
+          "ghPages",
+          "planilha",
+        ] as const
+      )
         .map((id) => syncSteps[id])
         .find((s) => s?.status === "syncing")
     : undefined;
@@ -374,7 +380,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 />
                 <span
                   className={`whitespace-nowrap overflow-hidden transition-[max-width,opacity,margin] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${
-                    isCollapsed ? "max-w-0 opacity-0 ml-0 pointer-events-none" : "max-w-32 opacity-100 ml-1.5"
+                    isCollapsed
+                      ? "max-w-0 opacity-0 ml-0 pointer-events-none"
+                      : "max-w-32 opacity-100 ml-1.5"
                   }`}
                 >
                   {isSyncing ? "Sincronizando..." : "Sincronizar"}
@@ -407,7 +415,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <div
           className={`overflow-hidden transition-[max-height,opacity,margin] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${
-            isCollapsed ? "max-h-0 opacity-0 mt-0 pointer-events-none" : "max-h-6 opacity-100 mt-2"
+            isCollapsed
+              ? "max-h-0 opacity-0 mt-0 pointer-events-none"
+              : "max-h-6 opacity-100 mt-2"
           }`}
         >
           <p className="text-[11px] text-neutral-500 font-semibold text-center truncate">

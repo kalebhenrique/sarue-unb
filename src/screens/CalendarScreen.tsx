@@ -20,7 +20,6 @@ export const CalendarScreen: React.FC = () => {
     setViewMode,
     filteredEvents,
     eventsForSelectedDate,
-    academicCalendar,
     courses,
     monthGridDays,
     isSaving,
@@ -36,6 +35,7 @@ export const CalendarScreen: React.FC = () => {
     // Navegação
     nextMonth,
     prevMonth,
+    goToMonth,
     goToToday,
     // Diálogos e ações
     isEventDialogOpen,
@@ -53,18 +53,8 @@ export const CalendarScreen: React.FC = () => {
 
   return (
     <PageContainer>
-      {/* Cabeçalho da Página informando Calendário e Ano/Semestre */}
-      <PageHeader
-        icon={CalendarIcon}
-        title={
-          <>
-            Calendário{" "}
-            <span className="text-sm font-bold text-neutral-500">
-              ({academicCalendar?.label || '2026 • 2º semestre'})
-            </span>
-          </>
-        }
-      />
+      {/* Cabeçalho da Página */}
+      <PageHeader icon={CalendarIcon} title="Calendário" />
 
       <div className="space-y-6">
         {/* Barra de Ferramentas com Navegação, Filtros e Seleção de Matéria */}
@@ -72,6 +62,7 @@ export const CalendarScreen: React.FC = () => {
           currentDate={currentDate}
           onPrevMonth={prevMonth}
           onNextMonth={nextMonth}
+          onSelectMonth={goToMonth}
           onGoToToday={goToToday}
           viewMode={viewMode}
           onViewModeChange={setViewMode}

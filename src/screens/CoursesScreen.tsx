@@ -22,7 +22,6 @@ import {
   MessageSquare,
   ArrowLeft,
   AlertCircle,
-  AlertTriangle,
   Link2,
   Folder,
 } from "lucide-react";
@@ -72,6 +71,8 @@ export const CoursesScreen: React.FC = () => {
   const [absenceOverride, setAbsenceOverride] = useState<number | null>(null);
   // Incrementa a cada ajuste para recomputar badges/notificações da lista que dependem do override
   const [absenceOverridesVersion, setAbsenceOverridesVersion] = useState(0);
+  const [gradeSummaryBadge, setGradeSummaryBadge] =
+    useState<React.ReactNode>(null);
   const [drillSearchQuery, setDrillSearchQuery] = useState<string>("");
   const [drillCategory, setDrillCategory] = useState<FeedItemType | "all">(
     "all",
@@ -190,14 +191,14 @@ export const CoursesScreen: React.FC = () => {
           const title = status.isExceeded
             ? `Limite de faltas excedido: ${discipline.name}`
             : status.isCritical
-            ? `Alerta Crítico de Faltas: ${discipline.name}`
-            : `Atenção ao limite de faltas: ${discipline.name}`;
+              ? `Alerta Crítico de Faltas: ${discipline.name}`
+              : `Atenção ao limite de faltas: ${discipline.name}`;
 
           const body = status.isExceeded
             ? `Você possui ${status.absences}/${status.maxAbsences} faltas e ultrapassou os 25% permitidos na UnB.`
             : status.isCritical
-            ? `Resta apenas 1 aula (${status.hoursPerClass}h) para reprovação por faltas na UnB!`
-            : `Restam 2 aulas (${status.hoursPerClass}h cada) para atingir o limite de 25% de faltas na UnB.`;
+              ? `Resta apenas 1 aula (${status.hoursPerClass}h) para reprovação por faltas na UnB!`
+              : `Restam 2 aulas (${status.hoursPerClass}h cada) para atingir o limite de 25% de faltas na UnB.`;
 
           await repos.osNotifier.notify({ title, body });
         }
@@ -496,16 +497,18 @@ export const CoursesScreen: React.FC = () => {
                   Teams
                 </Badge>
               ) : null}
-              {drillAbsenceStatus && getEffectiveAbsences(selectedDiscipline) !== undefined ? (
+              {drillAbsenceStatus &&
+              getEffectiveAbsences(selectedDiscipline) !== undefined ? (
                 <Badge
                   variant={
                     drillAbsenceStatus.absences === 0
                       ? "success"
-                      : drillAbsenceStatus.isExceeded || drillAbsenceStatus.isCritical
-                      ? "urgent"
-                      : drillAbsenceStatus.isAtRisk
-                      ? "yellow"
-                      : "success"
+                      : drillAbsenceStatus.isExceeded ||
+                          drillAbsenceStatus.isCritical
+                        ? "urgent"
+                        : drillAbsenceStatus.isAtRisk
+                          ? "yellow"
+                          : "success"
                   }
                   size="sm"
                   title={
@@ -514,13 +517,15 @@ export const CoursesScreen: React.FC = () => {
                   }
                   className="font-black"
                 >
-                  {drillAbsenceStatus.absences}/{drillAbsenceStatus.maxAbsences} faltas
+                  {drillAbsenceStatus.absences}/{drillAbsenceStatus.maxAbsences}{" "}
+                  faltas
                 </Badge>
               ) : selectedDiscipline.sigaaCourse ? (
                 <Badge variant="neutral" size="sm" className="font-bold">
                   Sem registro no SIGAA
                 </Badge>
               ) : null}
+              {gradeSummaryBadge}
             </div>
 
             {metaItems.length > 0 ? (
@@ -536,32 +541,17 @@ export const CoursesScreen: React.FC = () => {
             ) : null}
           </div>
 
-          {drillAbsenceStatus && (drillAbsenceStatus.isAtRisk || drillAbsenceStatus.isExceeded) && (
-            <div className="w-full mt-3 pt-3 border-t-2 border-ink/10 text-xs font-bold">
-              {drillAbsenceStatus.isExceeded ? (
-                <p className="text-ink-urgent flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 stroke-[2.5] shrink-0" />
-                  <span>Limite de 25% de faltas ultrapassado ({drillAbsenceStatus.absences}/{drillAbsenceStatus.maxAbsences}h). Conforme o regimento da UnB, o aluno é reprovado por faltas.</span>
-                </p>
-              ) : drillAbsenceStatus.isCritical ? (
-                <p className="text-ink-urgent flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 stroke-[2.5] shrink-0" />
-                  <span>Alerta Crítico: Resta apenas 1 aula de {drillAbsenceStatus.hoursPerClass}h para reprovação por faltas na UnB!</span>
-                </p>
-              ) : (
-                <p className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 stroke-[2.5] shrink-0" />
-                  <span>Atenção: Restam apenas 2 aulas ({drillAbsenceStatus.hoursPerClass}h cada) antes de atingir o limite de reprovação.</span>
-                </p>
-              )}
-            </div>
-          )}
-
           {/* Seção de Cálculo de Notas, Fórmula e Estimativa de Aprovação */}
-          <GradeFormulaSection discipline={selectedDiscipline} embedded />
+          <GradeFormulaSection
+            key={selectedDiscipline.id}
+            discipline={selectedDiscipline}
+            embedded
+            onSummaryChange={setGradeSummaryBadge}
+          />
 
           {/* Seção de Controle de Faltas com ajuste manual (override persistido) */}
           <AbsenceSection
+            key={`absence-${selectedDiscipline.id}`}
             discipline={selectedDiscipline}
             override={absenceOverride}
             onOverrideChange={handleAbsenceOverrideChange}
@@ -670,11 +660,10 @@ export const CoursesScreen: React.FC = () => {
       {atRiskDisciplines.length > 0 ? (
         <Alert
           variant="destructive"
-          icon={AlertTriangle}
           title={
             atRiskDisciplines.length === 1
-              ? "1 disciplina em situação crítica de faltas (regra 25% UnB)"
-              : `${atRiskDisciplines.length} disciplinas em situação crítica de faltas (regra 25% UnB)`
+              ? "1 disciplina em situação crítica de faltas"
+              : `${atRiskDisciplines.length} disciplinas em situação crítica de faltas`
           }
           description="Acompanhe a estimativa de aulas restantes para reprovação nos cards abaixo para não perder matérias por infrequência."
         />
@@ -720,7 +709,8 @@ export const CoursesScreen: React.FC = () => {
                 ? calculateAbsenceRisk({
                     absences: effectiveAbs,
                     maxAbsences:
-                      discipline.maxAbsences ?? discipline.sigaaCourse?.maxAbsences,
+                      discipline.maxAbsences ??
+                      discipline.sigaaCourse?.maxAbsences,
                     schedule:
                       discipline.schedule || discipline.sigaaCourse?.schedule,
                   })
@@ -769,11 +759,12 @@ export const CoursesScreen: React.FC = () => {
                         variant={
                           absenceStatus.absences === 0
                             ? "success"
-                            : absenceStatus.isExceeded || absenceStatus.isCritical
-                            ? "urgent"
-                            : absenceStatus.isAtRisk
-                            ? "yellow"
-                            : "success"
+                            : absenceStatus.isExceeded ||
+                                absenceStatus.isCritical
+                              ? "urgent"
+                              : absenceStatus.isAtRisk
+                                ? "yellow"
+                                : "success"
                         }
                         title={
                           absenceStatus.warningMessage ||
@@ -781,7 +772,8 @@ export const CoursesScreen: React.FC = () => {
                         }
                         className="font-black"
                       >
-                        {absenceStatus.absences}/{absenceStatus.maxAbsences} faltas
+                        {absenceStatus.absences}/{absenceStatus.maxAbsences}{" "}
+                        faltas
                       </Badge>
                     ) : discipline.sigaaCourse ? (
                       <Badge variant="neutral" className="font-bold">
@@ -825,14 +817,18 @@ export const CoursesScreen: React.FC = () => {
 
                 {/* Rodapé com indicadores e atalho */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t-2 border-ink/10 mt-4 text-xs font-bold">
-                  <span className="text-neutral-500">{discipline.semester}</span>
+                  <span className="text-neutral-500">
+                    {discipline.semester}
+                  </span>
 
                   <div className="flex items-center gap-2">
                     {discipline.pendingAssignmentsCount !== undefined &&
                     discipline.pendingAssignmentsCount > 0 ? (
                       <div className="flex items-center gap-1 text-ink-success bg-pastel-green px-2 py-0.5 border border-ink/20 rounded-md">
                         <CheckSquare className="w-3.5 h-3.5 stroke-[2.5]" />
-                        <span>{discipline.pendingAssignmentsCount} entregas</span>
+                        <span>
+                          {discipline.pendingAssignmentsCount} entregas
+                        </span>
                       </div>
                     ) : null}
 
@@ -865,7 +861,9 @@ export const CoursesScreen: React.FC = () => {
                 Outras Equipes, Monitorias e Projetos ({otherCourses.length})
               </span>
             </div>
-            <span className="text-neutral-500 font-semibold">Teams & Aprender 3</span>
+            <span className="text-neutral-500 font-semibold">
+              Teams & Aprender 3
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -873,19 +871,20 @@ export const CoursesScreen: React.FC = () => {
               <Card
                 key={oc.id}
                 onClick={() => {
-                    setSelectedDiscipline({
-                      id: oc.id,
-                      code: oc.code,
-                      name: oc.name,
-                      semester: oc.semester || getDefaultAcademicSemester().semester,
-                      professor: oc.professor,
-                      classroom: oc.classroom,
-                      teamsCourses: oc.platform === "teams" ? [oc] : [],
-                      aprenderCourses: oc.platform === "aprender3" ? [oc] : [],
-                      url: oc.url,
-                      unreadCount: oc.unreadCount,
-                      pendingAssignmentsCount: oc.pendingAssignmentsCount,
-                    });
+                  setSelectedDiscipline({
+                    id: oc.id,
+                    code: oc.code,
+                    name: oc.name,
+                    semester:
+                      oc.semester || getDefaultAcademicSemester().semester,
+                    professor: oc.professor,
+                    classroom: oc.classroom,
+                    teamsCourses: oc.platform === "teams" ? [oc] : [],
+                    aprenderCourses: oc.platform === "aprender3" ? [oc] : [],
+                    url: oc.url,
+                    unreadCount: oc.unreadCount,
+                    pendingAssignmentsCount: oc.pendingAssignmentsCount,
+                  });
                 }}
                 role="button"
                 tabIndex={0}
@@ -897,7 +896,8 @@ export const CoursesScreen: React.FC = () => {
                       id: oc.id,
                       code: oc.code,
                       name: oc.name,
-                      semester: oc.semester || getDefaultAcademicSemester().semester,
+                      semester:
+                        oc.semester || getDefaultAcademicSemester().semester,
                       professor: oc.professor,
                       classroom: oc.classroom,
                       teamsCourses: oc.platform === "teams" ? [oc] : [],
@@ -945,7 +945,9 @@ export const CoursesScreen: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t-2 border-ink/10 mt-4 text-xs font-bold">
-                  <span className="text-neutral-500">{oc.semester || getDefaultAcademicSemester().semester}</span>
+                  <span className="text-neutral-500">
+                    {oc.semester || getDefaultAcademicSemester().semester}
+                  </span>
                   <span className="text-neutral-800 text-[11px] underline decoration-2 group-hover:text-blue-ink font-extrabold">
                     Ver publicações →
                   </span>

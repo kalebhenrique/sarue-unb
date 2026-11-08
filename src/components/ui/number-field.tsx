@@ -19,7 +19,7 @@ export function NumberFieldGroup({
     <NumberFieldPrimitive.Group
       data-slot="number-field-group"
       className={cn(
-        "relative flex w-full items-center rounded-xl border-2 border-ink bg-paper shadow-neo-xs transition-[box-shadow,border-color] focus-within:ring-2 focus-within:ring-neo-blue overflow-hidden",
+        "relative flex w-full items-center rounded-xl border-2 border-ink bg-paper transition-[box-shadow,border-color] focus-within:ring-2 focus-within:ring-neo-blue overflow-hidden",
         className
       )}
       {...props}

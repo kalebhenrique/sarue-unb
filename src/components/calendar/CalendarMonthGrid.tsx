@@ -266,16 +266,16 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                           setDragHover(cell.date);
                         }
                       }}
-                      className={`group relative min-h-[86px] sm:min-h-[104px] p-1.5 sm:p-2 rounded-lg border-2 border-ink transition-all cursor-pointer flex flex-col justify-between ${
+                      className={`group relative min-h-[86px] sm:min-h-[104px] p-1.5 sm:p-2 rounded-lg border-2 border-ink transition-colors cursor-pointer flex flex-col justify-between ${
                         !cell.isCurrentMonth
-                          ? 'bg-neutral-100 dark:bg-neutral-50-dark'
-                          : 'bg-paper'
+                          ? 'bg-neutral-100 dark:bg-neutral-50-dark hover:bg-neutral-200/80 dark:hover:bg-neutral-100'
+                          : 'bg-paper hover:bg-neutral-100 dark:hover:bg-neutral-100'
                       } ${
                         isInDrag
                           ? 'ring-2 ring-neo-blue ring-offset-2 ring-offset-paper bg-pastel-blue/70 dark:bg-pastel-blue/40 shadow-[2px_2px_0px_0px_var(--neo-shadow)]'
                           : isSelected
                           ? 'ring-2 ring-neo-blue ring-offset-2 ring-offset-paper shadow-[2px_2px_0px_0px_var(--neo-shadow)]'
-                          : 'hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_var(--neo-shadow)]'
+                          : ''
                       }`}
                     >
                       {/* Topo da Célula: Dia + Indicador de Hoje + Botão rápido "+" */}
@@ -393,7 +393,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                         onSelectDate(event.date);
                         onEventClick?.(event);
                       }}
-                      className={`pointer-events-auto h-[22px] min-w-0 px-1.5 ${roundedClass} ${borderClass} ${marginClass} ${color.border} ${color.bg} ${color.text} flex items-center gap-1 text-[11px] font-extrabold tracking-tight shadow-[1px_1px_0px_0px_var(--neo-shadow)] cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all select-none overflow-hidden`}
+                      className={`pointer-events-auto h-[22px] min-w-0 px-1.5 ${roundedClass} ${borderClass} ${marginClass} ${color.border} ${color.bg} ${color.text} flex items-center gap-1 text-[11px] font-extrabold tracking-tight cursor-pointer hover:opacity-90 transition-opacity select-none overflow-hidden`}
                       style={{
                         gridColumn: `${startCol + 1} / ${endCol + 2}`,
                         gridRow: `${track + 1}`,

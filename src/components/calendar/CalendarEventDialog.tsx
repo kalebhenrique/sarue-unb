@@ -13,6 +13,7 @@ import {
   SelectContent,
   SelectItem,
   Checkbox,
+  DatePicker,
 } from '@/components/ui';
 import { Bell } from 'lucide-react';
 import type {
@@ -314,20 +315,16 @@ export const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
                 >
                   Data de Início
                 </label>
-                <input
+                <DatePicker
                   id="event-start-date"
-                  type="date"
-                  required={!isReadOnly}
                   disabled={isReadOnly}
                   value={startDate}
-                  onChange={(e) => {
-                    const newStart = e.target.value;
+                  onChange={(newStart) => {
                     setStartDate(newStart);
                     if (!endDate || endDate < newStart) {
                       setEndDate(newStart);
                     }
                   }}
-                  className="w-full min-w-0 px-3 py-2 text-sm font-medium rounded-xl border-2 border-ink bg-paper focus:outline-hidden focus:ring-2 focus:ring-neo-blue text-black disabled:opacity-75 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -338,15 +335,12 @@ export const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
                 >
                   Data de Término
                 </label>
-                <input
+                <DatePicker
                   id="event-end-date"
-                  type="date"
-                  required={!isReadOnly}
                   disabled={isReadOnly}
                   value={endDate}
                   min={startDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full min-w-0 px-3 py-2 text-sm font-medium rounded-xl border-2 border-ink bg-paper focus:outline-hidden focus:ring-2 focus:ring-neo-blue text-black disabled:opacity-75 disabled:cursor-not-allowed"
+                  onChange={(newEnd) => setEndDate(newEnd)}
                 />
               </div>
             </div>
@@ -358,7 +352,7 @@ export const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
               <span className="text-xs font-black uppercase tracking-wider text-black block">
                 Descrição
               </span>
-              <p className="text-xs text-neutral-800 leading-relaxed font-medium bg-neutral-100 dark:bg-neutral-800 p-2.5 rounded-xl border border-ink/15 whitespace-pre-wrap">
+              <p className="text-xs text-neutral-800 leading-relaxed font-medium bg-neutral-100 p-2.5 rounded-xl border border-ink/15 whitespace-pre-wrap">
                 {event.description}
               </p>
             </div>

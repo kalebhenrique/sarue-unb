@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui";
-import { CalendarDays, RotateCcw, PlusCircle, Info } from "lucide-react";
+import { SquareKanban, RotateCcw, PlusCircle, Info } from "lucide-react";
 import { toPng } from "html-to-image";
 import type { ScrapedClass } from "@/core";
 import { GradeFilters } from "../components/grade/GradeFilters";
@@ -196,7 +196,7 @@ export const GradeBuilderScreen: React.FC = () => {
     <PageContainer>
       {/* Título Padronizado da Página com Ícone da Sidebar */}
       <div className="space-y-1.5">
-        <PageHeader icon={CalendarDays} title="Montar Grade Horária" />
+        <PageHeader icon={SquareKanban} title="Montar Grade Horária" />
       </div>
 
       {/* Alerta de Semestre em Andamento para contas com Meu Curso ativado */}

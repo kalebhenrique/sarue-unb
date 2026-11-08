@@ -1,13 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
-  Calendar as CalendarIcon,
-  GraduationCap,
-  CheckSquare,
 } from 'lucide-react';
+import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
 import {
   Button,
+  Checkbox,
   SegmentedControl,
   type SegmentedOption,
 } from '@/components/ui';
@@ -19,6 +18,7 @@ interface CalendarToolbarProps {
   currentDate: Date;
   onPrevMonth: () => void;
   onNextMonth: () => void;
+  onSelectMonth?: (year: number, monthIndex: number) => void;
   onGoToToday: () => void;
   viewMode: CalendarViewMode;
   onViewModeChange: (mode: CalendarViewMode) => void;
@@ -36,8 +36,8 @@ interface CalendarToolbarProps {
 }
 
 const VIEW_OPTIONS: ReadonlyArray<SegmentedOption<CalendarViewMode>> = [
-  { value: 'month', label: 'Mês & Agenda', title: 'Grade mensal e agenda do dia' },
-  { value: 'agenda', label: 'Agenda Completa', title: 'Linha do tempo contínua de eventos' },
+  { value: 'month', label: 'Mês', title: 'Grade mensal e agenda do dia' },
+  { value: 'agenda', label: 'Lista', title: 'Linha do tempo contínua de eventos' },
 ];
 
 const MONTH_NAMES = [
@@ -55,10 +55,26 @@ const MONTH_NAMES = [
   'Dezembro',
 ];
 
+const MONTH_SHORT_NAMES = [
+  'Jan',
+  'Fev',
+  'Mar',
+  'Abr',
+  'Mai',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Set',
+  'Out',
+  'Nov',
+  'Dez',
+];
+
 export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   currentDate,
   onPrevMonth,
   onNextMonth,
+  onSelectMonth,
   onGoToToday,
   viewMode,
   onViewModeChange,
@@ -74,8 +90,22 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   onOpenCreateDialog: _onOpenCreateDialog,
   onResetFilters,
 }) => {
-  const monthName = MONTH_NAMES[currentDate.getMonth()];
+  const monthIndex = currentDate.getMonth();
+  const monthName = MONTH_NAMES[monthIndex];
   const year = currentDate.getFullYear();
+
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState(year);
+
+  useEffect(() => {
+    if (monthPickerOpen) {
+      setPickerYear(year);
+    }
+  }, [monthPickerOpen, year]);
+
+  const now = new Date();
+  const currentActualYear = now.getFullYear();
+  const currentActualMonth = now.getMonth();
 
   const courseOptions = useMemo(() => {
     const map = new Map<string, { value: string; label: string }>();
@@ -131,11 +161,80 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             >
               <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
             </button>
-            <div className="px-4 py-1.5 border-x-2 border-ink min-w-[170px] text-center bg-paper">
-              <span className="font-black text-base tracking-tight text-black block capitalize">
-                {monthName} <span className="text-neo-blue">{year}</span>
-              </span>
-            </div>
+            <PopoverPrimitive.Root open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
+              <PopoverPrimitive.Trigger
+                type="button"
+                title="Selecionar mês e ano"
+                aria-label="Selecionar mês e ano"
+                className="cursor-pointer px-4 py-1.5 border-x-2 border-ink min-w-[170px] text-center bg-paper hover:bg-neutral-100 dark:hover:bg-neutral-200 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neo-blue"
+              >
+                <span className="font-black text-base tracking-tight text-black block capitalize">
+                  {monthName} <span className="text-neo-blue">{year}</span>
+                </span>
+              </PopoverPrimitive.Trigger>
+              <PopoverPrimitive.Portal>
+                <PopoverPrimitive.Positioner
+                  side="bottom"
+                  align="center"
+                  sideOffset={6}
+                  className="isolate z-50"
+                >
+                  <PopoverPrimitive.Popup className="z-50 w-64 rounded-xl border-2 border-ink bg-paper p-3 text-black outline-hidden origin-(--transform-origin) transition-[opacity,transform] duration-150 ease-out data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0">
+                    {/* Cabeçalho de Ano */}
+                    <div className="flex items-center justify-between mb-3">
+                      <button
+                        type="button"
+                        onClick={() => setPickerYear((y) => y - 1)}
+                        aria-label="Ano anterior"
+                        className="cursor-pointer inline-flex size-7 items-center justify-center rounded-lg border-2 border-ink bg-canvas text-black hover:bg-neutral-200 dark:hover:bg-neutral-300 transition-colors"
+                      >
+                        <ChevronLeft className="size-4 stroke-[2.5]" />
+                      </button>
+                      <span className="text-sm font-black text-black select-none">
+                        {pickerYear}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPickerYear((y) => y + 1)}
+                        aria-label="Próximo ano"
+                        className="cursor-pointer inline-flex size-7 items-center justify-center rounded-lg border-2 border-ink bg-canvas text-black hover:bg-neutral-200 dark:hover:bg-neutral-300 transition-colors"
+                      >
+                        <ChevronRight className="size-4 stroke-[2.5]" />
+                      </button>
+                    </div>
+
+                    {/* Grade 3x4 de Meses */}
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {MONTH_SHORT_NAMES.map((shortLabel, idx) => {
+                        const isSelected = pickerYear === year && idx === monthIndex;
+                        const isCurrentMonthToday =
+                          pickerYear === currentActualYear && idx === currentActualMonth;
+
+                        return (
+                          <button
+                            key={shortLabel}
+                            type="button"
+                            onClick={() => {
+                              onSelectMonth?.(pickerYear, idx);
+                              setMonthPickerOpen(false);
+                            }}
+                            className={`cursor-pointer py-1.5 px-2 rounded-lg border-2 text-xs font-bold transition-colors select-none ${
+                              isSelected
+                                ? 'border-ink bg-neo-blue font-black text-white hover:bg-neo-blueHover'
+                                : isCurrentMonthToday
+                                ? 'border-ink bg-neo-yellow font-black text-ink hover:bg-neo-yellowHover'
+                                : 'border-transparent text-black hover:bg-neutral-100 dark:hover:bg-neutral-200 hover:border-ink/40'
+                            }`}
+                          >
+                            {shortLabel}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </PopoverPrimitive.Popup>
+                </PopoverPrimitive.Positioner>
+              </PopoverPrimitive.Portal>
+            </PopoverPrimitive.Root>
             <button
               type="button"
               onClick={onNextMonth}
@@ -159,7 +258,7 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           </Button>
         </div>
 
-        {/* Lado Direito: Alternador Mês/Agenda */}
+        {/* Lado Direito: Alternador Mês/Lista */}
         <div className="flex items-center gap-3">
           <SegmentedControl<CalendarViewMode>
             options={VIEW_OPTIONS}
@@ -167,58 +266,43 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             onValueChange={onViewModeChange}
             ariaLabel="Modo de visualização do calendário"
             size="sm"
-            className="w-56"
+            className="w-40"
           />
         </div>
       </div>
 
       {/* Linha inferior: Filtros de Tipo e Barra de Busca */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 pt-2 border-t-2 border-black/10">
-        {/* Chips de filtro com visual de adesivos seguindo o padrão com rótulo acima */}
+        {/* Filtros com Checkbox de cada cor + texto */}
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-bold text-neutral-700">Filtros:</span>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={onToggleAcademic}
-              aria-pressed={showAcademic}
-              className={`cursor-pointer inline-flex items-center gap-1.5 px-3 h-[34px] rounded-xl text-xs font-bold transition-all ${
-                showAcademic
-                  ? 'bg-pastel-blue text-ink-disc-blue border-2 border-[#468AFB] shadow-[2px_2px_0px_0px_var(--neo-shadow)]'
-                  : 'bg-paper text-neutral-600 border-2 border-dashed border-ink/30 hover:border-solid hover:text-black'
-              }`}
-            >
-              <GraduationCap className="w-3.5 h-3.5 stroke-[2.5] text-[#468AFB]" />
+          <div className="flex items-center gap-4 flex-wrap min-h-[34px]">
+            <label className="cursor-pointer inline-flex items-center gap-2 text-xs font-bold text-black select-none">
+              <Checkbox
+                checked={showAcademic}
+                onCheckedChange={() => onToggleAcademic()}
+                className="data-checked:bg-[#468AFB] data-checked:text-white hover:bg-neutral-100"
+              />
               <span>Calendário Acadêmico (UnB)</span>
-            </button>
+            </label>
 
-            <button
-              type="button"
-              onClick={onToggleManual}
-              aria-pressed={showManual}
-              className={`cursor-pointer inline-flex items-center gap-1.5 px-3 h-[34px] rounded-xl text-xs font-bold transition-all ${
-                showManual
-                  ? 'bg-pastel-green text-ink-disc-green border-2 border-[#16A34A] shadow-[2px_2px_0px_0px_var(--neo-shadow)]'
-                  : 'bg-paper text-neutral-600 border-2 border-dashed border-ink/30 hover:border-solid hover:text-black'
-              }`}
-            >
-              <CalendarIcon className="w-3.5 h-3.5 stroke-[2.5] text-[#16A34A]" />
+            <label className="cursor-pointer inline-flex items-center gap-2 text-xs font-bold text-black select-none">
+              <Checkbox
+                checked={showManual}
+                onCheckedChange={() => onToggleManual()}
+                className="data-checked:bg-neo-green data-checked:text-ink hover:bg-neutral-100"
+              />
               <span>Meus Eventos</span>
-            </button>
+            </label>
 
-            <button
-              type="button"
-              onClick={onToggleFeedTasks}
-              aria-pressed={showFeedTasks}
-              className={`cursor-pointer inline-flex items-center gap-1.5 px-3 h-[34px] rounded-xl text-xs font-bold transition-all ${
-                showFeedTasks
-                  ? 'bg-pastel-yellow text-ink-disc-yellow border-2 border-[#EAB308] shadow-[2px_2px_0px_0px_var(--neo-shadow)]'
-                  : 'bg-paper text-neutral-600 border-2 border-dashed border-ink/30 hover:border-solid hover:text-black'
-              }`}
-            >
-              <CheckSquare className="w-3.5 h-3.5 stroke-[2.5] text-[#EAB308]" />
+            <label className="cursor-pointer inline-flex items-center gap-2 text-xs font-bold text-black select-none">
+              <Checkbox
+                checked={showFeedTasks}
+                onCheckedChange={() => onToggleFeedTasks()}
+                className="data-checked:bg-neo-yellow data-checked:text-ink hover:bg-neutral-100"
+              />
               <span>Tarefas do Feed</span>
-            </button>
+            </label>
 
             {hasActiveFilters && (
               <button
@@ -232,7 +316,7 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           </div>
         </div>
 
-        {/* Select de filtro por matérias do usuário seguindo o padrão FilterSelect */}
+        {/* Select de filtro por matérias do usuário abrindo para baixo indo para a esquerda */}
         <div className="w-full sm:w-[240px] shrink-0">
           <FilterSelect
             label="Matéria:"
@@ -240,6 +324,7 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             options={courseOptions}
             onChange={onCourseChange}
             active={Boolean(selectedCourse && selectedCourse !== 'all')}
+            align="end"
           />
         </div>
       </div>

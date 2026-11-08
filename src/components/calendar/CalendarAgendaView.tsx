@@ -113,7 +113,7 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
               event={evt}
               onEditEvent={onEditEvent}
               onDeleteEvent={onDeleteEvent}
-              showDate
+              showDate={Boolean(evt.endDate && evt.endDate !== evt.date)}
               hasShadow={false}
             />
           ))}
