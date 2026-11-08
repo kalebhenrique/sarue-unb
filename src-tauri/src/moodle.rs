@@ -524,6 +524,8 @@ pub fn parse_moodle_courses_ws(json_val: &Value) -> Result<Vec<Course>, String> 
             unread_count: Some(0),
             pending_assignments_count: Some(0),
             url: Some(viewurl),
+            absences: None,
+            max_absences: None,
         });
     }
 
@@ -587,6 +589,8 @@ pub fn scrape_courses_html(html: &str) -> Vec<Course> {
             unread_count: Some(0),
             pending_assignments_count: Some(0),
             url: Some(viewurl),
+            absences: None,
+            max_absences: None,
         });
     }
 
@@ -1764,6 +1768,8 @@ mod tests {
             unread_count: None,
             pending_assignments_count: None,
             url: None,
+            absences: None,
+            max_absences: None,
         };
 
         let items = scrape_course_modules_html(html, &course, reference_now);

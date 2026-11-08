@@ -102,6 +102,8 @@ export class TauriSyncRepository implements ISyncRepository {
           unreadCount: c.unreadCount ?? undefined,
           pendingAssignmentsCount: c.pendingAssignmentsCount ?? undefined,
           url: c.url ?? undefined,
+          absences: c.absences !== null && c.absences !== undefined ? c.absences : undefined,
+          maxAbsences: c.maxAbsences !== null && c.maxAbsences !== undefined ? c.maxAbsences : undefined,
         }));
 
       return {

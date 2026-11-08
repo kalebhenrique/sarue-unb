@@ -67,6 +67,8 @@ export type Course = {
 	unreadCount: number | null,
 	pendingAssignmentsCount: number | null,
 	url: string | null,
+	absences?: number | null,
+	maxAbsences?: number | null,
 };
 
 export type CourseCatalogItem = {

@@ -8,9 +8,12 @@ export * from './domain/entities/ira-scenario';
 export * from './domain/entities/academic-calendar';
 export * from './domain/entities/deadline-notification';
 export * from './domain/entities/professor-evaluation';
+export * from './domain/entities/user-calendar-event';
 // Domain Utils
 export * from './domain/utils/grade-acronym';
 export * from './domain/utils/course-shift';
+export * from './domain/utils/absence-calculator';
+export * from './domain/utils/grade-formula-calculator';
 export * from './domain/utils/semester';
 export * from './domain/utils/profanity-filter';
 
@@ -24,6 +27,7 @@ export * from './domain/interfaces/grade-repo.interface';
 export * from './domain/interfaces/academic-profile-repo.interface';
 export * from './domain/interfaces/ira-scenario-repo.interface';
 export * from './domain/interfaces/professor-evaluation-repo.interface';
+export * from './domain/interfaces/user-events-repo.interface';
 
 // Use Cases
 export * from './application/save-credentials.use-case';
@@ -45,6 +49,8 @@ export * from './application/build-ira-scenario.use-case';
 export * from './application/manage-ira-scenario.use-case';
 export * from './application/get-academic-calendar.use-case';
 export * from './application/get-professor-evaluations.use-case';
+export * from './application/manage-user-events.use-case';
+export * from './application/get-unified-calendar-events.use-case';
 
 // DI Container
 // Nota: repositórios concretos (adapters) não são exportados aqui de propósito.

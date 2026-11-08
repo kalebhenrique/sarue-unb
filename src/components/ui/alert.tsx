@@ -21,24 +21,27 @@ export const Alert: React.FC<AlertProps> = ({
   ...props
 }) => {
   const variantStyles = {
-    // Post-it escuro vira placa elevada com fita lateral ouro (Opção B):
-    // superfície do papel + barra esquerda grossa na tinta viva.
+    // Post-it escuro vira placa elevada com fita lateral na cor de ação:
+    // superfície do papel + barra esquerda grossa (6px) na tinta viva correspondente.
     yellow:
       'bg-pastel-yellow border-ink text-black dark:bg-paper dark:border-l-[6px] dark:border-l-neo-yellow',
-    green: 'bg-pastel-green border-ink text-black',
-    blue: 'bg-pastel-blue border-ink text-black',
+    green:
+      'bg-pastel-green border-ink text-black dark:bg-paper dark:border-l-[6px] dark:border-l-neo-green',
+    blue:
+      'bg-pastel-blue border-ink text-black dark:bg-paper dark:border-l-[6px] dark:border-l-neo-blue',
     neutral: 'bg-paper border-ink text-black',
-    destructive: 'bg-pastel-red border-ink text-black',
+    destructive:
+      'bg-pastel-red border-ink text-black dark:bg-paper dark:border-l-[6px] dark:border-l-neo-danger',
   };
 
   const iconStyles = {
-    // Post-it escuro: no banner amarelo, o selo do ícone vira sólido ouro
-    // com tinta preta — o detalhe vivo do post-it rico.
+    // No escuro, o selo do ícone vira adesivo sólido da respectiva tinta com tinta preta fixa
+    // ou branco na tinta destrutiva — detalhe vivo do banner neobrutalista.
     yellow: 'bg-paper text-black dark:bg-neo-yellow dark:text-ink',
-    green: 'bg-paper text-ink-success',
-    blue: 'bg-paper text-blue-ink',
+    green: 'bg-paper text-ink-success dark:bg-neo-green dark:text-ink',
+    blue: 'bg-paper text-blue-ink dark:bg-neo-blue dark:text-white',
     neutral: 'bg-paper text-black',
-    destructive: 'bg-neo-danger text-white',
+    destructive: 'bg-neo-danger text-white dark:bg-neo-danger dark:text-white',
   };
 
   return (

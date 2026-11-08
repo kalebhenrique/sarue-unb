@@ -37,6 +37,8 @@ interface SqliteCourseRow {
   unread_count: number;
   pending_assignments_count: number;
   url: string | null;
+  absences: number | null;
+  max_absences: number | null;
 }
 
 interface SqliteCourseAssociationRow {
@@ -68,6 +70,8 @@ export async function getDatabase(): Promise<Database | null> {
         // Garante compatibilidade transparente com bases locais legadas pré-migrações
         try { await db.execute('ALTER TABLE courses ADD COLUMN url TEXT;'); } catch {}
         try { await db.execute('ALTER TABLE courses ADD COLUMN turma TEXT;'); } catch {}
+        try { await db.execute('ALTER TABLE courses ADD COLUMN absences INTEGER;'); } catch {}
+        try { await db.execute('ALTER TABLE courses ADD COLUMN max_absences INTEGER;'); } catch {}
         try { await db.execute('ALTER TABLE feed_items ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0;'); } catch {}
         try { await db.execute('ALTER TABLE feed_items ADD COLUMN external_url TEXT;'); } catch {}
 
@@ -336,6 +340,8 @@ export class SqliteFeedRepository implements IFeedRepository {
           unreadCount: Number(row.unread_count || 0),
           pendingAssignmentsCount: Number(row.pending_assignments_count || 0),
           url: row.url ?? undefined,
+          absences: row.absences !== null && row.absences !== undefined ? Number(row.absences) : undefined,
+          maxAbsences: row.max_absences !== null && row.max_absences !== undefined ? Number(row.max_absences) : undefined,
         }));
 
         for (const c of courses) {
@@ -362,8 +368,8 @@ export class SqliteFeedRepository implements IFeedRepository {
         for (const course of newCourses) {
           await db.execute(
             `INSERT OR REPLACE INTO courses (
-              id, code, name, semester, platform, professor, classroom, schedule, turma, unread_count, pending_assignments_count, url
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+              id, code, name, semester, platform, professor, classroom, schedule, turma, unread_count, pending_assignments_count, url, absences, max_absences
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
             [
               course.id,
               course.code,
@@ -377,6 +383,8 @@ export class SqliteFeedRepository implements IFeedRepository {
               course.unreadCount ?? 0,
               course.pendingAssignmentsCount ?? 0,
               course.url ?? null,
+              course.absences ?? null,
+              course.maxAbsences ?? null,
             ]
           );
         }

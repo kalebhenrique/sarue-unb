@@ -1010,6 +1010,8 @@ pub fn parse_teams_bridge_payload(payload_str: &str) -> (Vec<FeedItem>, Vec<Cour
                 unread_count: Some(0),
                 pending_assignments_count: Some(0),
                 url: c.url.or_else(|| Some("https://teams.microsoft.com".into())),
+                absences: None,
+                max_absences: None,
             });
         }
     }

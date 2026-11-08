@@ -13,6 +13,8 @@ export interface Course {
   unreadCount?: number;
   pendingAssignmentsCount?: number;
   url?: string;
+  absences?: number;
+  maxAbsences?: number;
 }
 
 export interface CourseAssociation {
@@ -37,6 +39,8 @@ export interface Discipline {
   url?: string;
   unreadCount?: number;
   pendingAssignmentsCount?: number;
+  absences?: number;
+  maxAbsences?: number;
 }
 
 export interface CourseCatalogItem {

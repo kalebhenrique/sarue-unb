@@ -184,6 +184,8 @@ export class SaveCredentialsUseCase {
               unreadCount: c.unreadCount ?? undefined,
               pendingAssignmentsCount: c.pendingAssignmentsCount ?? undefined,
               url: c.url ?? undefined,
+              absences: c.absences ?? undefined,
+              maxAbsences: c.maxAbsences ?? undefined,
             }));
             await this.feedRepo.saveCourses(domainCourses);
           }

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useFeed } from "../hooks/useFeed";
+import { useContainer } from "../context/ContainerContext";
 import {
   Card,
   Badge,
+  Alert,
   PageContainer,
   PageHeader,
   Button,
@@ -20,14 +22,21 @@ import {
   MessageSquare,
   ArrowLeft,
   AlertCircle,
+  AlertTriangle,
   Link2,
   Folder,
 } from "lucide-react";
 import { UnmatchedCourseDialog } from "../components/UnmatchedCourseDialog";
+import {
+  AbsenceSection,
+  readAbsenceOverride,
+  writeAbsenceOverride,
+} from "../components/course";
+import { GradeFormulaSection } from "../components/course";
 import { FeedList } from "../components/feed/FeedList";
 import { FeedToolbar } from "../components/feed/FeedToolbar";
 import { useFeedSelection } from "../hooks/useFeedSelection";
-import { getDefaultAcademicSemester } from "@/core";
+import { getDefaultAcademicSemester, calculateAbsenceRisk } from "@/core";
 import type { Course, Discipline, FeedItemType, PlatformType } from "@/core";
 
 const PLATFORM_LABELS: Record<PlatformType, string> = {
@@ -53,9 +62,16 @@ export const CoursesScreen: React.FC = () => {
     archiveItemsBatch,
   } = useFeed();
 
+  const { repos } = useContainer();
+
   const [selectedDiscipline, setSelectedDiscipline] =
     useState<Discipline | null>(null);
   const [resolvingCourse, setResolvingCourse] = useState<Course | null>(null);
+  // Ajuste manual de faltas da disciplina aberta no drill-down (null = usar valor do SIGAA).
+  // Persistido em localStorage para sobreviver aos re-syncs do SIGAA.
+  const [absenceOverride, setAbsenceOverride] = useState<number | null>(null);
+  // Incrementa a cada ajuste para recomputar badges/notificações da lista que dependem do override
+  const [absenceOverridesVersion, setAbsenceOverridesVersion] = useState(0);
   const [drillSearchQuery, setDrillSearchQuery] = useState<string>("");
   const [drillCategory, setDrillCategory] = useState<FeedItemType | "all">(
     "all",
@@ -83,6 +99,30 @@ export const CoursesScreen: React.FC = () => {
     setDrillPlatform("all");
   }, [selectedDiscipline]);
 
+  const selectedDisciplineId = selectedDiscipline?.id;
+  // Trocou de disciplina: carrega o ajuste manual de faltas da persistência
+  useEffect(() => {
+    setAbsenceOverride(
+      selectedDisciplineId ? readAbsenceOverride(selectedDisciplineId) : null,
+    );
+  }, [selectedDisciplineId]);
+
+  // Ajuste manual editado: persiste e invalida os badges/notificações da lista
+  const handleAbsenceOverrideChange = (value: number | null) => {
+    if (selectedDisciplineId) {
+      writeAbsenceOverride(selectedDisciplineId, value);
+      setAbsenceOverridesVersion((v) => v + 1);
+    }
+    setAbsenceOverride(value);
+  };
+
+  // Faltas efetivas de uma disciplina: ajuste manual > SIGAA > undefined
+  const getEffectiveAbsences = (d: Discipline): number | undefined => {
+    const overrideValue = readAbsenceOverride(d.id);
+    if (overrideValue !== null) return overrideValue;
+    return d.absences ?? d.sigaaCourse?.absences ?? undefined;
+  };
+
   // Plataformas que a disciplina efetivamente tem (SIGAA / Aprender 3 / Teams)
   const drillPlatforms = useMemo(() => {
     if (!selectedDiscipline) return [];
@@ -108,6 +148,64 @@ export const CoursesScreen: React.FC = () => {
     ],
     [drillPlatforms],
   );
+
+  // Avaliação do risco de faltas (regra de 25% da UnB)
+  const atRiskDisciplines = useMemo(() => {
+    return disciplines
+      .map((d) => {
+        const abs = getEffectiveAbsences(d);
+        if (abs === undefined) return null;
+        const status = calculateAbsenceRisk({
+          absences: abs,
+          maxAbsences: d.maxAbsences ?? d.sigaaCourse?.maxAbsences,
+          schedule: d.schedule || d.sigaaCourse?.schedule,
+        });
+        return { discipline: d, status };
+      })
+      .filter(
+        (
+          item,
+        ): item is {
+          discipline: Discipline;
+          status: ReturnType<typeof calculateAbsenceRisk>;
+        } => Boolean(item && (item.status.isAtRisk || item.status.isExceeded)),
+      );
+    // absenceOverridesVersion é dependência intencional: invalida o memo quando o ajuste
+    // manual de faltas muda (o valor vem de localStorage, não observável pelo React)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disciplines, absenceOverridesVersion]);
+
+  // Notificação do Sistema Operacional quando estiver prestes a atingir o limite de faltas (ou tiver excedido)
+  useEffect(() => {
+    if (!disciplines || disciplines.length === 0) return;
+
+    const checkAbsenceNotifications = async () => {
+      for (const item of atRiskDisciplines) {
+        const { discipline, status } = item;
+        const notifKey = `sarue:absence_notif:${discipline.id}:${status.absences}`;
+        if (!localStorage.getItem(notifKey)) {
+          localStorage.setItem(notifKey, new Date().toISOString());
+          await repos.osNotifier.ensurePermission();
+
+          const title = status.isExceeded
+            ? `Limite de faltas excedido: ${discipline.name}`
+            : status.isCritical
+            ? `Alerta Crítico de Faltas: ${discipline.name}`
+            : `Atenção ao limite de faltas: ${discipline.name}`;
+
+          const body = status.isExceeded
+            ? `Você possui ${status.absences}/${status.maxAbsences} faltas e ultrapassou os 25% permitidos na UnB.`
+            : status.isCritical
+            ? `Resta apenas 1 aula (${status.hoursPerClass}h) para reprovação por faltas na UnB!`
+            : `Restam 2 aulas (${status.hoursPerClass}h cada) para atingir o limite de 25% de faltas na UnB.`;
+
+          await repos.osNotifier.notify({ title, body });
+        }
+      }
+    };
+
+    checkAbsenceNotifications();
+  }, [atRiskDisciplines, disciplines, repos.osNotifier]);
 
   // Feed da disciplina (drill-down): filtragem e paginação calculadas no topo,
   // antes dos retornos antecipados, para os hooks do modo Selecionar manterem
@@ -312,6 +410,24 @@ export const CoursesScreen: React.FC = () => {
 
   // Se o usuário selecionou uma disciplina para ver o feed exclusivo (Drill-Down)
   if (selectedDiscipline) {
+    const absencesCount = getEffectiveAbsences(selectedDiscipline);
+    const hasManualAbsenceOverride =
+      readAbsenceOverride(selectedDiscipline.id) !== null;
+    const maxAbsences =
+      selectedDiscipline.maxAbsences ??
+      selectedDiscipline.sigaaCourse?.maxAbsences;
+
+    const drillAbsenceStatus =
+      absencesCount !== undefined || selectedDiscipline.sigaaCourse
+        ? calculateAbsenceRisk({
+            absences: absencesCount,
+            maxAbsences,
+            schedule:
+              selectedDiscipline.schedule ||
+              selectedDiscipline.sigaaCourse?.schedule,
+          })
+        : null;
+
     // Meta SIGAA da disciplina: turma, professor, sala, horário e semestre —
     // itens sem dado não entram na linha
     const metaItems = [
@@ -360,8 +476,8 @@ export const CoursesScreen: React.FC = () => {
           }
         />
 
-        {/* Card de detalhes da disciplina: badges de plataforma + meta SIGAA */}
-        <Card className="p-4">
+        {/* Card de detalhes da disciplina: badges de plataforma + meta SIGAA + Faltas UnB */}
+        <Card className="p-4 sm:p-5 space-y-3 pb-5">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
             <div className="flex flex-wrap items-center gap-1.5">
               {selectedDiscipline.sigaaCourse ? (
@@ -380,6 +496,31 @@ export const CoursesScreen: React.FC = () => {
                   Teams
                 </Badge>
               ) : null}
+              {drillAbsenceStatus && getEffectiveAbsences(selectedDiscipline) !== undefined ? (
+                <Badge
+                  variant={
+                    drillAbsenceStatus.absences === 0
+                      ? "success"
+                      : drillAbsenceStatus.isExceeded || drillAbsenceStatus.isCritical
+                      ? "urgent"
+                      : drillAbsenceStatus.isAtRisk
+                      ? "yellow"
+                      : "success"
+                  }
+                  size="sm"
+                  title={
+                    drillAbsenceStatus.warningMessage ||
+                    `Faltas registradas no SIGAA${hasManualAbsenceOverride ? " (ajustado manualmente)" : ""}: ${drillAbsenceStatus.absences} de ${drillAbsenceStatus.maxAbsences}h permitidas (limite de 25% da carga horária na UnB).`
+                  }
+                  className="font-black"
+                >
+                  {drillAbsenceStatus.absences}/{drillAbsenceStatus.maxAbsences} faltas
+                </Badge>
+              ) : selectedDiscipline.sigaaCourse ? (
+                <Badge variant="neutral" size="sm" className="font-bold">
+                  Sem registro no SIGAA
+                </Badge>
+              ) : null}
             </div>
 
             {metaItems.length > 0 ? (
@@ -394,6 +535,38 @@ export const CoursesScreen: React.FC = () => {
               </>
             ) : null}
           </div>
+
+          {drillAbsenceStatus && (drillAbsenceStatus.isAtRisk || drillAbsenceStatus.isExceeded) && (
+            <div className="w-full mt-3 pt-3 border-t-2 border-ink/10 text-xs font-bold">
+              {drillAbsenceStatus.isExceeded ? (
+                <p className="text-ink-urgent flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 stroke-[2.5] shrink-0" />
+                  <span>Limite de 25% de faltas ultrapassado ({drillAbsenceStatus.absences}/{drillAbsenceStatus.maxAbsences}h). Conforme o regimento da UnB, o aluno é reprovado por faltas.</span>
+                </p>
+              ) : drillAbsenceStatus.isCritical ? (
+                <p className="text-ink-urgent flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 stroke-[2.5] shrink-0" />
+                  <span>Alerta Crítico: Resta apenas 1 aula de {drillAbsenceStatus.hoursPerClass}h para reprovação por faltas na UnB!</span>
+                </p>
+              ) : (
+                <p className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 stroke-[2.5] shrink-0" />
+                  <span>Atenção: Restam apenas 2 aulas ({drillAbsenceStatus.hoursPerClass}h cada) antes de atingir o limite de reprovação.</span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Seção de Cálculo de Notas, Fórmula e Estimativa de Aprovação */}
+          <GradeFormulaSection discipline={selectedDiscipline} embedded />
+
+          {/* Seção de Controle de Faltas com ajuste manual (override persistido) */}
+          <AbsenceSection
+            discipline={selectedDiscipline}
+            override={absenceOverride}
+            onOverrideChange={handleAbsenceOverrideChange}
+            embedded
+          />
         </Card>
 
         {/* Barra de Filtros e Busca da Disciplina (expande para baixo no modo Selecionar) */}
@@ -493,38 +666,44 @@ export const CoursesScreen: React.FC = () => {
       {/* Título Padronizado da Página com Ícone da Sidebar */}
       <PageHeader icon={GraduationCap} title="Disciplinas do Semestre" />
 
+      {/* Alerta caso haja disciplinas próximas do limite de faltas ou reprovadas */}
+      {atRiskDisciplines.length > 0 ? (
+        <Alert
+          variant="destructive"
+          icon={AlertTriangle}
+          title={
+            atRiskDisciplines.length === 1
+              ? "1 disciplina em situação crítica de faltas (regra 25% UnB)"
+              : `${atRiskDisciplines.length} disciplinas em situação crítica de faltas (regra 25% UnB)`
+          }
+          description="Acompanhe a estimativa de aulas restantes para reprovação nos cards abaixo para não perder matérias por infrequência."
+        />
+      ) : null}
+
       {/* Alerta caso haja turmas do Aprender 3 ou Teams não associadas */}
       {unmatchedCourses.length > 0 ? (
-        <div className="bg-neo-yellow/20 border-2 border-ink rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-(--neo-card-shadow)">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-neo-yellow border-2 border-ink flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_var(--neo-shadow)]">
-              <AlertCircle className="w-4 h-4 stroke-[2.5] text-black" />
-            </div>
-            <div>
-              <p className="text-xs font-black text-black">
-                {unmatchedCourses.length}{" "}
-                {unmatchedCourses.length === 1
-                  ? "turma externa aguarda associação"
-                  : "turmas externas aguardam associação"}
-              </p>
-              <p className="text-[11px] font-medium text-neutral-700">
-                Associe para exibir os comunicados e tarefas na matéria
-                oficial do SIGAA ou direcione para a seção Outros.
-              </p>
-            </div>
-          </div>
-
-          <Button
-            type="button"
-            variant="default"
-            size="sm"
-            onClick={() => setResolvingCourse(unmatchedCourses[0])}
-            className="cursor-pointer shrink-0 flex items-center gap-1.5 text-xs bg-neo-blue text-white hover:bg-neo-blueHover"
-          >
-            <Link2 className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>Associar Turma</span>
-          </Button>
-        </div>
+        <Alert
+          variant="yellow"
+          icon={AlertCircle}
+          title={
+            unmatchedCourses.length === 1
+              ? "1 turma externa aguarda associação"
+              : `${unmatchedCourses.length} turmas externas aguardam associação`
+          }
+          description="Associe para exibir os comunicados e tarefas na matéria oficial do SIGAA ou direcione para a seção Outros."
+          aside={
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={() => setResolvingCourse(unmatchedCourses[0])}
+              className="cursor-pointer shrink-0 flex items-center gap-1.5 text-xs bg-neo-blue text-white hover:bg-neo-blueHover"
+            >
+              <Link2 className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Associar Turma</span>
+            </Button>
+          }
+        />
       ) : null}
 
       {disciplines.length === 0 ? (
@@ -534,105 +713,145 @@ export const CoursesScreen: React.FC = () => {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {disciplines.map((discipline) => (
-          <Card
-            key={discipline.id}
-            onClick={() => setSelectedDiscipline(discipline)}
-            role="button"
-            tabIndex={0}
-            aria-label={`Ver feed da disciplina ${discipline.name}`}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setSelectedDiscipline(discipline);
-              }
-            }}
-            className="cursor-pointer bg-paper rounded-lg p-5 shadow-(--neo-card-shadow) hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_var(--neo-shadow)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out flex flex-col justify-between group"
-          >
-            <div>
-              {/* Topo do card com plataformas integradas alinhadas à esquerda */}
-              <div className="flex items-center gap-1.5 mb-2.5">
-                {discipline.sigaaCourse ? (
-                  <Badge variant="sigaa">SIGAA</Badge>
-                ) : null}
-                {discipline.aprenderCourses.length > 0 ? (
-                  <Badge variant="aprender3">
-                    Aprender 3
-                    {discipline.aprenderCourses.length > 1
-                      ? ` (${discipline.aprenderCourses.length})`
-                      : ""}
-                  </Badge>
-                ) : null}
-                {discipline.teamsCourses && discipline.teamsCourses.length > 0 ? (
-                  <Badge variant="teams">
-                    Teams
-                    {discipline.teamsCourses.length > 1
-                      ? ` (${discipline.teamsCourses.length})`
-                      : ""}
-                  </Badge>
-                ) : null}
-              </div>
+          {disciplines.map((discipline) => {
+            const effectiveAbs = getEffectiveAbsences(discipline);
+            const absenceStatus =
+              effectiveAbs !== undefined
+                ? calculateAbsenceRisk({
+                    absences: effectiveAbs,
+                    maxAbsences:
+                      discipline.maxAbsences ?? discipline.sigaaCourse?.maxAbsences,
+                    schedule:
+                      discipline.schedule || discipline.sigaaCourse?.schedule,
+                  })
+                : null;
 
-              {/* Nome da disciplina */}
-              <h3 className="text-base font-black text-black leading-snug mb-3 group-hover:text-blue-ink transition-colors">
-                {discipline.code && !discipline.name.startsWith(discipline.code)
-                  ? `${discipline.code} - ${discipline.name}`
-                  : discipline.name}
-              </h3>
+            return (
+              <Card
+                key={discipline.id}
+                onClick={() => setSelectedDiscipline(discipline)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Ver feed da disciplina ${discipline.name}`}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedDiscipline(discipline);
+                  }
+                }}
+                className="cursor-pointer bg-paper rounded-lg p-5 shadow-(--neo-card-shadow) hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_var(--neo-shadow)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out flex flex-col justify-between group"
+              >
+                <div>
+                  {/* Topo do card com plataformas integradas alinhadas à esquerda */}
+                  <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
+                    {discipline.sigaaCourse ? (
+                      <Badge variant="sigaa">SIGAA</Badge>
+                    ) : null}
+                    {discipline.aprenderCourses.length > 0 ? (
+                      <Badge variant="aprender3">
+                        Aprender 3
+                        {discipline.aprenderCourses.length > 1
+                          ? ` (${discipline.aprenderCourses.length})`
+                          : ""}
+                      </Badge>
+                    ) : null}
+                    {discipline.teamsCourses &&
+                    discipline.teamsCourses.length > 0 ? (
+                      <Badge variant="teams">
+                        Teams
+                        {discipline.teamsCourses.length > 1
+                          ? ` (${discipline.teamsCourses.length})`
+                          : ""}
+                      </Badge>
+                    ) : null}
+                    {absenceStatus ? (
+                      <Badge
+                        variant={
+                          absenceStatus.absences === 0
+                            ? "success"
+                            : absenceStatus.isExceeded || absenceStatus.isCritical
+                            ? "urgent"
+                            : absenceStatus.isAtRisk
+                            ? "yellow"
+                            : "success"
+                        }
+                        title={
+                          absenceStatus.warningMessage ||
+                          `Faltas registradas no SIGAA: ${absenceStatus.absences} de no máximo ${absenceStatus.maxAbsences} permitidas.`
+                        }
+                        className="font-black"
+                      >
+                        {absenceStatus.absences}/{absenceStatus.maxAbsences} faltas
+                      </Badge>
+                    ) : discipline.sigaaCourse ? (
+                      <Badge variant="neutral" className="font-bold">
+                        Sem registro no SIGAA
+                      </Badge>
+                    ) : null}
+                  </div>
 
-              {/* Informações detalhadas */}
-              <div className="space-y-1.5 text-xs font-medium text-neutral-700">
-                {discipline.professor ? (
+                  {/* Nome da disciplina */}
+                  <h3 className="text-base font-black text-black leading-snug mb-3 group-hover:text-blue-ink transition-colors">
+                    {discipline.code &&
+                    !discipline.name.startsWith(discipline.code)
+                      ? `${discipline.code} - ${discipline.name}`
+                      : discipline.name}
+                  </h3>
+
+                  {/* Informações detalhadas */}
+                  <div className="space-y-1.5 text-xs font-medium text-neutral-700">
+                    {discipline.professor ? (
+                      <div className="flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-neutral-500 stroke-[2.5]" />
+                        <span className="truncate">{discipline.professor}</span>
+                      </div>
+                    ) : null}
+
+                    {discipline.classroom ? (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5 text-neutral-500 stroke-[2.5]" />
+                        <span className="truncate">{discipline.classroom}</span>
+                      </div>
+                    ) : null}
+
+                    {discipline.schedule ? (
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5 text-neutral-500 stroke-[2.5]" />
+                        <span className="truncate">{discipline.schedule}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Rodapé com indicadores e atalho */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t-2 border-ink/10 mt-4 text-xs font-bold">
+                  <span className="text-neutral-500">{discipline.semester}</span>
+
                   <div className="flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-neutral-500 stroke-[2.5]" />
-                    <span className="truncate">{discipline.professor}</span>
+                    {discipline.pendingAssignmentsCount !== undefined &&
+                    discipline.pendingAssignmentsCount > 0 ? (
+                      <div className="flex items-center gap-1 text-ink-success bg-pastel-green px-2 py-0.5 border border-ink/20 rounded-md">
+                        <CheckSquare className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>{discipline.pendingAssignmentsCount} entregas</span>
+                      </div>
+                    ) : null}
+
+                    {discipline.unreadCount !== undefined &&
+                    discipline.unreadCount > 0 ? (
+                      <div className="flex items-center gap-1 text-blue-ink bg-pastel-blue px-2 py-0.5 border border-ink/20 rounded-md">
+                        <MessageSquare className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>{discipline.unreadCount} novos</span>
+                      </div>
+                    ) : null}
+
+                    <span className="text-neutral-800 text-[11px] underline decoration-2 group-hover:text-blue-ink font-extrabold ml-1">
+                      Ver feed →
+                    </span>
                   </div>
-                ) : null}
-
-                {discipline.classroom ? (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-neutral-500 stroke-[2.5]" />
-                    <span className="truncate">{discipline.classroom}</span>
-                  </div>
-                ) : null}
-
-                {discipline.schedule ? (
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-neutral-500 stroke-[2.5]" />
-                    <span className="truncate">{discipline.schedule}</span>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            {/* Rodapé com indicadores e atalho */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t-2 border-ink/10 mt-4 text-xs font-bold">
-              <span className="text-neutral-500">{discipline.semester}</span>
-
-              <div className="flex items-center gap-2">
-                {discipline.pendingAssignmentsCount !== undefined &&
-                discipline.pendingAssignmentsCount > 0 ? (
-                  <div className="flex items-center gap-1 text-ink-success bg-pastel-green px-2 py-0.5 border border-ink/20 rounded-md">
-                    <CheckSquare className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>{discipline.pendingAssignmentsCount} entregas</span>
-                  </div>
-                ) : null}
-
-                {discipline.unreadCount !== undefined &&
-                discipline.unreadCount > 0 ? (
-                  <div className="flex items-center gap-1 text-blue-ink bg-pastel-blue px-2 py-0.5 border border-ink/20 rounded-md">
-                    <MessageSquare className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>{discipline.unreadCount} novos</span>
-                  </div>
-                ) : null}
-
-                <span className="text-neutral-800 text-[11px] underline decoration-2 group-hover:text-blue-ink font-extrabold ml-1">
-                  Ver feed →
-                </span>
-              </div>
-            </div>
-          </Card>
-          ))}
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 

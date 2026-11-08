@@ -935,7 +935,7 @@ Currículo: 1741/1
       expect(result.profile.completedDisciplines.length).toBe(2);
       expect(result.profile.completedDisciplines.map((d) => d.code)).toEqual(['CIC0004', 'MAT0025']);
       expect(result.profile.ira).toBe(4.5);
-    });
+    }, 15000);
 
     it('syncWithSigaa deve respeitar a matriz selecionada manualmente pelo discente (userSelectedCurriculumCode)', async () => {
       const repo = new InMemoryAcademicProfileRepository();

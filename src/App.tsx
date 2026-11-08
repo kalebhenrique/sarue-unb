@@ -3,6 +3,7 @@ import { OnboardingScreen } from './screens/OnboardingScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { CoursesScreen } from './screens/CoursesScreen';
 import { GradeBuilderScreen } from './screens/GradeBuilderScreen';
+import { CalendarScreen } from './screens/CalendarScreen';
 import { MyCourseScreen } from './screens/MyCourseScreen';
 import { ProfessorEvaluationsScreen } from './screens/ProfessorEvaluationsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -30,6 +31,7 @@ const SCREEN_LABELS: Record<NavTab, string> = {
   home: 'Início',
   courses: 'Disciplinas',
   grade: 'Montar Grade',
+  calendar: 'Calendário',
   evaluations: 'Avaliações',
   'my-course': 'Meu Curso',
   settings: 'Configurações',
@@ -175,6 +177,7 @@ const AppShell: React.FC = () => {
             {currentTab === 'home' && <DashboardScreen />}
             {currentTab === 'courses' && <CoursesScreen />}
             {currentTab === 'grade' && <GradeBuilderScreen />}
+            {currentTab === 'calendar' && <CalendarScreen />}
             {currentTab === 'my-course' && <MyCourseScreen />}
             {currentTab === 'evaluations' && <ProfessorEvaluationsScreen />}
             {currentTab === 'settings' && (

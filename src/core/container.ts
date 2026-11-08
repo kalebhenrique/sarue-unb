@@ -7,6 +7,7 @@ import type { IIraScenarioRepository } from './domain/interfaces/ira-scenario-re
 import type { IDeadlineNotificationRepository } from './domain/interfaces/deadline-notification-repo.interface';
 import type { IOSNotifier } from './domain/interfaces/os-notifier.interface';
 import type { IProfessorEvaluationRepository } from './domain/interfaces/professor-evaluation-repo.interface';
+import type { IUserEventsRepository } from './domain/interfaces/user-events-repo.interface';
 
 import { SaveCredentialsUseCase } from './application/save-credentials.use-case';
 import { GetCredentialsUseCase } from './application/get-credentials.use-case';
@@ -27,6 +28,8 @@ import { CalculateIraUseCase } from './application/calculate-ira.use-case';
 import { BuildIraScenarioUseCase } from './application/build-ira-scenario.use-case';
 import { ManageIraScenarioUseCase } from './application/manage-ira-scenario.use-case';
 import { GetProfessorEvaluationsUseCase } from './application/get-professor-evaluations.use-case';
+import { ManageUserEventsUseCase } from './application/manage-user-events.use-case';
+import { GetUnifiedCalendarEventsUseCase } from './application/get-unified-calendar-events.use-case';
 
 import { StrongholdCredentialsRepository } from './infrastructure/stronghold-credentials.repo';
 import { TauriSyncRepository } from './infrastructure/tauri-sync.repo';
@@ -45,6 +48,8 @@ import { TauriOSNotifier } from './infrastructure/tauri-os-notifier';
 import { NullNotifier } from './infrastructure/tauri-os-notifier';
 import { TauriProfessorEvaluationRepository } from './infrastructure/tauri-professor-evaluation.repo';
 import { InMemoryProfessorEvaluationRepository } from './infrastructure/in-memory-professor-evaluation.repo';
+import { SqliteUserEventsRepository } from './infrastructure/sqlite-user-events.repo';
+import { InMemoryUserEventsRepository } from './infrastructure/in-memory-user-events.repo';
 
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -60,6 +65,7 @@ export interface Repositories {
   deadlineNotificationRepo: IDeadlineNotificationRepository;
   osNotifier: IOSNotifier;
   professorEvaluationRepo: IProfessorEvaluationRepository;
+  userEventsRepo: IUserEventsRepository;
 }
 
 export interface UseCases {
@@ -82,6 +88,8 @@ export interface UseCases {
   parseHistorico: ParseHistoricoUseCase;
   getAcademicCalendar: GetAcademicCalendarUseCase;
   getProfessorEvaluations: GetProfessorEvaluationsUseCase;
+  manageUserEvents: ManageUserEventsUseCase;
+  getUnifiedCalendarEvents: GetUnifiedCalendarEventsUseCase;
 }
 
 export interface Container {
@@ -134,6 +142,10 @@ export function createContainer(overrides?: ContainerOverrides): Container {
       ? new TauriProfessorEvaluationRepository()
       : new InMemoryProfessorEvaluationRepository());
 
+  const userEventsRepo: IUserEventsRepository =
+    overrides?.repos?.userEventsRepo ??
+    (tauri ? new SqliteUserEventsRepository() : new InMemoryUserEventsRepository());
+
   const repos: Repositories = {
     credentialsRepo,
     syncRepo,
@@ -144,7 +156,10 @@ export function createContainer(overrides?: ContainerOverrides): Container {
     deadlineNotificationRepo,
     osNotifier,
     professorEvaluationRepo,
+    userEventsRepo,
   };
+
+  const getAcademicCalendar = new GetAcademicCalendarUseCase();
 
   const useCases: UseCases = {
     saveCredentials: new SaveCredentialsUseCase(credentialsRepo, feedRepo),
@@ -171,10 +186,16 @@ export function createContainer(overrides?: ContainerOverrides): Container {
     manageIraScenario: new ManageIraScenarioUseCase(iraScenarioRepo),
     getFlowchart: new GetFlowchartUseCase(),
     parseHistorico: new ParseHistoricoUseCase(),
-    getAcademicCalendar: new GetAcademicCalendarUseCase(),
+    getAcademicCalendar,
     getProfessorEvaluations: new GetProfessorEvaluationsUseCase(
       professorEvaluationRepo,
       gradeRepo,
+    ),
+    manageUserEvents: new ManageUserEventsUseCase(userEventsRepo),
+    getUnifiedCalendarEvents: new GetUnifiedCalendarEventsUseCase(
+      userEventsRepo,
+      getAcademicCalendar,
+      feedRepo,
     ),
   };
 

@@ -49,6 +49,10 @@ pub struct Course {
     pub unread_count: Option<u32>,
     pub pending_assignments_count: Option<u32>,
     pub url: Option<String>,
+    #[serde(default)]
+    pub absences: Option<u32>,
+    #[serde(default)]
+    pub max_absences: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]

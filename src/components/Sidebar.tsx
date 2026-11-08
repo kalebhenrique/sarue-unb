@@ -3,6 +3,7 @@ import {
   Home,
   BookOpen,
   CalendarDays,
+  CalendarRange,
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
@@ -20,6 +21,7 @@ export type NavTab =
   | "home"
   | "courses"
   | "grade"
+  | "calendar"
   | "my-course"
   | "evaluations"
   | "settings";
@@ -122,7 +124,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { id: "home" as NavTab, label: "Home", icon: Home },
     { id: "courses" as NavTab, label: "Disciplinas", icon: BookOpen },
-    { id: "grade" as NavTab, label: "Montar Grade", icon: CalendarDays },
+    { id: "grade" as NavTab, label: "Montar Grade", icon: CalendarRange },
+    { id: "calendar" as NavTab, label: "Calendário", icon: CalendarDays },
     { id: "evaluations" as NavTab, label: "Avaliar Professor", icon: MessageSquareQuote },
     { id: "my-course" as NavTab, label: "Meu Curso", icon: GraduationCap },
     { id: "settings" as NavTab, label: "Configurações", icon: Settings },

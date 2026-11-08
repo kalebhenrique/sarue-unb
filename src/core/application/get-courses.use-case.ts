@@ -114,6 +114,8 @@ export class GetCoursesUseCase {
         url: c.url,
         unreadCount: c.unreadCount || 0,
         pendingAssignmentsCount: c.pendingAssignmentsCount || 0,
+        absences: c.absences ?? (c.platform === 'sigaa' ? 0 : undefined),
+        maxAbsences: c.maxAbsences,
       }));
 
       return {
@@ -260,6 +262,8 @@ export class GetCoursesUseCase {
         url: sc.url,
         unreadCount: totalUnread,
         pendingAssignmentsCount: totalPending,
+        absences: sc.absences ?? 0,
+        maxAbsences: sc.maxAbsences,
       };
     });
 

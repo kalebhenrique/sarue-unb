@@ -21,3 +21,4 @@ export * from './accordion';
 export * from './switch';
 export * from './error-boundary';
 export * from './filter-select';
+export * from './number-field';
