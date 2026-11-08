@@ -398,7 +398,7 @@ export const CoursesScreen: React.FC = () => {
                   <Skeleton className="h-4 w-20 rounded-md" />
                 </div>
               </div>
-              <div className="pt-3 border-t-2 border-ink/10 flex justify-between items-center">
+              <div className="pt-3 border-t-2 border-black/10 flex justify-between items-center">
                 <Skeleton className="h-4 w-28 rounded-md" />
                 <Skeleton className="h-4 w-16 rounded-md" />
               </div>
@@ -619,7 +619,7 @@ export const CoursesScreen: React.FC = () => {
               {drillSearchQuery ||
               drillCategory !== "all" ||
               drillPlatform !== "all" ? (
-                <div className="border-b-2 border-ink/10 bg-canvas px-4 py-2 text-xs font-bold text-neutral-600 md:px-5">
+                <div className="border-b-2 border-black/10 bg-canvas px-4 py-2 text-xs font-bold text-neutral-600 md:px-5">
                   {disciplineFeedItems.length} de {disciplineAllItems.length}{" "}
                   {disciplineFeedItems.length === 1
                     ? "resultado"
@@ -816,7 +816,7 @@ export const CoursesScreen: React.FC = () => {
                 </div>
 
                 {/* Rodapé com indicadores e atalho */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t-2 border-ink/10 mt-4 text-xs font-bold">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t-2 border-black/10 mt-4 text-xs font-bold">
                   <span className="text-neutral-500">
                     {discipline.semester}
                   </span>
@@ -824,7 +824,7 @@ export const CoursesScreen: React.FC = () => {
                   <div className="flex items-center gap-2">
                     {discipline.pendingAssignmentsCount !== undefined &&
                     discipline.pendingAssignmentsCount > 0 ? (
-                      <div className="flex items-center gap-1 text-ink-success bg-pastel-green px-2 py-0.5 border border-ink/20 rounded-md">
+                      <div className="flex items-center gap-1 text-ink-success bg-pastel-green px-2 py-0.5 border border-black/20 rounded-md">
                         <CheckSquare className="w-3.5 h-3.5 stroke-[2.5]" />
                         <span>
                           {discipline.pendingAssignmentsCount} entregas
@@ -834,7 +834,7 @@ export const CoursesScreen: React.FC = () => {
 
                     {discipline.unreadCount !== undefined &&
                     discipline.unreadCount > 0 ? (
-                      <div className="flex items-center gap-1 text-blue-ink bg-pastel-blue px-2 py-0.5 border border-ink/20 rounded-md">
+                      <div className="flex items-center gap-1 text-blue-ink bg-pastel-blue px-2 py-0.5 border border-black/20 rounded-md">
                         <MessageSquare className="w-3.5 h-3.5 stroke-[2.5]" />
                         <span>{discipline.unreadCount} novos</span>
                       </div>
@@ -853,7 +853,7 @@ export const CoursesScreen: React.FC = () => {
 
       {/* Seção Outros: Equipes do Teams, Monitorias e Projetos */}
       {otherCourses.length > 0 ? (
-        <div className="space-y-4 pt-6 border-t-2 border-ink/10">
+        <div className="space-y-4 pt-6 border-t-2 border-black/10">
           <div className="flex items-center justify-between text-xs font-bold text-neutral-600 px-1">
             <div className="flex items-center gap-2">
               <Folder className="w-4 h-4 stroke-[2.5] text-blue-ink" />
@@ -916,7 +916,7 @@ export const CoursesScreen: React.FC = () => {
                       {oc.platform === "teams" ? "Teams" : "Aprender 3"}
                     </Badge>
                     {oc.code && oc.code !== oc.name ? (
-                      <span className="text-[11px] font-bold bg-neutral-100 px-2 py-0.5 border border-ink/20 rounded-md">
+                      <span className="text-[11px] font-bold bg-neutral-100 px-2 py-0.5 border border-black/20 rounded-md">
                         {oc.code}
                       </span>
                     ) : null}
@@ -944,7 +944,7 @@ export const CoursesScreen: React.FC = () => {
                   ) : null}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t-2 border-ink/10 mt-4 text-xs font-bold">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t-2 border-black/10 mt-4 text-xs font-bold">
                   <span className="text-neutral-500">
                     {oc.semester || getDefaultAcademicSemester().semester}
                   </span>

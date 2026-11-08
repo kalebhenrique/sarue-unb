@@ -166,7 +166,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
       )}
 
       {/* Rodapé: método de avaliação + data; curiosidades ficam atrás de disclosure */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t-2 border-ink/10 text-xs font-semibold text-neutral-600">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t-2 border-black/10 text-xs font-semibold text-neutral-600">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           {evaluation.evaluationMethods && (
             <span className="inline-flex items-center gap-1">

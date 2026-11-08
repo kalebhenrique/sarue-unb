@@ -107,7 +107,7 @@ export const CatalogSummaryCard: React.FC<CatalogSummaryCardProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 pt-4 border-t-2 border-ink/10 mt-4 text-xs font-bold">
+      <div className="flex items-center justify-between gap-2 pt-4 border-t-2 border-black/10 mt-4 text-xs font-bold">
         <span className="inline-flex items-center gap-1.5 text-neutral-700">
           <ThumbsUp className="w-3.5 h-3.5 stroke-[2.5] text-ink-success" />
           {recommendationRate}% recomendam

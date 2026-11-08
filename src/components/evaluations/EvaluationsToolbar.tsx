@@ -180,7 +180,7 @@ export const EvaluationsToolbar: React.FC<EvaluationsToolbarProps> = ({
 
       {/* Contagem filtrada: barra interna do card — nunca linha solta acima */}
       {hasActiveFilters && (
-        <div className="border-t-2 border-ink/10 pt-2 text-xs font-bold text-neutral-600">
+        <div className="border-t-2 border-black/10 pt-2 text-xs font-bold text-neutral-600">
           {viewMode === 'professors'
             ? `${visibleCount} de ${totalCount} ${
                 totalCount === 1 ? 'docente' : 'docentes'

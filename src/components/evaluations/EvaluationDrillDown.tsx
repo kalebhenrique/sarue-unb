@@ -163,7 +163,7 @@ export const EvaluationDrillDown: React.FC<EvaluationDrillDownProps> = ({
         </div>
 
         {/* Disciplinas avaliadas */}
-        <div className="pt-3 border-t border-ink/10">
+        <div className="pt-3 border-t border-black/10">
           <p className="text-xs font-black uppercase tracking-wider text-neutral-600 mb-1.5">
             {relatedLabel} ({relatedItems.length})
           </p>
@@ -179,7 +179,7 @@ export const EvaluationDrillDown: React.FC<EvaluationDrillDownProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 pt-3 border-t-2 border-ink/10 text-xs font-bold">
+        <div className="flex flex-wrap items-center gap-4 pt-3 border-t-2 border-black/10 text-xs font-bold">
           <span className="inline-flex items-center gap-1.5 text-ink-success">
             <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
             {summary.recommendYesCount}{" "}
