@@ -23,6 +23,7 @@ Saruê UnB é o **agregador acadêmico definitivo e moderno** para estudantes da
 - **Segurança Local-First com IOTA Stronghold**
 - **Fluxograma Curricular Interativo**
 - **Avaliação de Professores Usando Planilha Externa da Comunidade**
+- Calendário de eventos
 - **Calculadora e Simulador de IRA**
 - **Performance Extrema com Dados Estáticos via CDN**
 - **Opções de Acessibilidade**
