@@ -27,7 +27,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "appimage", "deb", "dmg"],
     "createUpdaterArtifacts": true,
     "windows": {
       "nsis": {

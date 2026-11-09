@@ -23,7 +23,7 @@ jobs:
           - platform: 'ubuntu-22.04'
             args: ''                              # Linux x64 (AppImage + deb)
           - platform: 'windows-latest'
-            args: ''                              # Windows x64 (NSIS setup.exe)
+            args: '--bundles nsis'                # Windows x64 (NSIS setup.exe)
 
     runs-on: ${{ matrix.platform }}
     steps:
