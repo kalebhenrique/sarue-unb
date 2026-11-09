@@ -144,12 +144,6 @@ export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
 
       {selectedClasses.length === 0 ? (
         <div className="py-5 px-4 text-center bg-pastel-blue border-2 border-dashed border-black/25 rounded-lg space-y-1.5">
-          <img
-            src="/sarue-doubt.png"
-            alt=""
-            aria-hidden="true"
-            className="w-16 h-16 object-contain mx-auto select-none pointer-events-none"
-          />
           <p className="text-xs font-extrabold text-black">
             Sua grade está vazia
           </p>
