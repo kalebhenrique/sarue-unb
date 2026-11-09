@@ -54,7 +54,12 @@ export class InMemoryFeedRepository implements IFeedRepository {
 
   async saveItems(newItems: FeedItem[]): Promise<void> {
     for (const item of newItems) {
-      this.items.set(item.id, { ...item });
+      const existing = this.items.get(item.id);
+      this.items.set(item.id, {
+        ...item,
+        isCompleted: Boolean(existing?.isCompleted || item.isCompleted),
+        isArchived: Boolean(existing?.isArchived || item.isArchived),
+      });
     }
   }
 

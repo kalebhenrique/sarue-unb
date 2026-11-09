@@ -193,8 +193,12 @@ export class SaveCredentialsUseCase {
 
         const countCourses = res.data.courses?.length || 0;
         const countItems = res.data.items?.length || 0;
+        const countPosts = (res.data.items || []).filter((i) => i.itemType === 'post').length;
+        const countAssignments = (res.data.items || []).filter((i) => i.itemType === 'assignment').length;
         const detailMsg = countCourses > 0
-          ? `Microsoft Teams conectado! ${countCourses} equipe${countCourses > 1 ? 's' : ''} e ${countItems} comunicado${countItems > 1 ? 's' : ''} sincronizados.`
+          ? countAssignments > 0
+            ? `Microsoft Teams conectado! ${countCourses} equipe${countCourses > 1 ? 's' : ''}, ${countPosts} aviso${countPosts !== 1 ? 's' : ''} e ${countAssignments} atividade${countAssignments !== 1 ? 's' : ''} sincronizados.`
+            : `Microsoft Teams conectado! ${countCourses} equipe${countCourses > 1 ? 's' : ''} e ${countItems} comunicado${countItems !== 1 ? 's' : ''} sincronizados.`
           : confirmedEmail
             ? `Microsoft Teams conectado como ${confirmedEmail}!`
             : 'Microsoft Teams conectado com sucesso!';

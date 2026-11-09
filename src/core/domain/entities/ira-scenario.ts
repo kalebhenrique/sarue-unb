@@ -86,3 +86,6 @@ export interface IraScenario {
 
 /** Limite de linhas por semestre na grade da calculadora. */
 export const MAX_DISCIPLINES_PER_SEMESTER = 10;
+
+/** Limite de semestres futuros que o aluno pode planejar na calculadora. */
+export const MAX_FUTURE_SEMESTERS = 8;

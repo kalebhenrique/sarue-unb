@@ -437,6 +437,74 @@ describe('Clean Architecture Use Cases - Saruê UnB', () => {
       expect(disciplinesAfter.disciplines).toEqual([]);
       expect(disciplinesAfter.unmatchedAprenderCourses).toEqual([]);
     });
+
+    it('deve marcar atividades do Teams como concluídas quando entregues na plataforma sem desmarcar conclusões manuais', async () => {
+      await container.repos.feedRepo.saveItems([
+        {
+          id: 'teams-assign-OAC-1',
+          platform: 'teams',
+          title: 'Trabalho RISC-V',
+          content: 'Simulador Assembly',
+          courseName: 'OAC Prof Ricardo Jacobi',
+          courseCode: 'OAC',
+          itemType: 'assignment',
+          createdAt: '2026-10-01T12:00:00Z',
+          dueDate: '2026-10-20T23:59:00Z',
+          isCompleted: false,
+        },
+        {
+          id: 'teams-assign-OAC-2',
+          platform: 'teams',
+          title: 'Lista 1',
+          content: 'Exercícios',
+          courseName: 'OAC Prof Ricardo Jacobi',
+          courseCode: 'OAC',
+          itemType: 'assignment',
+          createdAt: '2026-09-10T12:00:00Z',
+          dueDate: '2026-09-25T23:59:00Z',
+          isCompleted: false,
+        },
+      ]);
+
+      // Usuário marca Lista 1 manualmente como concluída no app
+      await container.useCases.getFeed.markAsCompleted('teams-assign-OAC-2', true);
+
+      // Nova sincronização do Teams: Trabalho RISC-V foi entregue no Teams (isCompleted: true),
+      // enquanto Lista 1 ainda consta como false no retorno bruto
+      await container.repos.feedRepo.saveItems([
+        {
+          id: 'teams-assign-OAC-1',
+          platform: 'teams',
+          title: 'Trabalho RISC-V',
+          content: 'Simulador Assembly',
+          courseName: 'OAC Prof Ricardo Jacobi',
+          courseCode: 'OAC',
+          itemType: 'assignment',
+          createdAt: '2026-10-01T12:00:00Z',
+          dueDate: '2026-10-20T23:59:00Z',
+          isCompleted: true,
+        },
+        {
+          id: 'teams-assign-OAC-2',
+          platform: 'teams',
+          title: 'Lista 1',
+          content: 'Exercícios',
+          courseName: 'OAC Prof Ricardo Jacobi',
+          courseCode: 'OAC',
+          itemType: 'assignment',
+          createdAt: '2026-09-10T12:00:00Z',
+          dueDate: '2026-09-25T23:59:00Z',
+          isCompleted: false,
+        },
+      ]);
+
+      const items = await container.useCases.getFeed.execute({ platform: 'teams' });
+      const riscv = items.find((i) => i.id === 'teams-assign-OAC-1');
+      const lista1 = items.find((i) => i.id === 'teams-assign-OAC-2');
+
+      expect(riscv?.isCompleted).toBe(true);
+      expect(lista1?.isCompleted).toBe(true);
+    });
   });
 });
 

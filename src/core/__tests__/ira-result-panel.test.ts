@@ -78,7 +78,7 @@ describe('IraResultPanel Hotfix Tests', () => {
         onRestore: () => {},
       }),
     );
-    expect(html).toContain('diferença de 0.40');
+    expect(html).toContain('diferença de 0,40');
   });
 
   it('não renderiza tag de discrepância quando cálculo confere com SIGAA', () => {

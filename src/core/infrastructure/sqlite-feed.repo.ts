@@ -234,8 +234,8 @@ export class SqliteFeedRepository implements IFeedRepository {
       const existing = inMemoryItems.get(item.id);
       inMemoryItems.set(item.id, {
         ...item,
-        isCompleted: existing?.isCompleted ?? item.isCompleted ?? false,
-        isArchived: existing?.isArchived ?? item.isArchived ?? false,
+        isCompleted: Boolean(existing?.isCompleted || item.isCompleted),
+        isArchived: Boolean(existing?.isArchived || item.isArchived),
       });
     }
 
@@ -256,6 +256,7 @@ export class SqliteFeedRepository implements IFeedRepository {
               item_type = excluded.item_type,
               created_at = excluded.created_at,
               due_date = excluded.due_date,
+              is_completed = MAX(feed_items.is_completed, excluded.is_completed),
               external_url = excluded.external_url;`,
             [
               item.id,
@@ -358,6 +359,15 @@ export class SqliteFeedRepository implements IFeedRepository {
   }
 
   async saveCourses(newCourses: Course[]): Promise<void> {
+    const hasTeamsCourses = newCourses.some((c) => c.platform === 'teams');
+    if (hasTeamsCourses) {
+      for (const [id, existing] of inMemoryCourses.entries()) {
+        if (existing.platform === 'teams') {
+          inMemoryCourses.delete(id);
+        }
+      }
+    }
+
     for (const course of newCourses) {
       inMemoryCourses.set(course.id, { ...course });
     }
@@ -365,6 +375,9 @@ export class SqliteFeedRepository implements IFeedRepository {
     const db = await getDatabase();
     if (db) {
       try {
+        if (hasTeamsCourses) {
+          await db.execute("DELETE FROM courses WHERE platform = 'teams';");
+        }
         for (const course of newCourses) {
           await db.execute(
             `INSERT OR REPLACE INTO courses (
