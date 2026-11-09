@@ -553,7 +553,7 @@ pub async fn connect_teams(
     }
 
     let (tx, rx) =
-        tokio::sync::oneshot::channel::<Result<(String, Vec<FeedItem>, Vec<Course>), String>>();
+        tokio::sync::oneshot::channel::<Result<(String, String, Vec<FeedItem>, Vec<Course>), String>>();
     let tx_cell = Arc::new(Mutex::new(Some(tx)));
 
     let tx_clone_nav = tx_cell.clone();
@@ -587,11 +587,11 @@ pub async fn connect_teams(
 
             const badge = document.createElement('span');
             badge.style.cssText = 'background:#60a5fa;color:#000;padding:2px 8px;border:1.5px solid #000;border-radius:9999px;font-size:11px;font-weight:800;letter-spacing:0.02em;';
-            badge.textContent = 'UnB Aggregator';
+            badge.textContent = 'Sarue UnB';
 
             const info = document.createElement('span');
             info.id = '__unb_banner_info__';
-            info.textContent = 'Faça login com sua conta da UnB e confirme o 2FA. Quando suas turmas carregarem, clique em:';
+            info.textContent = 'Entre com "Usar minha senha" e 2FA. Quando as turmas carregarem, clique em:';
 
             leftCol.appendChild(badge);
             leftCol.appendChild(info);
@@ -620,10 +620,14 @@ pub async fn connect_teams(
                 confirmBtn.disabled = true;
                 cancelBtn.style.display = 'none';
                 confirmBtn.style.background = '#22c55e';
-                confirmBtn.textContent = '⏳ Conectando...';
-                info.textContent = 'Login confirmado! Conectando conta e fechando janela...';
+                confirmBtn.textContent = '⏳ Sincronizando...';
+                info.textContent = 'Login confirmado! Sincronizando turmas, avisos e atividades...';
 
                 try {
+                    if (typeof window.__unb_start_crawl === 'function') {
+                        window.__unb_start_crawl();
+                        return;
+                    }
                     let email = '';
                     let courses = [];
                     if (typeof window.__unb_fast_connect === 'function') {
@@ -636,7 +640,7 @@ pub async fn connect_teams(
                     const qs = 'action=login_confirmed&email=' + encodeURIComponent(email) + '&payload=' + encodeURIComponent(payloadStr);
                     window.location.href = window.location.origin + '/__aggregator_bridge__?' + qs;
                 } catch(err) {
-                    console.error('[UnB Aggregator] Erro ao confirmar login rápido:', err);
+                    console.error('[Sarue UnB] Erro ao confirmar login:', err);
                     window.location.href = window.location.origin + '/__aggregator_bridge__?action=login_confirmed&payload=%7B%22courses%22%3A%5B%5D%2C%22items%22%3A%5B%5D%7D';
                 }
             };
@@ -751,7 +755,7 @@ pub async fn connect_teams(
                         log::info!("[Teams Bridge] Sincronização concluída via chunks: {} cursos, {} avisos", courses.len(), items.len());
                         if let Ok(mut lock) = tx_clone_nav.lock() {
                             if let Some(sender) = lock.take() {
-                                let _ = sender.send(Ok((final_email, items, courses)));
+                                let _ = sender.send(Ok((final_email, full_payload, items, courses)));
                             }
                         }
                         if let Some(w) = _app_nav.get_webview_window("teams-auth") {
@@ -770,7 +774,7 @@ pub async fn connect_teams(
                 log::info!("[Teams Bridge] Login confirmado/concluído: email='{}', {} cursos, {} avisos", final_email, courses.len(), items.len());
                 if let Ok(mut lock) = tx_clone_nav.lock() {
                     if let Some(sender) = lock.take() {
-                        let _ = sender.send(Ok((final_email, items, courses)));
+                        let _ = sender.send(Ok((final_email, payload_str, items, courses)));
                     }
                 }
                 if let Some(w) = _app_nav.get_webview_window("teams-auth") {
@@ -814,7 +818,9 @@ pub async fn connect_teams(
     }
 
     match auth_result {
-        Ok((detected_email, items, courses)) => {
+        Ok((detected_email, raw_payload, items, courses)) => {
+            let (items, courses) =
+                crate::scraper::enrich_teams_via_reqwest(&raw_payload, items, courses).await;
             let final_email = if !detected_email.trim().is_empty() {
                 detected_email.trim().to_string()
             } else if !raw_email.is_empty() {
