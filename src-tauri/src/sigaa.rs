@@ -398,8 +398,12 @@ impl SigaaClient {
                 Self::estimate_slots_from_schedule(&class.schedule_code)
             };
             let credits = if slots > 0 { slots } else { 4 };
-            let hours_per_class = Self::estimate_hours_per_class_from_schedule(&class.schedule_code);
-            course.max_absences = Some(Self::calculate_max_absences_for_course(credits, hours_per_class));
+            let hours_per_class =
+                Self::estimate_hours_per_class_from_schedule(&class.schedule_code);
+            course.max_absences = Some(Self::calculate_max_absences_for_course(
+                credits,
+                hours_per_class,
+            ));
         }
 
         for course in courses.iter_mut() {
@@ -414,7 +418,10 @@ impl SigaaClient {
                     .as_deref()
                     .map(Self::estimate_hours_per_class_from_schedule)
                     .unwrap_or(2);
-                course.max_absences = Some(Self::calculate_max_absences_for_course(credits, hours_per_class));
+                course.max_absences = Some(Self::calculate_max_absences_for_course(
+                    credits,
+                    hours_per_class,
+                ));
             }
         }
     }
@@ -1614,7 +1621,10 @@ impl SigaaClient {
                     .as_deref()
                     .map(Self::estimate_hours_per_class_from_schedule)
                     .unwrap_or(2);
-                course.max_absences = Some(Self::calculate_max_absences_for_course(credits, hours_per_class));
+                course.max_absences = Some(Self::calculate_max_absences_for_course(
+                    credits,
+                    hours_per_class,
+                ));
             }
         }
 
@@ -2103,7 +2113,10 @@ impl SigaaClient {
             let slots = Self::estimate_slots_from_schedule(&schedule);
             let credits = if slots > 0 { slots } else { 4 };
             let hours_per_class = Self::estimate_hours_per_class_from_schedule(&schedule);
-            let max_absences = Some(Self::calculate_max_absences_for_course(credits, hours_per_class));
+            let max_absences = Some(Self::calculate_max_absences_for_course(
+                credits,
+                hours_per_class,
+            ));
 
             courses.push(Course {
                 id: format!("sigaa-{}", turma_id),

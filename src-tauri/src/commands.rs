@@ -552,8 +552,9 @@ pub async fn connect_teams(
             .append_pair("login_hint", &raw_email);
     }
 
-    let (tx, rx) =
-        tokio::sync::oneshot::channel::<Result<(String, String, Vec<FeedItem>, Vec<Course>), String>>();
+    let (tx, rx) = tokio::sync::oneshot::channel::<
+        Result<(String, String, Vec<FeedItem>, Vec<Course>), String>,
+    >();
     let tx_cell = Arc::new(Mutex::new(Some(tx)));
 
     let tx_clone_nav = tx_cell.clone();
@@ -881,7 +882,7 @@ pub async fn fetch_professor_evaluations_csv(force_refresh: bool) -> Result<Stri
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
-        .user_agent("Sarue-UnB/0.3.5 (Desktop App; Tauri)")
+        .user_agent("Sarue-UnB/0.4.0 (Desktop App; Tauri)")
         .build()
         .map_err(|e| format!("Falha ao inicializar cliente HTTP: {}", e))?;
 

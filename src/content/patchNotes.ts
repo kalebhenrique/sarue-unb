@@ -22,6 +22,19 @@ export interface PatchNotesEntry {
 
 export const PATCH_NOTES: PatchNotesEntry[] = [
   {
+    version: "0.4.0",
+    date: "09/11/2026",
+    title: "Nova Tela de Calendário e Gerenciamento de Notas e Faltas",
+    items: [
+      "Nova tela de Calendário (obrigado @MauroSon).",
+      "Gerenciamento de notas e faltas de disciplinas (obrigado @MauroSon).",
+      "Melhorias de interface e usabilidade nas telas Montar Grade e Calcular IRA",
+      "Mais estabilidade na integração com Microsoft Teams",
+      "Resolução de diversos bugs",
+      "Extra: criação do perfil oficial do Instagram, @sarueapp",
+    ],
+  },
+  {
     version: "0.3.5",
     date: "06/11/2026",
     title: "Badges no Ícone e Atualizador",

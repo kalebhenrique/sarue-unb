@@ -178,7 +178,8 @@ impl HiddenWebviewScraper {
                 }
             };
 
-        let _ = window.eval("try { window.stop(); window.location.replace('about:blank'); } catch(e) {}");
+        let _ = window
+            .eval("try { window.stop(); window.location.replace('about:blank'); } catch(e) {}");
         let _ = window.hide();
         let _ = window.destroy();
         log::info!("Webview em segundo plano do Teams finalizada e destruída com sucesso.");
@@ -1745,8 +1746,10 @@ pub async fn enrich_teams_via_reqwest(
                                     .get("isDeleted")
                                     .and_then(|v| v.as_bool())
                                     .unwrap_or(false);
-                                let is_fav =
-                                    t.get("isFavorite").and_then(|v| v.as_bool()).unwrap_or(true);
+                                let is_fav = t
+                                    .get("isFavorite")
+                                    .and_then(|v| v.as_bool())
+                                    .unwrap_or(true);
                                 let is_hidden = t
                                     .get("userTeamMembershipSummary")
                                     .and_then(|u| u.get("isHidden"))
@@ -1764,8 +1767,7 @@ pub async fn enrich_teams_via_reqwest(
                                     .get("groupId")
                                     .or_else(|| t.get("aadGroupId"))
                                     .or_else(|| {
-                                        t.get("teamSiteInformation")
-                                            .and_then(|s| s.get("groupId"))
+                                        t.get("teamSiteInformation").and_then(|s| s.get("groupId"))
                                     })
                                     .and_then(|v| v.as_str())
                                     .unwrap_or("")
@@ -1774,10 +1776,8 @@ pub async fn enrich_teams_via_reqwest(
                                 let mut gen_chan_id = thread_id.clone();
                                 if let Some(chans) = t.get("channels").and_then(|v| v.as_array()) {
                                     for ch in chans {
-                                        let ch_id = ch
-                                            .get("id")
-                                            .and_then(|v| v.as_str())
-                                            .unwrap_or("");
+                                        let ch_id =
+                                            ch.get("id").and_then(|v| v.as_str()).unwrap_or("");
                                         let dn = ch
                                             .get("displayName")
                                             .or_else(|| ch.get("name"))
@@ -1788,15 +1788,14 @@ pub async fn enrich_teams_via_reqwest(
                                             .get("isGeneral")
                                             .and_then(|v| v.as_bool())
                                             .unwrap_or(false);
-                                        if is_gen
+                                        if (is_gen
                                             || ch_id == thread_id
                                             || dn == "general"
-                                            || dn == "geral"
+                                            || dn == "geral")
+                                            && !ch_id.is_empty()
                                         {
-                                            if !ch_id.is_empty() {
-                                                gen_chan_id = ch_id.to_string();
-                                                break;
-                                            }
+                                            gen_chan_id = ch_id.to_string();
+                                            break;
                                         }
                                     }
                                 }
@@ -2070,8 +2069,7 @@ pub async fn enrich_teams_via_reqwest(
                     if let Ok(res) = req.send().await {
                         if res.status().is_success() {
                             if let Ok(json) = res.json::<Value>().await {
-                                if let Some(msgs) =
-                                    json.get("messages").and_then(|v| v.as_array())
+                                if let Some(msgs) = json.get("messages").and_then(|v| v.as_array())
                                 {
                                     let mut count_for_course = 0;
                                     let mut course_api_items = Vec::<FeedItem>::new();
@@ -2157,9 +2155,8 @@ pub async fn enrich_teams_via_reqwest(
                                                     {
                                                         is_card_assignment = true;
                                                     }
-                                                    let content_obj = card
-                                                        .get("content")
-                                                        .unwrap_or(&card);
+                                                    let content_obj =
+                                                        card.get("content").unwrap_or(&card);
                                                     if let Some(t) = content_obj
                                                         .get("title")
                                                         .or_else(|| content_obj.get("subTitle"))
@@ -2240,7 +2237,8 @@ pub async fn enrich_teams_via_reqwest(
                                                         .and_then(|v| v.as_str())
                                                     {
                                                         if !fn_str.trim().is_empty() {
-                                                            att_names.push(fn_str.trim().to_string());
+                                                            att_names
+                                                                .push(fn_str.trim().to_string());
                                                         }
                                                     }
                                                 }
@@ -2342,7 +2340,9 @@ pub async fn enrich_teams_via_reqwest(
                                         // Substitui itens parciais do fallback DOM pelos itens completos da API
                                         items.retain(|it| {
                                             !(it.id.starts_with("teams-dom-")
-                                                && it.course_name.eq_ignore_ascii_case(&course.name))
+                                                && it
+                                                    .course_name
+                                                    .eq_ignore_ascii_case(&course.name))
                                         });
                                         items.extend(course_api_items);
                                     }
@@ -2491,10 +2491,8 @@ pub async fn enrich_teams_via_reqwest(
                                         }
                                     }
 
-                                    let raw_id = raw
-                                        .get("id")
-                                        .and_then(|v| v.as_str())
-                                        .unwrap_or(&title);
+                                    let raw_id =
+                                        raw.get("id").and_then(|v| v.as_str()).unwrap_or(&title);
                                     let item_id =
                                         format!("teams-assign-{}-{}", course.code, raw_id);
                                     if seen_item_ids.contains(&item_id) {

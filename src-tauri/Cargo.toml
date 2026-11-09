@@ -1,6 +1,6 @@
 [package]
 name = "sarue_unb"
-version = "0.3.5"
+version = "0.4.0"
 description = "Saruê UnB Desktop App"
 authors = ["UnB Open Source Contributors"]
 license = "Apache-2.0"
