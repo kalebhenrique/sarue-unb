@@ -11,11 +11,11 @@ export interface FeedbackDeviceData {
 }
 
 /**
- * Endpoint do envio de feedback: função no projeto sarue-unb-site (Vercel)
+ * Endpoint do envio de feedback: função no site do Saruê (Vercel)
  * que cria a issue no repositório via API do GitHub. O app nunca vê token.
  */
 export const FEEDBACK_ENDPOINT =
-  "https://sarue-unb-site.vercel.app/api/feedback";
+  "https://www.sarue.app.br/api/feedback";
 
 /**
  * Segredo compartilhado com o endpoint (header `x-feedback-key`).
@@ -89,7 +89,8 @@ export async function submitFeedback(
         device: input.device ?? null,
       }),
     });
-  } catch {
+  } catch (err) {
+    console.error("Falha ao conectar com o endpoint de feedback:", err);
     throw new FeedbackError(
       "Não foi possível conectar. Verifique sua internet e tente de novo.",
     );

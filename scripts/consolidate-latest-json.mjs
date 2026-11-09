@@ -64,26 +64,28 @@ function getSigContent(assetName) {
 for (const asset of assets) {
   const { name, url } = asset;
 
-  // macOS Apple Silicon (darwin-aarch64)
+  // macOS Apple Silicon (darwin-aarch64 & darwin-aarch64-app)
   if (name.includes('aarch64') && name.endsWith('.app.tar.gz')) {
     const sigAsset = assets.find((a) => a.name === `${name}.sig`);
     if (sigAsset) {
       const sig = getSigContent(sigAsset.name);
       if (sig) {
         manifest.platforms['darwin-aarch64'] = { signature: sig, url };
-        console.log(`[consolidate-latest-json] Adicionado darwin-aarch64 -> ${name}`);
+        manifest.platforms['darwin-aarch64-app'] = { signature: sig, url };
+        console.log(`[consolidate-latest-json] Adicionado darwin-aarch64 & darwin-aarch64-app -> ${name}`);
       }
     }
   }
 
-  // macOS Intel (darwin-x86_64)
+  // macOS Intel (darwin-x86_64 & darwin-x86_64-app)
   if ((name.includes('x64') || name.includes('x86_64')) && name.endsWith('.app.tar.gz') && !name.includes('aarch64')) {
     const sigAsset = assets.find((a) => a.name === `${name}.sig`);
     if (sigAsset) {
       const sig = getSigContent(sigAsset.name);
       if (sig) {
         manifest.platforms['darwin-x86_64'] = { signature: sig, url };
-        console.log(`[consolidate-latest-json] Adicionado darwin-x86_64 -> ${name}`);
+        manifest.platforms['darwin-x86_64-app'] = { signature: sig, url };
+        console.log(`[consolidate-latest-json] Adicionado darwin-x86_64 & darwin-x86_64-app -> ${name}`);
       }
     }
   }

@@ -22,12 +22,12 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://docs.google.com https://sarue-unb-site.vercel.app; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data:; font-src 'self'"
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://docs.google.com https://www.sarue.app.br https://sarue.app.br https://sarue-unb-site.vercel.app; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data:; font-src 'self'"
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "appimage", "deb", "dmg"],
+    "targets": ["nsis", "appimage", "deb", "app", "dmg"],
     "createUpdaterArtifacts": true,
     "windows": {
       "nsis": {
