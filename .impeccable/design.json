@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-31T15:10:03-03:00",
+  "generatedAt": "2026-11-08T00:00:00-03:00",
   "title": "Design System: Saruê UnB",
   "extensions": {
     "colorMeta": {
@@ -423,6 +423,81 @@
           "oklch(89% 0.07 240)",
           "oklch(96% 0.03 240)"
         ]
+      },
+      "viva-green": {
+        "role": "accent",
+        "displayName": "Borda Viva Verde (grade/calendário)",
+        "canonical": "#16A34A",
+        "tonalRamp": [
+          "oklch(17% 0.06 155)",
+          "oklch(28% 0.1 155)",
+          "oklch(39% 0.13 155)",
+          "oklch(50% 0.16 155)",
+          "oklch(61% 0.18 155)",
+          "oklch(74% 0.16 155)",
+          "oklch(87% 0.1 155)",
+          "oklch(95% 0.05 155)"
+        ]
+      },
+      "viva-yellow": {
+        "role": "accent",
+        "displayName": "Borda Viva Amarela (grade/calendário)",
+        "canonical": "#EAB308",
+        "tonalRamp": [
+          "oklch(18% 0.06 85)",
+          "oklch(29% 0.1 85)",
+          "oklch(40% 0.13 85)",
+          "oklch(51% 0.16 85)",
+          "oklch(63% 0.18 85)",
+          "oklch(76% 0.16 85)",
+          "oklch(89% 0.1 85)",
+          "oklch(96% 0.05 85)"
+        ]
+      },
+      "viva-purple": {
+        "role": "accent",
+        "displayName": "Borda Viva Roxa (grade)",
+        "canonical": "#A855F7",
+        "tonalRamp": [
+          "oklch(18% 0.07 300)",
+          "oklch(29% 0.11 300)",
+          "oklch(40% 0.15 300)",
+          "oklch(51% 0.18 300)",
+          "oklch(63% 0.19 300)",
+          "oklch(76% 0.15 300)",
+          "oklch(89% 0.09 300)",
+          "oklch(96% 0.04 300)"
+        ]
+      },
+      "viva-orange": {
+        "role": "accent",
+        "displayName": "Borda Viva Laranja (grade)",
+        "canonical": "#F97316",
+        "tonalRamp": [
+          "oklch(18% 0.07 45)",
+          "oklch(29% 0.11 45)",
+          "oklch(40% 0.15 45)",
+          "oklch(51% 0.18 45)",
+          "oklch(63% 0.19 45)",
+          "oklch(76% 0.16 45)",
+          "oklch(89% 0.09 45)",
+          "oklch(96% 0.04 45)"
+        ]
+      },
+      "viva-sky": {
+        "role": "accent",
+        "displayName": "Borda Viva Céu (grade)",
+        "canonical": "#0EA5E9",
+        "tonalRamp": [
+          "oklch(18% 0.05 230)",
+          "oklch(29% 0.08 230)",
+          "oklch(40% 0.11 230)",
+          "oklch(51% 0.14 230)",
+          "oklch(63% 0.16 230)",
+          "oklch(76% 0.13 230)",
+          "oklch(89% 0.08 230)",
+          "oklch(96% 0.03 230)"
+        ]
       }
     },
     "typographyMeta": {
@@ -608,6 +683,30 @@
       "description": "Cavidade do fichário com thumb-adesivo azul deslizando (Lista | Mapa); sem default quando obrigatório.",
       "html": "<div role=\"group\" aria-label=\"Vista\" class=\"ds-seg\"><button type=\"button\" aria-pressed=\"true\" class=\"ds-seg-item ds-seg-active\">Lista</button><button type=\"button\" aria-pressed=\"false\" class=\"ds-seg-item\">Mapa</button></div>",
       "css": ".ds-seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; padding: 2px; background: var(--color-paper, #fff); border: 2px solid var(--color-ink, #000); border-radius: 12px; width: 240px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; } .ds-seg-item { display: flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #000; font: 800 12px/1 'Plus Jakarta Sans', system-ui, sans-serif; cursor: pointer; transition: background-color 150ms ease-out, color 150ms ease-out; } .ds-seg-item:hover { background: var(--color-neutral-100, #f5f5f5); } .ds-seg-item.ds-seg-active { background: var(--color-neo-blue, #2563eb); color: #fff; } .ds-seg-item:active { transform: translateY(1px); } .ds-seg-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--color-neo-blue, #2563eb); }"
+    },
+    {
+      "name": "Date Picker",
+      "kind": "input",
+      "refersTo": "date-picker-trigger",
+      "description": "Cavidade de data em pt-BR; o popup é folha-placa branca de calendário — selecionado azul cheio, hoje amarelo.",
+      "html": "<button class=\"ds-datepicker\"><span>08/11/2026</span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"4\" rx=\"2\"/><path d=\"M16 2v4\"/><path d=\"M8 2v4\"/><path d=\"M3 10h18\"/></svg></button>",
+      "css": ".ds-datepicker { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 40px; padding: 0 12px; background: var(--color-paper, #fff); color: #000; font: 700 12px/1.4 'Plus Jakarta Sans', system-ui, sans-serif; border: 2px solid var(--color-ink, #000); border-radius: 12px; cursor: pointer; user-select: none; } .ds-datepicker:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--color-neo-blue, #2563eb); } .ds-datepicker:disabled { opacity: 0.75; cursor: not-allowed; } .ds-datepicker svg { color: var(--color-neutral-600, #525252); flex-shrink: 0; }"
+    },
+    {
+      "name": "Number Input",
+      "kind": "input",
+      "refersTo": "number-input",
+      "description": "Célula de planilha para notas: cavidade agrupada com chevrons de tinta e decimais pt-BR transparentes.",
+      "html": "<div class=\"ds-number\"><input class=\"ds-number-input\" value=\"7,5\" aria-label=\"Nota\" /><div class=\"ds-number-controls\"><button type=\"button\" class=\"ds-number-btn\" aria-label=\"Aumentar\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m18 15-6-6-6 6\"/></svg></button><button type=\"button\" class=\"ds-number-btn\" aria-label=\"Diminuir\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m6 9 6 6 6-6\"/></svg></button></div></div>",
+      "css": ".ds-number { display: flex; align-items: stretch; width: 100%; height: 36px; background: var(--color-paper, #fff); border: 2px solid var(--color-ink, #000); border-radius: 12px; overflow: hidden; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; } .ds-number:focus-within { box-shadow: 0 0 0 2px var(--color-neo-blue, #2563eb); } .ds-number-input { width: 100%; min-width: 0; background: transparent; border: 0; text-align: center; font: 700 14px/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: #000; } .ds-number-input:focus { outline: none; } .ds-number-input::placeholder { color: var(--color-neutral-500, #737373); } .ds-number-controls { display: flex; flex-direction: column; width: 24px; border-left: 2px solid var(--color-ink, #000); background: var(--color-neutral-100, #f5f5f5); } .ds-number-btn { flex: 1; display: flex; align-items: center; justify-content: center; background: transparent; border: 0; color: #000; cursor: pointer; } .ds-number-btn:hover { background: var(--color-neutral-200, #e5e5e5); }"
+    },
+    {
+      "name": "Calendar Event Block",
+      "kind": "custom",
+      "refersTo": "badge-sticker",
+      "description": "Etiqueta linear de evento do mês: pastel + borda viva + tinta da família — o mesmo trio da Grade Horária.",
+      "html": "<div style=\"display:flex;gap:8px;flex-wrap:wrap\"><div class=\"ds-event ds-event-blue\">P1 de Algoritmos</div><div class=\"ds-event ds-event-yellow\">Entrega do trabalho</div><div class=\"ds-event ds-event-green\">Estudo dirigido</div></div>",
+      "css": ".ds-event { display: inline-flex; align-items: center; height: 22px; padding: 0 6px; border-radius: 6px; border: 2px solid; font: 800 11px/1 'Plus Jakarta Sans', system-ui, sans-serif; letter-spacing: -0.01em; cursor: pointer; overflow: hidden; white-space: nowrap; max-width: 200px; } .ds-event:hover { opacity: 0.9; } .ds-event-blue { background: var(--color-pastel-blue, #ebf3ff); border-color: #468afb; color: var(--color-ink-disc-blue, #2563eb); } .ds-event-yellow { background: var(--color-pastel-yellow, #fff9d2); border-color: #eab308; color: var(--color-ink-disc-yellow, #a16207); } .ds-event-green { background: var(--color-pastel-green, #e6f8ee); border-color: #16a34a; color: var(--color-ink-disc-green, #15803d); }"
     }
   ],
   "narrative": {
@@ -625,6 +724,7 @@
       "Popups de leitura e seleção (Select, Dropdown, Tooltip, Toast, Dialog) são papel, não adesivo: Papel Quadriculado, sem sombra",
       "Nota de didática veste cor de ação por faixa, sem escala contínua (A Regra da Nota por Faixa)",
       "Duas superfícies assinatura: a Grade Horária e o mapa do Fluxograma",
+      "O Calendário estende o vocabulário de família da Grade: evento é etiqueta pastel com borda viva e tinta (azul acadêmico #468AFB, amarela de tarefa #EAB308, verde pessoal #16A34A)",
       "Adesivo de feedback fixo no canto inferior direito (Megaphone); a pilha de toasts vive acima dele",
       "Tudo em 150ms ease-out"
     ],
@@ -708,6 +808,11 @@
         "name": "A Regra dos Dois Adesivos",
         "body": "Raio e sombra dizem o que o adesivo faz: adesivo de conteúdo (8px + sombra 4px) é papel de leitura; adesivo de ação (12–16px + sombra 2px) é convite ao clique. Informação nunca se veste de botão, e botão nunca se veste de informação.",
         "section": "components"
+      },
+      {
+        "name": "A Regra da Etiqueta da Família",
+        "body": "Todo evento do Calendário veste exatamente uma das três famílias — Acadêmico UnB (azul #468AFB), Tarefa do Feed (amarela #EAB308), Meu Evento (verde #16A34A) — e a mesma tinta aparece no bloco do mês, no check do filtro e na Badge do card. Quarta família ou tinta trocada é drift.",
+        "section": "components"
       }
     ],
     "dos": [
@@ -725,6 +830,7 @@
       "Do usar raio e sombra como affordance (A Regra dos Dois Adesivos): ação 12–16px + sombra 2px; conteúdo 8px + sombra 4px; painel de pausa/métrica 12px; campo 12px sem sombra.",
       "Do usar Micro-adesivo 1px (neo-xs) em checkbox, blocos de ícone, pills inline, badge de didática e micro-ações flutuantes; badge fica sem sombra.",
       "Do usar o vocabulário fechado de status do Fluxograma (verde concluída, azul cursando, amarelo disponível, cinza bloqueada, lilás optativa) em mapa, lista e minimapa.",
+      "Do vestir evento do Calendário com exatamente uma família (A Regra da Etiqueta da Família): Acadêmico azul #468AFB, Tarefa do Feed amarela #EAB308, Meu Evento verde #16A34A — o mesmo trio pastel + borda viva + tinta da Grade Horária, repetido no bloco do mês, no check do filtro e na Badge do card.",
       "Do dar som mecânico só com opt-in, nunca na navegação nem em elemento desabilitado (A Regra do Clique Mecânico).",
       "Do usar #2563EB/#DC2626 como fundo sob texto branco; #468AFB/#FF6B6B ficam para marca/bordas.",
       "Do manter o canto inferior direito organizado: adesivo de feedback a 16px da base, pilha de toasts acima dele (68px) — nenhum flutuante cobre o outro."
@@ -734,6 +840,7 @@
       "Don't usar glassmorphism, gradientes ou superfícies translúcidas — o mundo é opaco; a única translucidez permitida é o véu do backdrop do Dialog (bg-ink/10 + blur de 2px), que escurece o fundo sem criar vidro.",
       "Don't usar verde para seleção ou azul para conclusão — as tintas não trocam de significado (A Regra da Cor por Significado).",
       "Don't inventar status ou cor nova para disciplina no Fluxograma — o vocabulário de 5 estados é fechado e compartilhado por mapa, lista e minimapa.",
+      "Don't criar quarta família de evento no Calendário ou trocar a tinta de uma existente — bloco, filtro e badge compartilham a mesma família (A Regra da Etiqueta da Família).",
       "Don't dar sombra a Tooltip, Toast, Dialog ou popup de papel — o contorno preto faz o destaque (A Regra do Popup de Papel).",
       "Don't soltar linha de legenda de contagem acima do card — contagem vive no título (absoluta) ou na barra interna/rodapé da toolbar (filtrada).",
       "Don't dar adesivo (borda + sombra) a ação terciária de barra — é link de serviço.",

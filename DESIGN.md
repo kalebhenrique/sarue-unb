@@ -39,6 +39,11 @@ colors:
   ink-disc-purple: "#7E22CE"
   ink-disc-orange: "#C2410C"
   ink-disc-sky: "#0369A1"
+  viva-green: "#16A34A"
+  viva-yellow: "#EAB308"
+  viva-purple: "#A855F7"
+  viva-orange: "#F97316"
+  viva-sky: "#0EA5E9"
   platform-sigaa: "#3B8748"
   platform-aprender3: "#468AFB"
   platform-teams: "#5B5FC7"
@@ -236,6 +241,23 @@ components:
     padding: "10px 16px"
   input-search-engaged:
     backgroundColor: "{colors.pastel-blue}"
+  date-picker-trigger:
+    backgroundColor: "#ffffff"
+    textColor: "#000000"
+    typography: "{typography.label}"
+    rounded: "{rounded.md}"
+    height: "40px"
+    padding: "0 12px"
+  calendar-popup:
+    backgroundColor: "#ffffff"
+    textColor: "#000000"
+    rounded: "{rounded.md}"
+  number-input:
+    backgroundColor: "#ffffff"
+    textColor: "#000000"
+    typography: "{typography.body}"
+    rounded: "{rounded.md}"
+    height: "36px"
   checkbox:
     backgroundColor: "#ffffff"
     textColor: "{colors.ink-soft}"
@@ -301,6 +323,7 @@ O mundo é opaco e de alto contraste. Sombras suaves difusas, gradiente e transl
 - Popups de leitura e seleção (Select, Dropdown, Tooltip, Toast, Dialog) são papel, não adesivo: Papel Quadriculado, sem sombra
 - Nota de didática veste cor de ação por faixa, sem escala contínua (A Regra da Nota por Faixa)
 - Duas superfícies assinatura: a Grade Horária e o mapa do Fluxograma — mural de adesivos de status sobre papel quadriculado, com arestas desenhadas à caneta
+- O Calendário estende o vocabulário de família da Grade: evento é etiqueta pastel com borda viva e tinta (azul acadêmico #468AFB, amarela de tarefa #EAB308, verde pessoal #16A34A)
 - Adesivo de feedback fixo no canto inferior direito (Megaphone); a pilha de toasts vive acima dele
 - Tudo em 150ms ease-out
 
@@ -348,8 +371,8 @@ Nas Avaliações de Professores, a nota de didática (0–10) veste a cor **chei
 - **Sem nota**: **Cinza Papel** (#F5F5F5) com texto **Tinta Suave**.
 No escuro, a mesma receita das badges noturnas: fundo lavado da família (Verde/Amarelo/Vermelho Pastel) e a tinta clara da própria família como texto (Verde Giz, Amarelo Marca-Texto, **Vermelho Erro** #F87171). Faixas e ordem nunca mudam.
 
-### Tintas de Grade e Scrollbar
-Inks escuras da mesma família das cores de ação, usadas como TEXTO dos códigos de disciplina nas células da Grade Horária — sobre o pastel correspondente, passam AA. A borda da célula é a cor viva da família (literal: #468AFB, #16A34A, #EAB308, #A855F7, #F97316, #0EA5E9), não a tinta escura.
+### Tintas de Grade, Calendário e Scrollbar
+Inks escuras da mesma família das cores de ação, usadas como TEXTO dos códigos de disciplina nas células da Grade Horária e dos títulos nos blocos de evento do Calendário — sobre o pastel correspondente, passam AA. A borda da célula/bloco é a cor viva da família (literal: #468AFB, #16A34A, #EAB308, #A855F7, #F97316, #0EA5E9), não a tinta escura. No Calendário, a família é o vocabulário fechado de tipo de evento: Acadêmico UnB = azul #468AFB, Tarefa do Feed = amarela #EAB308, Meu Evento = verde #16A34A.
 
 - **Tinta Azul** (#2563EB) / **Tinta Verde** (#15803D) / **Tinta Amarela** (#A16207) / **Tinta Roxa** (#7E22CE) / **Tinta Laranja** (#C2410C) / **Tinta Céu** (#0369A1): par tinta (texto) + pastel (fundo) da disciplina — Azul sobre Azul Pastel, Verde sobre Verde Pastel, Amarela sobre Amarelo Pastel, Roxa sobre Lilás Pastel, Laranja sobre Laranja Pastel, Céu sobre Céu Pastel. No escuro remapam para pastéis claros (>80% L).
 - **Thumb de Scroll** (#A3A3A3, hover #737373): scrollbar com borda preta de 2px, mantendo o estilo adesivo.
@@ -459,7 +482,7 @@ Profundidade é **física e estrutural**: sombras são deslocamentos sólidos de
 
 A distinção se lê de longe: o que tem sombra 2px e raio 16px afunda quando clica; o que tem sombra 4px e raio 8px fica. Elementos pequenos de conteúdo (células da grade, cabeçalhos de dia, blocos de ícone) seguem o raio de conteúdo 8px. A borda-preta-2px continua universal (A Regra do Risco Preto).
 
-Ícones são Lucide com stroke 2.5 (mais grossos que o padrão) — combinando com a espessura das bordas; check de checkbox usa stroke 3. O logo é um bloco quadrado de 36px, **Azul Caneta**, texto "UnB" branco font-black, borda e sombra de sticker.
+Ícones são Lucide com stroke 2.5 (mais grossos que o padrão) — combinando com a espessura das bordas; check de checkbox usa stroke 3. O logo é um bloco quadrado de **42px** com o mascote (`sarue-logo.png`), borda preta 2px, raio 12px e sombra de ação 2px — clicável, volta para a Home; com a sidebar recolhida, o hover troca o logo pelo adesivo azul de expandir. O wordmark "Saruê UnB" é font-extrabold 16px com o sufixo **UnB** em Azul UnB (#468AFB).
 
 ## Components
 
@@ -567,8 +590,11 @@ Segunda barra de ferramentas do sistema, mesma gramática da Toolbar do Feed com
 - **Inputs mini (IRA):** linhas densas da calculadora usam inputs e selects de 28px (h-7) com texto 11px/800 tabular-nums — células de planilha, não formulário.
 
 ### Navigation (Sidebar Ledger)
-- **Style:** coluna full-bleed: cada item é uma faixa inteira separada por borda preta 2px (estilo fichário). Item ativo: fundo **Azul Caneta Ação** cheio, texto branco, font-black. Inativo: branco, font-bold, hover Cinza Papel.
-- **States:** sem sombra e sem física de pressionar — a navegação é a encadernação, não um adesivo. Colapsável (264px ↔ 80px); recolhida mostra só ícones centralizados; botões de expandir/recolher aparecem no hover do grupo.
+- **Style:** coluna full-bleed: cada item é uma faixa inteira separada por borda preta 2px (estilo fichário). Sete destinos: Home, Disciplinas, Montar Grade, Calendário, Avaliar Professor, Meu Curso, Configurações. Item ativo: fundo **Azul Caneta Ação** cheio, texto branco, font-black. Inativo: branco, font-bold, hover Cinza Papel.
+- **States:** sem sombra e sem física de pressionar — a navegação é a encadernação, não um adesivo. Colapsável (264px ↔ 80px) com transição de largura de 300ms `cubic-bezier(0.2,0,0,1)` — rótulos somem por max-width, nunca pulam. Recolhida mostra só ícones; os botões de expandir/recolher aparecem no hover do grupo (o de expandir ocupa o lugar do logo, adesivo azul cheio).
+- **Logo-bloco:** 42px com o mascote (`sarue-logo.png`), borda 2px, raio 12px, sombra de ação 2px; clicável volta para a Home e é mudo (A Regra do Clique Mecânico). Wordmark "Saruê UnB" com o sufixo **UnB** em Azul UnB.
+- **Base operacional:** pill **Sincronizar** (rounded-2xl, azul cheio, física completa; cinza sem sombra quando não há contas conectadas) com popover de status de 320px em **Papel Quadriculado** — hover abre preview que fecha após 150ms de graça, clique dispara o sync e fixa o painel até clique fora; **Sino de Prazos** (ghost icon 40px) ao lado; "Último: hh:mm" em 11px semibold Tinta Suave embaixo. Ponto de atualização de 8px (azul; branco sobre aba ativa) junto a Configurações quando há update pendente.
+- **Sanduíche:** em janela curta ou zoom alto, a navegação rola dentro da sidebar — header e rodapé ficam sempre fixos.
 
 ### Badge (etiqueta de plataforma/tipo/prazo)
 - **Style:** pill (9999px), borda preta 2px, **sem sombra** — etiqueta de tinta colada no papel, não adesivo; padding 2px 12px (md) / 2px 8px (sm), texto 0.75rem/700 (sm em 11px/700). Cor por identidade: Sigaa **Verde SIGAA** (#3B8748, texto preto), Aprender 3 **Azul UnB** (#468AFB, texto preto), Teams **Roxo Fluent** (#5B5FC7, texto branco), tarefa **Amarelo Marca-Texto**, prazo urgente **Vermelho Correção Forte** (texto branco), prazo próximo **Amarelo Marca-Texto**, primária **Azul Caneta Ação** (texto branco), aviso **Cinza Nota** (slate-200), sucesso **Verde Giz**, roxa **Lilás Caderno**, neutra/outline branca (no escuro, etiqueta grafite #334155 com texto branco-gelo). No escuro, badges de família viram noturnas: fundo lavado da família, tinta clara da própria família como texto e a MESMA borda de giz do sistema — contorno nunca vira preto em uma badge e claro na vizinha.
@@ -607,6 +633,35 @@ Segunda barra de ferramentas do sistema, mesma gramática da Toolbar do Feed com
 - **Comportamento:** snapshot congelado na abertura — item marcado fica na lista com check até o popup fechar, quando o refresh sincroniza lista e badge.
 - **Estado vazio:** bloco-ícone de 48px branco (borda 2px, sombra de ação 2px) com BellOff azul, título 1rem/700 e explicação 0.75rem/500 máx. 260px.
 
+### Calendário (Calendário Acadêmico, Tarefas do Feed e Meus Eventos)
+Terceira superfície de trabalho: o mês como mural — a célula é cavidade de papel, o evento é etiqueta da família. O vocabulário de família é fechado e compartilhado por bloco, filtro e badge.
+
+- **Toolbar:** card branco raio 12px, sombra 4px, p-4, em duas linhas sob divisor `border-t-2 black/10`. Navegador de mês: cápsula composta (bg-canvas, borda 2px, sombra de ação 2px) com chevrons nas pontas e o trigger central (min-w 170px, mês font-black 16px + ano em **Azul UnB**). O trigger abre o **seletor de mês**: folha branca w-64 raio 12px borda 2px **sem sombra** (entrada scale 95% + fade 150ms), ano entre blocos-cavidade de 28px e grade 3×4 de meses (raio 8px, borda 2px transparente → tinta/40 no hover; selecionado **Azul Caneta Ação** cheio, mês corrente **Amarelo Marca-Texto** cheio). "Hoje" em Button outline sm; visão Mês | Lista em Segmented Control sm.
+- **Filtros por família:** três checkboxes com rótulo 12px bold — o check veste a **borda viva da família do evento**, não o Azul Caneta Ação: Calendário Acadêmico **#468AFB** (check branco), Meus Eventos **Verde Giz**, Tarefas do Feed **Amarelo Marca-Texto** (check tinta). "Limpar filtros" segue A Regra do Link de Serviço; filtro de Matéria é Filtro Select (alinhado à direita).
+- **Grade do mês:** card branco raio 12px sombra 4px; 6 semanas × 7 dias, cabeçalhos uppercase 11px font-black (fim de semana em neutral-500). Célula raio 8px borda 2px, min-h de 86/104px; dia fora do mês em **Cinza Papel** com número esmaecido; **hoje** = número em bloco **Azul Caneta Ação** (20/24px, raio 6px, borda 2px, sem sombra); **selecionada** = ring azul 2px com offset + sombra de ação 2px; **arrasto de período** (mousedown + arrastar) acende o intervalo com ring azul e **Azul Pastel** a 70% + sombra 2px — soltar abre o dialog de novo evento pré-preenchido (duplo clique também cria; Esc cancela). Dot de prazo no rodapé da célula: bolinha **Vermelho Correção** com borda de tinta (prazo ou trancamento).
+- **Blocos de evento:** etiquetas lineares de 22px de altura em até **2 trilhas** por semana, raio 6px, borda 2px **viva da família**, fundo pastel, texto na **tinta da família** (11px extrabold) — o mesmo trio da Grade Horária. Eventos multi-dia formam barra contínua (as bordas internas somem na emenda) e marcam continuação entre semanas com ‹ / ›; excesso além do segundo trilho vira "+N mais" (11px extrabold **azul-ink**, sublinha no hover, abre o dia).
+- **Botão rápido "+":** no hover da célula, adesivo micro **Verde Giz** (borda 2px, sombra micro 1px, física completa de afundar) no canto superior direito.
+- **Agenda do dia (painel lateral):** card branco raio 12px sombra 4px, `sticky top-6`; cabeçalho com weekday uppercase font-black **Azul Caneta Ação** + Badge amarela "Hoje" quando for o dia, data em text-xl font-black com ano em Tinta Suave, botão outline sm "+ Adicionar". Vazio = cavidade tracejada (border-dashed tinta/20 sobre canvas a 40%) com bloco-ícone branco de 48px e botão accent sm.
+- **Agenda completa (Lista):** grupos por dia = cards sombra 4px raio 12px; cabeçalho com bloco de data de 32px (canvas, borda 2px, sombra micro) + título font-black + weekday 12px bold neutral-500 + Badge relativa ("Hoje" amarela, "Amanhã"/"Em N dias" azul). Dias passados vão para seção colapsável sob divisor black/10, alternada por botão-cavidade (canvas, borda 2px, sombra de ação 2px, font-black 12px, chevron); sem eventos futuros, o passado abre sozinho. Estado vazio geral = card com bloco-ícone cavidade de 64px e botão primary sm.
+- **Card de evento:** raio 8px, borda 2px e fundo pastel **da família**; Badge sm da família com rótulo fixo ("UnB Oficial", "Tarefa do Feed", "Meu Evento") + Badge neutra de categoria + nome humano da matéria em 12px bold truncado (nunca pill mono aqui — a etiqueta lê como frase). Título text-sm extrabold; meta com ícones Calendar/Clock na tinta de acento da família; descrição oficial em folha branca a 85% sobre o pastel com borda fina de tinta a 15%; concluído esmaece a 50%. Ações do evento manual = micro-adesivos de 1px (p-1, raio 6px, física micro): editar; excluir com hover **Vermelho Pastel** e texto **Vermelho Correção Forte**.
+- **Dialog de evento:** dialog padrão de papel; erro em bloco **Vermelho Pastel** (borda 2px, raio 8px, 12px bold, `role="alert"`); rótulos uppercase 12px font-black com obrigatório em asterisco vermelho; título em textarea-cavidade raio 12px; matéria via Select ("CÓDIGO • Nome"); Período = par de Date Pickers (o término nunca recua abaixo do início); notificação = checkbox azul com Bell azul. Footer: Cancelar outline + **Criar/Salvar** primary (min-w 120px, "Salvando..." com spinner). Evento de plataforma abre em modo leitura ("Detalhes do Evento") com apenas "Fechar".
+- **Dialog de exclusão:** título em **Vermelho Correção Forte**, nome do evento em extrabold preto na descrição, footer Cancelar outline + destructive "Sim, excluir".
+
+**A Regra da Etiqueta da Família.** Todo evento do Calendário veste exatamente uma das três famílias — Acadêmico UnB (azul #468AFB), Tarefa do Feed (amarela #EAB308), Meu Evento (verde #16A34A) — e a mesma tinta aparece no bloco do mês, no check do filtro e na Badge do card. Quarta família ou tinta trocada é drift.
+
+### Date Picker e Popup de Calendário (react-day-picker)
+- **Trigger:** cavidade de 40px, raio 12px, borda 2px, 12px bold com a data em pt-BR ("dd/mm/aaaa") + CalendarIcon 16px neutral-600 à direita; placeholder "Selecionar data" em neutral-500; disabled opacity 75%.
+- **Popup:** folha **branca** (placa, bg-paper) raio 12px borda 2px **sem sombra** — variante placa do Popup de Papel, usada por toda superfície que contém o calendário (o seletor de mês da toolbar do Calendário segue o mesmo corpo); entrada scale 95% + fade 150ms.
+- **Calendário interno:** pt-BR. Navegação = blocos-cavidade de 28px (canvas, borda 2px, raio 8px); mês em font-black capitalize; weekdays 11px font-black uppercase neutral-600; dia = quadrado de 36px raio 8px com borda 2px transparente (hover: Cinza Papel + borda tinta/40); **hoje** = **Amarelo Marca-Texto** com borda de tinta e texto tinta; **selecionado** = **Azul Caneta Ação** cheio, texto branco; intervalo (range) pinta o miolo de **Azul Pastel** com pontas arredondadas; dia fora do mês opacity 45%; desabilitado opacity 35%.
+
+### Number Field (NumberInput)
+Campo numérico de nota — célula de planilha, não formulário.
+
+- **Cavidade agrupada:** borda 2px, raio 12px, altura 36px, cantos escondidos; o foco acende o ring azul no grupo inteiro (`focus-within`), não só no input.
+- **Entrada:** centralizada, font-mono tabular-nums bold 14px, placeholder "Pendente" em neutral-500.
+- **Controles:** coluna empilhada de chevrons (24px) ou ± nas laterais (32px), sempre com divisor de tinta de 2px e fundo **Cinza Papel** (placa `#263044` no escuro); ícones 12px stroke 2.5; disabled opacity 30%.
+- **Decimais pt-BR:** ponto do teclado e da área de transferência vira vírgula de forma transparente ("7.5" vira "7,5"); o parse aceita os dois.
+
 ### Dropdown Menu
 - **Trigger:** micro-ação ghost de reticências (MoreHorizontal), raio 8px, física 2px.
 - **Popup:** fundo **Papel Quadriculado** (`bg-canvas`) — o mesmo papel dos tooltips e do popup do Select na Grade. Raio 8px, borda preta 2px, padding 4px, **sem sombra**: o contorno preto faz o destaque, não a elevação. Exceção declarada: o menu do nó do Fluxograma é branco com Adesivo de card 4px, com cabeçalho interno (código mono + nome) sob divisor black/10.
@@ -631,6 +686,7 @@ Seletor com busca para listas longas (departamentos, cursos da UnB) — Popover 
 - **Border:** nenhuma — ver A Regra do Bloco Sem Borda.
 - **FeedListSkeleton / MyCourseSkeleton:** espelham a geometria exata das seções reais (linhas de duas alturas com pill de prazo; banner, grade de métricas, "Cursando agora" pastel e accordion de semestres), com **larguras variadas e determinísticas** por linha — página viva, não fileira de blocos iguais; a troca skeleton → conteúdo acontece sem salto de layout.
 - **Quando existe:** só na primeira carga (`isLoading` sem carga concluída). Refetch local (SQLite) troca o conteúdo no lugar, sem skeleton, dim ou spinner intermediário — piscar é shift, não feedback.
+- **Arranque (AppBootSkeleton):** a primeira pintura do app já é skeleton: sidebar em cromo real (logo verdadeiro de 42px, divisórias de 2px, pill de sync sem tinta) e conteúdo max-w-6xl com título, toolbar do feed (card real, controles sem tinta) e `FeedListSkeleton` dentro de Card real — larguras determinísticas por linha, troca sem salto de layout. O cromo da casca leva o risco preto; o que espera conteúdo nunca leva.
 
 **A Regra do Bloco Sem Borda.** Skeleton é conteúdo à espera de tinta: bloco neutro pulsante, nunca adesivo — borda e sombra pertencem ao Card que o contém. Bloco de loading com risco preto finge ser conteúdo.
 
@@ -680,6 +736,7 @@ Segunda superfície assinatura: o curso como **mural de adesivos sobre papel** �
 - **Do** usar raio e sombra como affordance (A Regra dos Dois Adesivos): ação 12–16px + sombra 2px; conteúdo 8px + sombra 4px; painel de pausa/métrica 12px; campo 12px sem sombra.
 - **Do** usar Micro-adesivo 1px (`neo-xs`) em checkbox, blocos de ícone, pills inline, badge de didática e micro-ações flutuantes; badge fica sem sombra.
 - **Do** usar o vocabulário fechado de status do Fluxograma (verde concluída, azul cursando, amarelo disponível, cinza bloqueada, lilás optativa) em mapa, lista e minimapa.
+- **Do** vestir evento do Calendário com exatamente uma família (A Regra da Etiqueta da Família): Acadêmico azul #468AFB, Tarefa do Feed amarela #EAB308, Meu Evento verde #16A34A — o mesmo trio pastel + borda viva + tinta da Grade Horária, repetido no bloco do mês, no check do filtro e na Badge do card.
 - **Do** dar som mecânico só com opt-in, nunca na navegação nem em elemento desabilitado (A Regra do Clique Mecânico).
 - **Do** usar #2563EB/#DC2626 como fundo sob texto branco; #468AFB/#FF6B6B ficam para marca/bordas.
 - **Do** manter o canto inferior direito organizado: adesivo de feedback a 16px da base, pilha de toasts acima dele (68px) — nenhum flutuante cobre o outro.
@@ -689,6 +746,7 @@ Segunda superfície assinatura: o curso como **mural de adesivos sobre papel** �
 - **Don't** usar glassmorphism, gradientes ou superfícies translúcidas — o mundo é opaco; a única translucidez permitida é o véu do backdrop do Dialog (`bg-ink/10` + blur de 2px), que escurece o fundo sem criar vidro.
 - **Don't** usar verde para seleção ou azul para conclusão — as tintas não trocam de significado (A Regra da Cor por Significado).
 - **Don't** inventar status ou cor nova para disciplina no Fluxograma — o vocabulário de 5 estados é fechado e compartilhado por mapa, lista e minimapa.
+- **Don't** criar quarta família de evento no Calendário ou trocar a tinta de uma existente — bloco, filtro e badge compartilham a mesma família (A Regra da Etiqueta da Família).
 - **Don't** dar sombra a Tooltip, Toast, Dialog ou popup de papel — o contorno preto faz o destaque (A Regra do Popup de Papel).
 - **Don't** soltar linha de legenda de contagem acima do card — contagem vive no título (absoluta) ou na barra interna/rodapé da toolbar (filtrada).
 - **Don't** dar adesivo (borda + sombra) a ação terciária de barra — é link de serviço.
