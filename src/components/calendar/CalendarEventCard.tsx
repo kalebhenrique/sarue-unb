@@ -82,7 +82,7 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
                   onEditEvent(event.rawPayload as UserCalendarEvent);
                 }}
                 title="Editar evento"
-                className="cursor-pointer p-1 rounded-md border border-ink bg-paper hover:bg-neutral-100 text-black shadow-[1px_1px_0px_0px_var(--neo-shadow)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                className="cursor-pointer p-1 rounded-md border-2 border-ink bg-paper hover:bg-neutral-100 text-black shadow-[1px_1px_0px_0px_var(--neo-shadow)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
               >
                 <Edit3 className="w-3.5 h-3.5 stroke-[2.5]" />
               </button>
@@ -95,7 +95,7 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
                   onDeleteEvent(event);
                 }}
                 title="Excluir evento"
-                className="cursor-pointer p-1 rounded-md border border-ink bg-paper hover:bg-correction-red/20 text-neutral-800 hover:text-correction-red-strong shadow-[1px_1px_0px_0px_var(--neo-shadow)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                className="cursor-pointer p-1 rounded-md border-2 border-ink bg-paper hover:bg-correction-red/20 text-neutral-800 hover:text-correction-red-strong shadow-[1px_1px_0px_0px_var(--neo-shadow)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
               >
                 <Trash2 className="w-3.5 h-3.5 stroke-[2.5]" />
               </button>

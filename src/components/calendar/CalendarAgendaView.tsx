@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Calendar as CalendarIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { Badge, Button } from '@/components/ui';
 import type { UnifiedCalendarEvent, UserCalendarEvent } from '@/core';
+import { getLocalTodayIso } from '@/hooks/useCalendar';
 import { CalendarEventCard } from './CalendarEventCard';
 
 interface CalendarAgendaViewProps {
@@ -17,7 +18,7 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
   onEditEvent,
   onDeleteEvent,
 }) => {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalTodayIso();
 
   // Agrupa eventos por data e divide entre futuros/hoje e passados (ordem presente -> futuro)
   const { upcomingGroups, pastGroups } = useMemo(() => {
@@ -151,7 +152,7 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
       {upcomingGroups.length > 0 ? (
         upcomingGroups.map(renderGroup)
       ) : (
-        <div className="p-4 rounded-xl border-2 border-dashed border-ink/20 bg-paper/50 text-center text-xs font-bold text-neutral-600">
+        <div className="p-4 rounded-xl border-2 border-dashed border-black/20 bg-paper/50 text-center text-xs font-bold text-neutral-600">
           Nenhum evento futuro agendado.
         </div>
       )}

@@ -268,7 +268,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                       }}
                       className={`group relative min-h-[86px] sm:min-h-[104px] p-1.5 sm:p-2 rounded-lg border-2 border-ink transition-colors cursor-pointer flex flex-col justify-between ${
                         !cell.isCurrentMonth
-                          ? 'bg-neutral-100 dark:bg-neutral-50-dark hover:bg-neutral-200/80 dark:hover:bg-neutral-100'
+                          ? 'bg-neutral-100 dark:bg-neutral-950 hover:bg-neutral-200/80 dark:hover:bg-neutral-100'
                           : 'bg-paper hover:bg-neutral-100 dark:hover:bg-neutral-100'
                       } ${
                         isInDrag
@@ -281,13 +281,13 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                       {/* Topo da Célula: Dia + Indicador de Hoje + Botão rápido "+" */}
                       <div className="flex items-center justify-between mb-1">
                         {cell.isToday ? (
-                          <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-neo-blue text-white font-black text-[11px] sm:text-xs flex items-center justify-center border border-ink shadow-[1px_1px_0px_0px_var(--neo-shadow)]">
+                          <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-neo-blue text-white font-black text-[11px] sm:text-xs flex items-center justify-center border-2 border-ink">
                             {cell.dayNumber}
                           </span>
                         ) : (
                           <span
                             className={`font-black text-xs sm:text-sm ${
-                              cell.isCurrentMonth ? 'text-black' : 'text-neutral-500'
+                              cell.isCurrentMonth ? 'text-black' : 'text-neutral-400'
                             }`}
                           >
                             {cell.dayNumber}
@@ -302,7 +302,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                             onAddEventOnDate(cell.date, cell.date);
                           }}
                           title={`Adicionar evento em ${cell.date}`}
-                          className="cursor-pointer opacity-0 group-hover:opacity-100 p-0.5 rounded-md border border-ink bg-chalk-green hover:bg-chalk-green-hover text-black shadow-[1px_1px_0px_0px_var(--neo-shadow)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                          className="cursor-pointer opacity-0 group-hover:opacity-100 p-0.5 rounded-md border-2 border-ink bg-chalk-green hover:bg-chalk-green-hover text-black shadow-[1px_1px_0px_0px_var(--neo-shadow)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                         >
                           <Plus className="w-3 h-3 stroke-[3]" />
                         </button>

@@ -1,7 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
+  List,
 } from 'lucide-react';
 import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
 import {
@@ -36,8 +38,26 @@ interface CalendarToolbarProps {
 }
 
 const VIEW_OPTIONS: ReadonlyArray<SegmentedOption<CalendarViewMode>> = [
-  { value: 'month', label: 'Mês', title: 'Grade mensal e agenda do dia' },
-  { value: 'agenda', label: 'Lista', title: 'Linha do tempo contínua de eventos' },
+  {
+    value: 'month',
+    label: (
+      <>
+        <CalendarDays className="w-3.5 h-3.5 stroke-[2.5]" aria-hidden="true" />
+        Mês
+      </>
+    ),
+    title: 'Grade mensal e agenda do dia',
+  },
+  {
+    value: 'agenda',
+    label: (
+      <>
+        <List className="w-3.5 h-3.5 stroke-[2.5]" aria-hidden="true" />
+        Lista
+      </>
+    ),
+    title: 'Linha do tempo contínua de eventos',
+  },
 ];
 
 const MONTH_NAMES = [

@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar as CalendarIcon, Plus } from 'lucide-react';
 import { Badge, Button } from '@/components/ui';
 import type { UnifiedCalendarEvent, UserCalendarEvent } from '@/core';
+import { getLocalTodayIso } from '@/hooks/useCalendar';
 import { CalendarEventCard } from './CalendarEventCard';
 
 interface CalendarDayAgendaProps {
@@ -53,7 +54,7 @@ export const CalendarDayAgenda: React.FC<CalendarDayAgendaProps> = ({
   const weekday = WEEKDAY_NAMES[dateObj.getDay()];
   const monthName = MONTH_NAMES[m];
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalTodayIso();
   const isToday = selectedDate === todayStr;
 
   return (
@@ -92,7 +93,7 @@ export const CalendarDayAgenda: React.FC<CalendarDayAgendaProps> = ({
       {/* Lista de Eventos do Dia */}
       <div className="flex-1 overflow-y-auto py-3 space-y-3">
         {events.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center p-6 h-full min-h-[220px] rounded-xl border-2 border-dashed border-ink/20 bg-canvas/40">
+          <div className="flex flex-col items-center justify-center text-center p-6 h-full min-h-[220px] rounded-xl border-2 border-dashed border-black/20 bg-canvas/40">
             <div className="w-12 h-12 rounded-xl bg-paper border-2 border-ink flex items-center justify-center mb-3">
               <CalendarIcon className="w-6 h-6 text-neutral-400 stroke-[2.5]" />
             </div>

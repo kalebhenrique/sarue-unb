@@ -16,6 +16,7 @@ import {
   DatePicker,
 } from '@/components/ui';
 import { Bell } from 'lucide-react';
+import { getLocalTodayIso } from '@/hooks/useCalendar';
 import type {
   UserCalendarEvent,
   CalendarEventCategory,
@@ -108,7 +109,7 @@ export const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
 
         setNotify(event.notify !== false);
       } else {
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalTodayIso();
         const initialStart = prefilledDate || todayStr;
         const initialEnd = prefilledEndDate || initialStart;
 
