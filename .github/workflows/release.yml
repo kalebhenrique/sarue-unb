@@ -42,11 +42,11 @@ jobs:
                 tag_name: tag,
                 name: `Saruê UnB ${tag}`,
                 body: 'Veja os ativos para baixar o instalador ou utilize o auto-updater integrado no aplicativo.',
-                draft: true,
+                draft: false,
                 prerelease: false
               });
               release = res.data;
-              console.log(`Nova release criada como draft com id: ${release.id}`);
+              console.log(`Nova release criada com id: ${release.id}`);
             }
             return release.id;
 

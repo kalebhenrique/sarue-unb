@@ -50,6 +50,12 @@ try {
   console.log('[consolidate-latest-json] Nenhum latest.json existente encontrado. Criando novo...');
 }
 
+const repo = process.env.GITHUB_REPOSITORY || 'kalebhenrique/sarue-unb';
+
+function buildDownloadUrl(assetName) {
+  return `https://github.com/${repo}/releases/download/${tag}/${assetName}`;
+}
+
 function getSigContent(assetName) {
   try {
     return execSync(`gh release download "${tag}" --pattern "${assetName}" -O -`, {
@@ -62,7 +68,8 @@ function getSigContent(assetName) {
 }
 
 for (const asset of assets) {
-  const { name, url } = asset;
+  const { name } = asset;
+  const downloadUrl = buildDownloadUrl(name);
 
   // macOS Apple Silicon (darwin-aarch64 & darwin-aarch64-app)
   if (name.includes('aarch64') && name.endsWith('.app.tar.gz')) {
@@ -70,8 +77,8 @@ for (const asset of assets) {
     if (sigAsset) {
       const sig = getSigContent(sigAsset.name);
       if (sig) {
-        manifest.platforms['darwin-aarch64'] = { signature: sig, url };
-        manifest.platforms['darwin-aarch64-app'] = { signature: sig, url };
+        manifest.platforms['darwin-aarch64'] = { signature: sig, url: downloadUrl };
+        manifest.platforms['darwin-aarch64-app'] = { signature: sig, url: downloadUrl };
         console.log(`[consolidate-latest-json] Adicionado darwin-aarch64 & darwin-aarch64-app -> ${name}`);
       }
     }
@@ -83,8 +90,8 @@ for (const asset of assets) {
     if (sigAsset) {
       const sig = getSigContent(sigAsset.name);
       if (sig) {
-        manifest.platforms['darwin-x86_64'] = { signature: sig, url };
-        manifest.platforms['darwin-x86_64-app'] = { signature: sig, url };
+        manifest.platforms['darwin-x86_64'] = { signature: sig, url: downloadUrl };
+        manifest.platforms['darwin-x86_64-app'] = { signature: sig, url: downloadUrl };
         console.log(`[consolidate-latest-json] Adicionado darwin-x86_64 & darwin-x86_64-app -> ${name}`);
       }
     }
@@ -96,7 +103,7 @@ for (const asset of assets) {
     if (sigAsset) {
       const sig = getSigContent(sigAsset.name);
       if (sig) {
-        manifest.platforms['linux-x86_64'] = { signature: sig, url };
+        manifest.platforms['linux-x86_64'] = { signature: sig, url: downloadUrl };
         console.log(`[consolidate-latest-json] Adicionado linux-x86_64 -> ${name}`);
       }
     }
@@ -108,7 +115,7 @@ for (const asset of assets) {
     if (sigAsset && (!manifest.platforms['windows-x86_64'] || name.endsWith('.nsis.zip'))) {
       const sig = getSigContent(sigAsset.name);
       if (sig) {
-        manifest.platforms['windows-x86_64'] = { signature: sig, url };
+        manifest.platforms['windows-x86_64'] = { signature: sig, url: downloadUrl };
         console.log(`[consolidate-latest-json] Adicionado windows-x86_64 -> ${name}`);
       }
     }
