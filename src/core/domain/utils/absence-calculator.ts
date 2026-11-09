@@ -47,13 +47,37 @@ export function parseCreditsFromSchedule(schedule?: string | null): number {
 }
 
 /**
- * Calcula o limite máximo de faltas permitido na UnB pela regra:
- * Limite de faltas = créditos * 2 - 1
- * Ex: 4 créditos -> 7 faltas, 2 créditos -> 3 faltas, 6 créditos -> 11 faltas.
+ * Calcula o limite máximo de faltas permitido na UnB pela regra de 25% da carga horária,
+ * expresso em dias/encontros de aula:
+ * Carga horária = créditos * 15h. Limite de 25% = carga * 0.25 (horas-falta).
+ * Limite em dias de aula = floor(horas-falta / horasPorEncontro).
+ * 
+ * Ex:
+ * - 4 créditos (60h), 2h/dia -> floor(15 / 2) = 7 faltas (dias)
+ * - 4 créditos (60h), 4h/dia (ex: 4M1234) -> floor(15 / 4) = 3 faltas (dias)
+ * - 6 créditos (90h), 2h/dia -> floor(22.5 / 2) = 11 faltas (dias)
+ * - 2 créditos (30h), 2h/dia -> floor(7.5 / 2) = 3 faltas (dias)
  */
-export function calculateMaxAbsences(credits: number): number {
+export function calculateMaxAbsences(credits: number, hoursPerClass: 1 | 2 | 4 = 2): number {
   const safeCredits = Math.max(1, credits);
-  return safeCredits * 2 - 1;
+  const safeHours = hoursPerClass || 2;
+  const maxHoursAllowed = safeCredits * 15 * 0.25;
+  return Math.max(1, Math.floor(maxHoursAllowed / safeHours));
+}
+
+/**
+ * Converte a contagem de faltas do SIGAA (registrada em horas-falta) para a quantidade
+ * de dias/aulas faltadas, considerando a duração do encontro (1, 2 ou 4 horas).
+ * Ex: 22h registradas no SIGAA em aula de 2h -> 11 dias/aulas.
+ */
+export function convertSigaaHoursToClassAbsences(
+  sigaaHours?: number | null,
+  schedule?: string | null,
+  hoursPerClass?: 1 | 2 | 4 | null
+): number | undefined {
+  if (sigaaHours === null || sigaaHours === undefined) return undefined;
+  const h = hoursPerClass || parseHoursPerClass(schedule);
+  return Math.max(0, Math.floor(sigaaHours / h));
 }
 
 /**
@@ -89,23 +113,12 @@ export interface CalculateAbsenceRiskParams {
 
 /**
  * Estima a situação de faltas do estudante na UnB:
- * - Regra de limite de faltas UnB: créditos * 2 - 1 (onde créditos são extraídos do horário).
+ * - Regra de limite de faltas UnB: 25% da carga horária em dias/aulas.
  * - Formato da aula: 1, 2 ou 4 horas por encontro.
  * - Estima quantas aulas faltam para reprovação.
  */
 export function calculateAbsenceRisk(params: CalculateAbsenceRiskParams): AbsenceStatus {
   const absences = Math.max(0, Number(params.absences) || 0);
-
-  const credits = parseCreditsFromSchedule(params.schedule);
-  const calculatedMax = calculateMaxAbsences(credits);
-
-  // Se o limite máximo não for fornecido ou se tiver o default legado de 15 para matéria de créditos != 8,
-  // utiliza a regra oficial da UnB: créditos * 2 - 1.
-  let maxAbsences = params.maxAbsences ? Number(params.maxAbsences) : calculatedMax;
-  if (maxAbsences === 15 && credits !== 8) {
-    maxAbsences = calculatedMax;
-  }
-  maxAbsences = Math.max(1, maxAbsences);
 
   let hoursPerClass: 1 | 2 | 4 = 2;
   if (params.hoursPerClass === 1 || params.hoursPerClass === 2 || params.hoursPerClass === 4) {
@@ -113,6 +126,20 @@ export function calculateAbsenceRisk(params: CalculateAbsenceRiskParams): Absenc
   } else {
     hoursPerClass = parseHoursPerClass(params.schedule);
   }
+
+  const credits = parseCreditsFromSchedule(params.schedule);
+  const calculatedMax = calculateMaxAbsences(credits, hoursPerClass);
+
+  // Se schedule estiver presente, usamos calculatedMax para garantir a regra exata de dias/encontros (especialmente para aulas de 4h ou créditos variados).
+  // Se não estiver presente, recorre a params.maxAbsences ou calculatedMax.
+  let maxAbsences = params.schedule
+    ? calculatedMax
+    : params.maxAbsences ? Number(params.maxAbsences) : calculatedMax;
+
+  if (maxAbsences === 15 && credits !== 8) {
+    maxAbsences = calculatedMax;
+  }
+  maxAbsences = Math.max(1, maxAbsences);
 
   const remainingAbsences = maxAbsences - absences;
   const percentageUsed = Math.round((absences / maxAbsences) * 100);
@@ -133,12 +160,11 @@ export function calculateAbsenceRisk(params: CalculateAbsenceRiskParams): Absenc
     };
   }
 
-  // Quantas aulas completas o aluno ainda pode faltar mantendo absences <= maxAbsences
-  const safeClassesToMiss = Math.floor(remainingAbsences / hoursPerClass);
+  // Como absences e maxAbsences já estão em dias/encontros de aula:
+  const safeClassesToMiss = Math.max(0, remainingAbsences);
 
-  // Quantas aulas que faltar farão o total ultrapassar maxAbsences (newAbsences > maxAbsences)
-  // Ex: max=15, abs=14, hours=2 -> falta 1 aula para reprovação (14 + 2 = 16 > 15)
-  const classesUntilReproval = Math.floor(remainingAbsences / hoursPerClass) + 1;
+  // Quantas faltas de aula levam à reprovação (newAbsences > maxAbsences)
+  const classesUntilReproval = Math.max(0, remainingAbsences + 1);
 
   // Se o aluno tem 0 faltas, ele nunca está em situação de risco ou crítica
   const isCritical = absences > 0 && classesUntilReproval === 1;

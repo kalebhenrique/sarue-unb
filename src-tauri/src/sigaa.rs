@@ -398,7 +398,8 @@ impl SigaaClient {
                 Self::estimate_slots_from_schedule(&class.schedule_code)
             };
             let credits = if slots > 0 { slots } else { 4 };
-            course.max_absences = Some(credits * 2 - 1);
+            let hours_per_class = Self::estimate_hours_per_class_from_schedule(&class.schedule_code);
+            course.max_absences = Some(Self::calculate_max_absences_for_course(credits, hours_per_class));
         }
 
         for course in courses.iter_mut() {
@@ -408,8 +409,42 @@ impl SigaaClient {
                     .as_deref()
                     .map(Self::estimate_slots_from_schedule)
                     .unwrap_or(4);
-                course.max_absences = Some(credits * 2 - 1);
+                let hours_per_class = course
+                    .schedule
+                    .as_deref()
+                    .map(Self::estimate_hours_per_class_from_schedule)
+                    .unwrap_or(2);
+                course.max_absences = Some(Self::calculate_max_absences_for_course(credits, hours_per_class));
             }
+        }
+    }
+
+    /// Calcula o limite máximo de faltas (em dias/encontros) pela regra de 25% da carga horária da UnB
+    pub fn calculate_max_absences_for_course(credits: u32, hours_per_class: u32) -> u32 {
+        let safe_credits = credits.max(1);
+        let safe_hours = hours_per_class.max(1);
+        let max_hours_allowed = (safe_credits * 15) / 4; // 25% de safe_credits * 15h
+        (max_hours_allowed / safe_hours).max(1)
+    }
+
+    /// Estima a duração de cada encontro em horas (1, 2 ou 4) a partir do código de horário
+    fn estimate_hours_per_class_from_schedule(code: &str) -> u32 {
+        let Ok(re) = Regex::new(r"([2-7]+)[MTN]([1-6]+)") else {
+            return 2;
+        };
+        let mut max_periods = 0;
+        for cap in re.captures_iter(code) {
+            let periods = cap.get(2).map(|m| m.as_str().len() as u32).unwrap_or(0);
+            if periods > max_periods {
+                max_periods = periods;
+            }
+        }
+        if max_periods >= 4 {
+            4
+        } else if max_periods == 1 {
+            1
+        } else {
+            2
         }
     }
 
@@ -1566,7 +1601,7 @@ impl SigaaClient {
             }
         }
 
-        // 4. Garante que todas as turmas tenham max_absences calculado pela regra da UnB: créditos * 2 - 1
+        // 4. Garante que todas as turmas tenham max_absences calculado pela regra de 25% da UnB em dias/encontros
         for course in courses.iter_mut() {
             if course.max_absences.is_none() {
                 let credits = course
@@ -1574,7 +1609,12 @@ impl SigaaClient {
                     .as_deref()
                     .map(Self::estimate_slots_from_schedule)
                     .unwrap_or(4);
-                course.max_absences = Some(credits * 2 - 1);
+                let hours_per_class = course
+                    .schedule
+                    .as_deref()
+                    .map(Self::estimate_hours_per_class_from_schedule)
+                    .unwrap_or(2);
+                course.max_absences = Some(Self::calculate_max_absences_for_course(credits, hours_per_class));
             }
         }
 
@@ -2062,7 +2102,8 @@ impl SigaaClient {
 
             let slots = Self::estimate_slots_from_schedule(&schedule);
             let credits = if slots > 0 { slots } else { 4 };
-            let max_absences = Some(credits * 2 - 1);
+            let hours_per_class = Self::estimate_hours_per_class_from_schedule(&schedule);
+            let max_absences = Some(Self::calculate_max_absences_for_course(credits, hours_per_class));
 
             courses.push(Course {
                 id: format!("sigaa-{}", turma_id),
