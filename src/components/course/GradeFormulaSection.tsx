@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Card, Badge, Input, NumberInput } from "@/components/ui";
+import { Alert, Card, Badge, Input, NumberInput } from "@/components/ui";
 import {
   Calculator,
   ChevronDown,
-  Target,
   CheckCircle2,
   AlertTriangle,
   RotateCcw,
@@ -233,7 +232,7 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
         inert={!isExpanded}
       >
         <div className="min-h-0 overflow-hidden">
-          <div className="pb-2 pl-4 sm:pl-12 mt-3 space-y-4">
+          <div className="pb-2 pl-4 sm:pl-12 pr-1.5 mt-3 space-y-4">
             {/* Seletor de Presets Rápidos */}
             <div className="space-y-2">
               <div className="flex items-center gap-1.5 text-xs font-black text-black">
@@ -326,7 +325,7 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
                   {variables.map((variable) => {
                     const val = grades[variable];
                     const hasValue = val !== undefined && val !== null;
@@ -334,13 +333,13 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                     return (
                       <div
                         key={variable}
-                        className={`p-3 rounded-xl border-2 border-ink transition-all ${
+                        className={`p-3 rounded-xl border-2 border-ink transition-colors ${
                           hasValue
                             ? "bg-pastel-blue text-black"
                             : "bg-paper text-black"
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-1 mb-1.5">
+                        <div className="flex items-center justify-between gap-1 mb-2">
                           <span className="font-black text-xs text-black uppercase tracking-wider">
                             {variable}
                           </span>
@@ -384,249 +383,104 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
 
             {/* Painel de Resultados & Estimativas para Aprovação */}
             {calculation && validation.isValid && (
-              <div className="space-y-3 pt-2">
+              <div className="space-y-2.5 pt-1">
                 {/* Caso 1: Todas as notas já foram preenchidas */}
                 {calculation.isFullyGraded &&
                   calculation.finalGrade !== null &&
                   calculation.finalMention && (
-                    <div
-                      className={`p-4 rounded-xl border-2 border-ink shadow-neo-sm ${
+                    <Alert
+                      variant={
+                        calculation.finalMention.passed ? "green" : "destructive"
+                      }
+                      title={`Nota Final: ${formatGrade(calculation.finalGrade, 2)} (${calculation.finalMention.mention} — ${calculation.finalMention.label})`}
+                      description={
                         calculation.finalMention.passed
-                          ? "bg-pastel-green dark:bg-paper dark:border-l-[6px] dark:border-l-neo-green text-black"
-                          : "bg-pastel-red dark:bg-paper dark:border-l-[6px] dark:border-l-neo-danger text-black"
-                      } flex flex-wrap items-center justify-between gap-3`}
-                    >
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-bold text-neutral-700 block">
-                          Nota Final Calculada
-                        </span>
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-3xl font-black text-black font-mono">
-                            {formatGrade(calculation.finalGrade, 2)}
-                          </span>
-                          <Badge
-                            variant={
-                              calculation.finalMention.passed
-                                ? "success"
-                                : "urgent"
-                            }
-                            size="md"
-                            className="font-black text-xs"
-                          >
-                            {calculation.finalMention.mention} —{" "}
-                            {calculation.finalMention.label}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <div className="text-left sm:text-right">
-                        <span
-                          className={`text-sm font-black flex items-center gap-1.5 ${
-                            calculation.finalMention.passed
-                              ? "text-ink-success"
-                              : "text-ink-error"
-                          }`}
-                        >
-                          {calculation.finalMention.passed ? (
-                            <>
-                              <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                              <span>Aprovado na Disciplina</span>
-                            </>
-                          ) : (
-                            <>
-                              <AlertTriangle className="w-4 h-4 stroke-[2.5]" />
-                              <span>
-                                Reprovado por Nota (Abaixo de 5,0 - MM)
-                              </span>
-                            </>
-                          )}
-                        </span>
-                        <p className="text-[11px] text-neutral-600 font-medium mt-0.5">
-                          Critério regimental da UnB: aprovação com menção MM,
-                          MS ou SS.
-                        </p>
-                      </div>
-                    </div>
+                          ? "Aprovado na disciplina (critério UnB: MM, MS ou SS)."
+                          : "Reprovado por nota (abaixo de 5,0 — MM)."
+                      }
+                    />
                   )}
 
-                {/* Caso 2: Avaliações ainda pendentes -> Estimativa de Nota Restante */}
+                {/* Caso 2: Avaliações ainda pendentes -> Estimativa concisa */}
                 {!calculation.isFullyGraded && (
                   <div className="space-y-2.5">
-                    {/* Card Principal: Meta de Aprovação (MM - 5.0) */}
                     {calculation.requirements.MM.isAlreadyAchieved ? (
-                      <div className="p-4 rounded-xl border-2 border-ink shadow-neo-sm bg-pastel-green dark:bg-paper dark:border-l-[6px] dark:border-l-neo-green text-black flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-neo-green/20 border-2 border-ink flex items-center justify-center text-ink-success shrink-0 mt-0.5">
-                          <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-black text-black">
-                            Aprovação Garantida (Menção MM)!
-                          </h4>
-                          <p className="text-xs font-bold text-neutral-700 mt-1">
-                            Parabéns! Mesmo se você tirar zero em todas as
-                            avaliações restantes (
-                            {calculation.pendingVariables.join(", ")}), sua nota
-                            acumulada já é suficiente para ser aprovado na UnB.
-                          </p>
-                        </div>
-                      </div>
+                      <Alert
+                        variant="green"
+                        title="Aprovação garantida (Menção MM ≥ 5,0)"
+                        description={`Nota acumulada já garante aprovação mesmo zerando ${calculation.pendingVariables.join(", ")}.`}
+                      />
                     ) : calculation.requirements.MM.isAchievable ? (
-                      <div className="p-4 rounded-xl border-2 border-ink shadow-neo-sm bg-pastel-yellow dark:bg-paper dark:border-l-[6px] dark:border-l-neo-yellow text-black flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-neo-yellow/30 border-2 border-ink flex items-center justify-center text-amber-700 dark:text-amber-300 shrink-0 mt-0.5">
-                          <Target className="w-5 h-5 stroke-[2.5]" />
-                        </div>
-                        <div className="space-y-1.5 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="text-sm font-black text-black">
-                              Nota Restante para Aprovação (MM ≥ 5,0):
-                            </h4>
-                            <span className="text-base font-black font-mono px-2.5 py-0.5 bg-neo-yellow text-ink border-2 border-ink rounded-lg shadow-neo-xs">
-                              {formatGrade(
-                                calculation.requirements.MM.requiredGrade ?? 0,
-                                2,
-                              )}
-                            </span>
-                          </div>
-                          <p className="text-xs font-bold text-neutral-800">
-                            {calculation.pendingVariables.length === 1 ? (
-                              <>
-                                Você precisa tirar no mínimo{" "}
-                                <span className="font-black underline text-black">
-                                  {formatGrade(
-                                    calculation.requirements.MM.requiredGrade ??
-                                      0,
-                                    2,
-                                  )}
-                                </span>{" "}
-                                na avaliação{" "}
-                                <strong>
-                                  {calculation.pendingVariables[0]}
-                                </strong>{" "}
-                                para fechar com menção MM (Aprovado).
-                              </>
-                            ) : (
-                              <>
-                                Você precisa de uma média de no mínimo{" "}
-                                <span className="font-black underline text-black">
-                                  {formatGrade(
-                                    calculation.requirements.MM.requiredGrade ??
-                                      0,
-                                    2,
-                                  )}
-                                </span>{" "}
-                                nas avaliações pendentes (
-                                {calculation.pendingVariables.join(", ")}) para
-                                ser aprovado.
-                              </>
-                            )}
-                          </p>
-                        </div>
-                      </div>
+                      <Alert
+                        variant="yellow"
+                        title={`Nota restante para aprovação (MM ≥ 5,0): ${formatGrade(calculation.requirements.MM.requiredGrade ?? 0, 2)}`}
+                        description={
+                          calculation.pendingVariables.length === 1
+                            ? `Necessário tirar no mínimo ${formatGrade(calculation.requirements.MM.requiredGrade ?? 0, 2)} em ${calculation.pendingVariables[0]}.`
+                            : `Média mínima necessária nas avaliações pendentes (${calculation.pendingVariables.join(", ")}).`
+                        }
+                      />
                     ) : (
-                      <div className="p-4 rounded-xl border-2 border-ink shadow-neo-sm bg-pastel-red dark:bg-paper dark:border-l-[6px] dark:border-l-neo-danger text-black flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-neo-danger/20 border-2 border-ink flex items-center justify-center text-ink-error shrink-0 mt-0.5">
-                          <AlertTriangle className="w-5 h-5 stroke-[2.5]" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-black text-black">
-                            Atenção: Aprovação em Risco
-                          </h4>
-                          <p className="text-xs font-bold text-neutral-800 mt-1">
-                            Mesmo tirando nota máxima 10,0 em todas as
-                            avaliações restantes, a nota final máxima atingível
-                            é{" "}
-                            <strong className="underline text-black font-black">
-                              {formatGrade(calculation.maxPossibleGrade, 2)}
-                            </strong>{" "}
-                            (abaixo do mínimo de 5,0 para MM). Verifique com o
-                            docente sobre provas de reposição ou trabalhos
-                            extras.
-                          </p>
-                        </div>
-                      </div>
+                      <Alert
+                        variant="destructive"
+                        title={`Aprovação em risco (Máx. possível: ${formatGrade(calculation.maxPossibleGrade, 2)})`}
+                        description="Mesmo tirando 10,0 nas avaliações restantes, a média não atinge 5,0 (MM)."
+                      />
                     )}
 
                     {/* Metas Superiores: MS (7.0) e SS (9.0) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                      {/* Meta MS */}
-                      <div className="p-3 rounded-xl border-2 border-ink bg-paper text-black shadow-neo-xs flex items-center justify-between">
-                        <span className="font-bold text-neutral-700">
-                          Meta MS (Médio Superior ≥ 7,0):
-                        </span>
-                        <div className="font-mono font-black">
-                          {calculation.requirements.MS.isAlreadyAchieved ? (
-                            <Badge
-                              variant="success"
-                              size="sm"
-                              className="font-black"
-                            >
-                              ✓ Garantido!
-                            </Badge>
-                          ) : calculation.requirements.MS.isAchievable &&
-                            calculation.requirements.MS.requiredGrade !==
-                              null ? (
-                            <Badge
-                              variant="primary"
-                              size="sm"
-                              className="font-black"
-                            >
-                              Falta{" "}
-                              {formatGrade(
-                                calculation.requirements.MS.requiredGrade,
-                                2,
-                              )}
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              size="sm"
-                              className="font-bold text-neutral-500"
-                            >
-                              Inatingível
-                            </Badge>
-                          )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                      {(
+                        [
+                          {
+                            key: "MS",
+                            label: "Meta MS (≥ 7,0)",
+                            req: calculation.requirements.MS,
+                          },
+                          {
+                            key: "SS",
+                            label: "Meta SS (≥ 9,0)",
+                            req: calculation.requirements.SS,
+                          },
+                        ] as const
+                      ).map(({ key, label, req }) => (
+                        <div
+                          key={key}
+                          className="px-3.5 py-2.5 rounded-xl border-2 border-ink bg-paper text-black flex items-center justify-between gap-2"
+                        >
+                          <span className="font-bold text-neutral-700">
+                            {label}:
+                          </span>
+                          <div className="font-mono font-black shrink-0">
+                            {req.isAlreadyAchieved ? (
+                              <Badge
+                                variant="success"
+                                size="sm"
+                                className="font-black"
+                              >
+                                ✓ Garantido
+                              </Badge>
+                            ) : req.isAchievable &&
+                              req.requiredGrade !== null ? (
+                              <Badge
+                                variant="primary"
+                                size="sm"
+                                className="font-black"
+                              >
+                                Falta {formatGrade(req.requiredGrade, 2)}
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                size="sm"
+                                className="font-bold text-neutral-500"
+                              >
+                                Inatingível
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                      </div>
-
-                      {/* Meta SS */}
-                      <div className="p-3 rounded-xl border-2 border-ink bg-paper text-black shadow-neo-xs flex items-center justify-between">
-                        <span className="font-bold text-neutral-700">
-                          Meta SS (Superior ≥ 9,0):
-                        </span>
-                        <div className="font-mono font-black">
-                          {calculation.requirements.SS.isAlreadyAchieved ? (
-                            <Badge
-                              variant="success"
-                              size="sm"
-                              className="font-black"
-                            >
-                              ✓ Garantido!
-                            </Badge>
-                          ) : calculation.requirements.SS.isAchievable &&
-                            calculation.requirements.SS.requiredGrade !==
-                              null ? (
-                            <Badge
-                              variant="primary"
-                              size="sm"
-                              className="font-black"
-                            >
-                              Falta{" "}
-                              {formatGrade(
-                                calculation.requirements.SS.requiredGrade,
-                                2,
-                              )}
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              size="sm"
-                              className="font-bold text-neutral-500"
-                            >
-                              Inatingível
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 )}
