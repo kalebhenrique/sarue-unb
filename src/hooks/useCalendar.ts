@@ -13,6 +13,13 @@ import { toast } from '@/components/ui';
 
 export type CalendarViewMode = 'month' | 'agenda';
 
+export function getLocalTodayIso(now: Date = new Date()): string {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export interface CalendarDayCell {
   date: string; // ISO "YYYY-MM-DD"
   dayNumber: number;
@@ -30,13 +37,7 @@ export function useCalendar() {
   const { useCases, repos } = useContainer();
 
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
-  const [selectedDate, setSelectedDate] = useState<string>(() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  });
+  const [selectedDate, setSelectedDate] = useState<string>(() => getLocalTodayIso());
 
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
 
@@ -117,10 +118,7 @@ export function useCalendar() {
   const goToToday = useCallback(() => {
     const now = new Date();
     setCurrentDate(new Date(now.getFullYear(), now.getMonth(), 1));
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    setSelectedDate(`${y}-${m}-${d}`);
+    setSelectedDate(getLocalTodayIso(now));
   }, []);
 
   // Eventos filtrados
@@ -192,7 +190,7 @@ export function useCalendar() {
     const firstDayWeekday = firstDayOfMonth.getDay(); // 0 = Domingo
     const totalDaysInMonth = lastDayOfMonth.getDate();
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalTodayIso();
 
     const cells: CalendarDayCell[] = [];
 
