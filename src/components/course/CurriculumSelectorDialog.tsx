@@ -9,7 +9,7 @@ import {
   Badge,
 } from "@/components/ui";
 import { CourseSelect } from "./CourseSelect";
-import { BookOpen, Check, ChevronRight } from "lucide-react";
+import { ArrowRight, BookOpen, Check, Layers } from "lucide-react";
 
 /** Enter/Espaço acionam elemento com role="button". */
 const activateOnKey =
@@ -227,7 +227,7 @@ export const CurriculumSelectorDialog: React.FC<
               Matriz Curricular
             </span>
             <div
-              className="flex-1 overflow-y-auto space-y-0.5 pr-1 pb-1 min-h-0"
+              className="flex-1 overflow-y-auto space-y-1 pr-1 pb-1 min-h-0"
               aria-busy={isLoadingAll}
             >
               {selectedCourseStructures.map((curr) => {
@@ -268,15 +268,21 @@ export const CurriculumSelectorDialog: React.FC<
                     }
                     className={
                       isSelected
-                        ? "flex items-center justify-between gap-3 bg-pastel-green border-2 border-ink rounded-lg px-3 py-2.5 select-none"
-                        : "flex items-center justify-between gap-3 bg-paper border-2 border-transparent rounded-lg px-3 py-2.5 cursor-pointer select-none outline-hidden hover:bg-neutral-100 hover:border-ink focus-visible:bg-neutral-100 focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-neo-blue transition-colors duration-150 group"
+                        ? "group flex items-center gap-2.5 bg-pastel-green border-2 border-ink rounded-lg p-2.5 select-none"
+                        : "group flex items-center gap-2.5 bg-paper border-2 border-transparent rounded-lg p-2.5 cursor-pointer select-none outline-hidden hover:bg-neutral-100 focus-visible:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-neo-blue transition-colors duration-150"
                     }
                   >
-                    <div className="min-w-0">
+                    {/* Bloco de ícone — Layers neutro, receita do popover "Todos os instaladores" do site.
+                        text-black remapa para giz no escuro; text-ink é preto fixo e sumiria na placa. */}
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2 border-ink bg-paper">
+                      <Layers className="w-4 h-4 stroke-[2.5] text-black" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
                           title={curr.code}
-                          className="inline-block max-w-[160px] truncate align-middle font-mono text-[11px] font-black text-black bg-paper px-1.5 py-0.5 border border-ink rounded"
+                          className="inline-block max-w-[160px] truncate align-middle text-[11px] font-black text-black bg-paper px-1.5 py-0.5 border-2 border-ink rounded-md"
                         >
                           {curr.code}
                         </span>
@@ -292,12 +298,11 @@ export const CurriculumSelectorDialog: React.FC<
                           {curr.status}
                         </Badge>
                       </div>
-                      <p className="text-xs font-semibold text-neutral-700 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
-                        {meta.map((item) => (
-                          <span key={item} className="whitespace-nowrap">
-                            {item}
-                          </span>
-                        ))}
+                      <p
+                        title={meta.join(" • ")}
+                        className="text-[11px] font-medium text-neutral-600 mt-0.5 truncate"
+                      >
+                        {meta.join(" • ")}
                       </p>
                     </div>
 
@@ -307,10 +312,12 @@ export const CurriculumSelectorDialog: React.FC<
                         Atual
                       </div>
                     ) : (
-                      <ChevronRight
-                        className="w-4 h-4 shrink-0 stroke-[2.5] text-neutral-400 group-hover:text-black transition-colors duration-150"
+                      <span
                         aria-hidden="true"
-                      />
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-2 border-ink bg-neo-blue text-white transition-colors duration-150 group-hover:bg-neo-blueHover"
+                      >
+                        <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </span>
                     )}
                   </div>
                 );
@@ -324,7 +331,7 @@ export const CurriculumSelectorDialog: React.FC<
             {[0, 1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="bg-neutral-200 rounded-lg h-[52px] animate-pulse"
+                className="bg-neutral-200 rounded-lg h-[62px] animate-pulse"
                 style={{ opacity: 1 - i * 0.08 }}
               />
             ))}

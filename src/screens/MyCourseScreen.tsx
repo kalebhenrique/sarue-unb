@@ -42,7 +42,12 @@ type ViewMode = "list" | "map";
 // Modo de visualização persiste durante a sessão: voltar de outra aba não reseta
 let cachedViewMode: ViewMode = "list";
 
-export const MyCourseScreen: React.FC = () => {
+export interface MyCourseScreenProps {
+  /** Navega para a aba de Configurações (estados vazios ganham porta de saída). */
+  onOpenSettings?: () => void;
+}
+
+export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }) => {
   const container = useContainer();
   const {
     profile,
@@ -131,7 +136,7 @@ export const MyCourseScreen: React.FC = () => {
         fallbackDescription="Ocorreu um erro inesperado ao carregar o cenário. Seus dados estão preservados."
         onReset={() => setView("overview")}
       >
-        <IraCalculatorScreen onBack={() => setView("overview")} />
+        <IraCalculatorScreen onBack={() => setView("overview")} onOpenSettings={onOpenSettings} />
       </ErrorBoundary>
     );
   }
@@ -164,7 +169,7 @@ export const MyCourseScreen: React.FC = () => {
                 className="text-xs shrink-0"
                 title="Restaurar o estado original vindo do histórico"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
                 Resetar (
                 {(profile?.manualCompletedCodes?.length || 0) +
                   (profile?.manualUncompletedCodes?.length || 0)}{" "}
