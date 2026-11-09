@@ -9,7 +9,6 @@ import {
   Calendar,
   LibraryBig,
   Search,
-  X,
   RefreshCw,
   Sparkles,
 } from "lucide-react";
@@ -31,7 +30,6 @@ export interface DisciplineCatalogProps {
   /** Erro de scrape com catalogo vazio — painel de erro com retry. */
   catalogError?: string | null;
   onRetryCatalog?: () => void;
-  onResetSearch: () => void;
   onSearchAllUnb?: () => void;
 }
 
@@ -106,9 +104,6 @@ const DisciplineRow = React.memo<DisciplineRowProps>(function DisciplineRow({
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="font-mono text-[11px] font-black bg-paper border border-ink rounded-md px-2 py-0.5">
-              {discipline.code}
-            </span>
             <span className="text-[11px] font-bold text-neutral-600">
               {discipline.classes.length}{" "}
               {discipline.classes.length === 1 ? "turma" : "turmas"}
@@ -128,7 +123,7 @@ const DisciplineRow = React.memo<DisciplineRowProps>(function DisciplineRow({
             ) : null}
           </div>
           <h4 className="text-xs font-black text-black leading-snug">
-            {discipline.name}
+            {discipline.code} - {discipline.name}
           </h4>
         </div>
 
@@ -244,7 +239,7 @@ const ClassCard = React.memo<ClassCardProps>(function ClassCard({
           aria-pressed={isSelected}
           className="h-7 px-3 text-[11px] rounded-lg"
         >
-          {isSelected ? "Remover" : "+ Adicionar"}
+          {isSelected ? "Remover" : "Adicionar"}
         </Button>
       </div>
     </div>
@@ -265,7 +260,6 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
   isScraping = false,
   catalogError = null,
   onRetryCatalog,
-  onResetSearch,
   onSearchAllUnb,
 }) => {
   // Set de ids das turmas na grade: lookup O(1) por linha memoizada
@@ -289,19 +283,6 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
           </div>
         </div>
 
-        {/* Botão de limpar busca quando houver busca ativa */}
-        {hasSearched && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onResetSearch}
-            className="text-xs text-neutral-600 hover:text-black h-7 px-2"
-          >
-            <X className="w-3.5 h-3.5" />
-            <span className="whitespace-nowrap">Limpar busca</span>
-          </Button>
-        )}
       </div>
 
       {/* Alerta de fallback quando disciplina não foi achada no departamento escolhido */}
@@ -361,9 +342,9 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
               Pesquise turmas da UnB
             </p>
             <p className="text-xs font-semibold text-neutral-600 max-w-sm mx-auto">
-              Digite o nome, código ou sigla da matéria, escolha um
-              departamento, ou clique em <strong>Buscar</strong> para listar
-              tudo.
+              Digite o nome, código ou sigla da matéria e pressione{" "}
+              <strong>Enter</strong> para buscar. Escolha um departamento para
+              filtrar o escopo.
             </p>
           </div>
         </div>
@@ -420,14 +401,6 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
                 Pesquisar em toda a UnB
               </Button>
             )}
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onResetSearch}
-            >
-              Limpar busca
-            </Button>
           </div>
         </div>
       ) : (

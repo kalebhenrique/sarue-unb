@@ -1,7 +1,6 @@
 import * as React from "react";
 import {
   Bug,
-  Check,
   CircleCheck,
   ExternalLink,
   Lightbulb,
@@ -11,6 +10,7 @@ import {
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SegmentedControl } from "@/components/ui/segmented";
 import {
   Tooltip,
@@ -310,8 +310,9 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({ screen }) => {
 };
 
 /**
- * Checkbox de 20px no padrão do sistema (seleção = Azul Caneta Ação) com
- * rótulo e nota de apoio — usado pelas duas opções opt-in do formulário.
+ * Opção opt-in do formulário: o Checkbox do design system (seleção veste
+ * Azul Caneta Ação via data-checked) dentro de um label clicável com
+ * rótulo e nota de apoio — o texto todo alterna a marcação.
  */
 const FeedbackOption: React.FC<{
   checked: boolean;
@@ -321,28 +322,20 @@ const FeedbackOption: React.FC<{
   title?: string;
   children?: React.ReactNode;
 }> = ({ checked, onToggle, disabled, label, title, children }) => (
-  <button
-    type="button"
-    role="checkbox"
-    aria-checked={checked}
-    disabled={disabled}
+  <label
     title={title}
-    onClick={() => onToggle(!checked)}
-    className="group flex w-full items-start gap-2.5 rounded-md text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+    className="flex w-full cursor-pointer items-start gap-2.5 text-left has-[[data-disabled]]:cursor-not-allowed has-[[data-disabled]]:opacity-50"
   >
-    <span
-      className={cn(
-        "mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 border-ink transition-[transform,box-shadow,background-color] duration-150 ease-out shadow-[1px_1px_0px_0px_var(--neo-shadow)]",
-        "group-hover:translate-x-[0.5px] group-hover:translate-y-[0.5px] group-hover:shadow-none",
-        "group-active:translate-x-[1px] group-active:translate-y-[1px]",
-        checked ? "bg-neo-blue text-white" : "bg-paper group-hover:bg-neutral-100",
-      )}
-    >
-      {checked ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : null}
-    </span>
+    <Checkbox
+      checked={checked}
+      onCheckedChange={(next) => onToggle(next === true)}
+      disabled={disabled}
+      aria-label={label}
+      className="mt-px data-checked:bg-neo-blue data-checked:text-white"
+    />
     <span className="flex min-w-0 flex-col gap-0.5">
       <span className="text-xs font-bold text-black">{label}</span>
       {children}
     </span>
-  </button>
+  </label>
 );

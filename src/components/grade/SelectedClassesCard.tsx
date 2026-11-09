@@ -154,7 +154,7 @@ export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
             Sua grade está vazia
           </p>
           <p className="text-[11px] font-semibold text-neutral-600">
-            Expanda uma disciplina no catálogo abaixo e adicione a turma que
+            Expanda uma disciplina no catálogo acima e adicione a turma que
             quer cursar.
           </p>
         </div>

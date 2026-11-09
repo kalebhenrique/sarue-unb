@@ -6,9 +6,11 @@ import {
   type CalendarEventCategory,
   type AcademicCalendar,
   type Course,
+  type Discipline,
   type CreateUserEventDTO,
   type UpdateUserEventDTO,
 } from '@/core';
+import { subscribeToFeedUpdates } from '@/hooks/useFeed';
 import { toast } from '@/components/ui';
 
 export type CalendarViewMode = 'month' | 'agenda';
@@ -34,7 +36,7 @@ export interface CalendarDayCell {
 }
 
 export function useCalendar() {
-  const { useCases, repos } = useContainer();
+  const { useCases } = useContainer();
 
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
   const [selectedDate, setSelectedDate] = useState<string>(() => getLocalTodayIso());
@@ -51,6 +53,7 @@ export function useCalendar() {
   // Dados
   const [events, setEvents] = useState<UnifiedCalendarEvent[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
   const [academicCalendar, setAcademicCalendar] = useState<AcademicCalendar | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -69,18 +72,67 @@ export function useCalendar() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [allEvents, coursesList, calendars] = await Promise.all([
+      const [allEvents, disciplinesResult, calendars] = await Promise.all([
         useCases.getUnifiedCalendarEvents.execute({
           includeAcademic: true,
           includeManual: true,
           includeFeedTasks: true,
         }),
-        repos.feedRepo.getCourses(),
+        useCases.getCourses.getDisciplines(),
         useCases.getAcademicCalendar.execute(),
       ]);
 
-      setEvents(allEvents);
-      setCourses(coursesList);
+      // Constrói mapa de turmas associadas (Aprender 3 / Teams) -> Disciplina oficial (SIGAA)
+      const aliasToDiscipline = new Map<string, { code: string; name: string }>();
+      for (const d of disciplinesResult.disciplines) {
+        const canonical = { code: d.code, name: d.name };
+        if (d.code) aliasToDiscipline.set(d.code.trim().toUpperCase(), canonical);
+        if (d.name) aliasToDiscipline.set(d.name.trim().toUpperCase(), canonical);
+        for (const ac of d.aprenderCourses) {
+          if (ac.code) aliasToDiscipline.set(ac.code.trim().toUpperCase(), canonical);
+          if (ac.name) aliasToDiscipline.set(ac.name.trim().toUpperCase(), canonical);
+        }
+        for (const tc of d.teamsCourses ?? []) {
+          if (tc.code) aliasToDiscipline.set(tc.code.trim().toUpperCase(), canonical);
+          if (tc.name) aliasToDiscipline.set(tc.name.trim().toUpperCase(), canonical);
+        }
+      }
+
+      const normalizedEvents = allEvents.map((evt) => {
+        if (evt.type !== 'feed_task') return evt;
+        const byName = evt.courseName ? aliasToDiscipline.get(evt.courseName.trim().toUpperCase()) : undefined;
+        const byCode = evt.courseCode ? aliasToDiscipline.get(evt.courseCode.trim().toUpperCase()) : undefined;
+        const resolved = byName ?? byCode;
+        if (!resolved) return evt;
+        return {
+          ...evt,
+          courseCode: resolved.code,
+          courseName: resolved.name,
+        };
+      });
+
+      const unifiedCourses: Course[] = [
+        ...disciplinesResult.disciplines.map((d) => ({
+          id: d.id,
+          code: d.code,
+          name: d.name,
+          semester: d.semester,
+          platform: d.sigaaCourse?.platform ?? 'sigaa',
+          professor: d.professor,
+          classroom: d.classroom,
+          schedule: d.schedule,
+          turma: d.turma,
+          url: d.url,
+          unreadCount: d.unreadCount,
+          pendingAssignmentsCount: d.pendingAssignmentsCount,
+        })),
+        ...disciplinesResult.unmatchedCourses,
+        ...disciplinesResult.otherCourses,
+      ];
+
+      setEvents(normalizedEvents);
+      setDisciplines(disciplinesResult.disciplines);
+      setCourses(unifiedCourses);
 
       if (calendars.length > 0) {
         const current = calendars.find((c) => c.isCurrent) || calendars[0];
@@ -96,10 +148,13 @@ export function useCalendar() {
     } finally {
       setIsLoading(false);
     }
-  }, [useCases, repos]);
+  }, [useCases]);
 
   useEffect(() => {
     loadData();
+    return subscribeToFeedUpdates(() => {
+      void loadData();
+    });
   }, [loadData]);
 
   // Navegação no tempo
@@ -141,6 +196,22 @@ export function useCalendar() {
             if (cName) targets.add(cName);
           }
         });
+        disciplines.forEach((d) => {
+          const dCode = d.code?.trim().toUpperCase();
+          const dName = d.name?.trim().toUpperCase();
+          if (dCode === scUpper || dName === scUpper || d.id === selectedCourse) {
+            if (dCode) targets.add(dCode);
+            if (dName) targets.add(dName);
+            d.aprenderCourses.forEach((ac) => {
+              if (ac.code) targets.add(ac.code.trim().toUpperCase());
+              if (ac.name) targets.add(ac.name.trim().toUpperCase());
+            });
+            (d.teamsCourses ?? []).forEach((tc) => {
+              if (tc.code) targets.add(tc.code.trim().toUpperCase());
+              if (tc.name) targets.add(tc.name.trim().toUpperCase());
+            });
+          }
+        });
 
         const eventCode = evt.courseCode?.trim().toUpperCase();
         const eventName = evt.courseName?.trim().toUpperCase();
@@ -166,7 +237,7 @@ export function useCalendar() {
 
       return true;
     });
-  }, [events, showAcademic, showManual, showFeedTasks, selectedCourse, searchQuery, courses]);
+  }, [events, showAcademic, showManual, showFeedTasks, selectedCourse, searchQuery, courses, disciplines]);
 
   // Eventos para o dia selecionado (para o painel lateral)
   const eventsForSelectedDate = useMemo(() => {

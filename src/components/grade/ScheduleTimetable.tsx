@@ -1,12 +1,6 @@
-import { forwardRef, memo, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, memo, useMemo } from "react";
 import { Card, Button, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui";
-import {
-  Download,
-  CheckCircle2,
-  AlertTriangle,
-  FoldVertical,
-  UnfoldVertical,
-} from "lucide-react";
+import { Download, CheckCircle2, AlertTriangle } from "lucide-react";
 import type { ScrapedClass } from "@/core";
 import {
   DAYS_HEADER,
@@ -24,8 +18,6 @@ export interface ScheduleTimetableProps {
   period: string;
   onDownloadPng: () => void;
   isExportingPng: boolean;
-  /** Estado compacto inicial — sincronizado quando o modo semestre corrente liga/desliga */
-  defaultCompact?: boolean;
 }
 
 const semesterLabel = (year: string, period: string) =>
@@ -45,52 +37,11 @@ export const ScheduleTimetable = memo(forwardRef<
       period,
       onDownloadPng,
       isExportingPng,
-      defaultCompact = false,
     },
     ref,
   ) => {
-    // Compactar: esconde linhas de horário sem nenhuma aula na semana
-    // Estado compacto persiste entre visitas — o reload não perde a escolha
-    const [isCompact, setIsCompactState] = useState<boolean>(() => {
-      try {
-        const stored = localStorage.getItem("sarue_grade_compact");
-        return stored === "true" || stored === "false" ? stored === "true" : defaultCompact;
-      } catch {
-        return defaultCompact;
-      }
-    });
-
-    const setIsCompact = (
-      updater: boolean | ((prev: boolean) => boolean),
-    ) => {
-      setIsCompactState((prev) => {
-        const next =
-          typeof updater === "function"
-            ? (updater as (p: boolean) => boolean)(prev)
-            : updater;
-        try {
-          localStorage.setItem("sarue_grade_compact", String(next));
-        } catch {
-          // localStorage indisponível: preferência vale só nesta sessão
-        }
-        return next;
-      });
-    };
-
-    // Reage a mudanças do modo semestre corrente (ex.: restaurar matriculadas compacta a grade)
-    // Reage a mudanças do modo semestre corrente (ex.: restaurar matriculadas
-    // compacta a grade) — mas não no primeiro render, que já leu o localStorage
-    const firstCompactSync = useRef(true);
-    useEffect(() => {
-      if (firstCompactSync.current) {
-        firstCompactSync.current = false;
-        return;
-      }
-      setIsCompact(defaultCompact);
-    }, [defaultCompact]);
-
     // Grade vazia sempre mostra a semana inteira — compacto sem aulas some com o corpo
-    const hideEmptyRows = isCompact && selectedClasses.length > 0;
+    const hideEmptyRows = selectedClasses.length > 0;
     const activeSlots = useMemo(
       () =>
         new Set(
@@ -186,27 +137,6 @@ export const ScheduleTimetable = memo(forwardRef<
                   </TooltipContent>
                 </Tooltip>
               ) : null}
-              {selectedClasses.length > 0 ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsCompact((c) => !c)}
-                  title={
-                    isCompact
-                      ? "Mostra todos os horários do dia"
-                      : "Remove os horários sem aula"
-                  }
-                  className="h-8 px-3 text-xs rounded-xl"
-                >
-                  {isCompact ? (
-                    <UnfoldVertical className="w-3.5 h-3.5 stroke-[2.5]" />
-                  ) : (
-                    <FoldVertical className="w-3.5 h-3.5 stroke-[2.5]" />
-                  )}
-                  <span>{isCompact ? "Mostrar tudo" : "Compactar"}</span>
-                </Button>
-              ) : null}
-
               <Button
                 type="button"
                 variant="outline"

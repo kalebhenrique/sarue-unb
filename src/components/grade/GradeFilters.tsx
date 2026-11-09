@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Card,
-  Button,
   Select,
   SelectTrigger,
   SelectValue,
@@ -27,12 +26,12 @@ export interface GradeFiltersProps {
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
   onSearch: () => void;
-  isSearching?: boolean;
-  isScraping?: boolean;
   /** Busca ativa — liga a contagem filtrada no rodape da toolbar. */
   hasSearched?: boolean;
   /** Resultados da busca ativa (contagem filtrada do card). */
   resultCount?: number;
+  /** Limpa a busca ativa — link de servico da barra (padrao FeedToolbar). */
+  onResetSearch?: () => void;
 }
 
 export const GradeFilters: React.FC<GradeFiltersProps> = ({
@@ -47,10 +46,9 @@ export const GradeFilters: React.FC<GradeFiltersProps> = ({
   searchQuery,
   onSearchQueryChange,
   onSearch,
-  isSearching = false,
-  isScraping = false,
   hasSearched = false,
   resultCount = 0,
+  onResetSearch,
 }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
   // Opções de semestres letivos (foco no semestre atual e no próximo)
@@ -184,31 +182,31 @@ export const GradeFilters: React.FC<GradeFiltersProps> = ({
               </div>
             </div>
 
-            {/* Ação principal: botão de busca */}
-            <Button
-              type="button"
-              variant="primary"
-              size="md"
-              className="shrink-0"
-              isLoading={isSearching || isScraping}
-              onClick={onSearch}
-            >
-              <Search className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Buscar</span>
-            </Button>
           </div>
         </div>
       </div>
 
       {/* Contagem filtrada: rodape da toolbar com divisor superior, como no catalogo de Avaliacoes */}
       {hasSearched ? (
-        <div className="border-t-2 border-black/10 pt-2.5" aria-live="polite">
+        <div
+          className="border-t-2 border-black/10 pt-2.5 flex items-center justify-between gap-3"
+          aria-live="polite"
+        >
           <span className="text-xs font-bold text-neutral-700">
             <strong className="text-black">{resultCount}</strong>{" "}
             {resultCount === 1
               ? "disciplina encontrada"
               : "disciplinas encontradas"}
           </span>
+          {onResetSearch ? (
+            <button
+              type="button"
+              onClick={onResetSearch}
+              className="cursor-pointer rounded-xs text-xs font-bold text-neutral-500 hover:text-black underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 shrink-0"
+            >
+              Limpar busca
+            </button>
+          ) : null}
         </div>
       ) : null}
     </Card>

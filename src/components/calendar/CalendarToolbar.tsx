@@ -1,20 +1,15 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import {
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  List,
-} from 'lucide-react';
-import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
+import React, { useMemo, useState, useEffect } from "react";
+import { CalendarDays, ChevronLeft, ChevronRight, List } from "lucide-react";
+import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import {
   Button,
   Checkbox,
   SegmentedControl,
   type SegmentedOption,
-} from '@/components/ui';
-import { FilterSelect } from '@/components/ui/filter-select';
-import type { CalendarViewMode } from '@/hooks/useCalendar';
-import type { Course } from '@/core';
+} from "@/components/ui";
+import { FilterSelect } from "@/components/ui/filter-select";
+import type { CalendarViewMode } from "@/hooks/useCalendar";
+import type { Course } from "@/core";
 
 interface CalendarToolbarProps {
   currentDate: Date;
@@ -39,55 +34,55 @@ interface CalendarToolbarProps {
 
 const VIEW_OPTIONS: ReadonlyArray<SegmentedOption<CalendarViewMode>> = [
   {
-    value: 'month',
+    value: "month",
     label: (
       <>
         <CalendarDays className="w-3.5 h-3.5 stroke-[2.5]" aria-hidden="true" />
         Mês
       </>
     ),
-    title: 'Grade mensal e agenda do dia',
+    title: "Grade mensal e agenda do dia",
   },
   {
-    value: 'agenda',
+    value: "agenda",
     label: (
       <>
         <List className="w-3.5 h-3.5 stroke-[2.5]" aria-hidden="true" />
         Lista
       </>
     ),
-    title: 'Linha do tempo contínua de eventos',
+    title: "Linha do tempo contínua de eventos",
   },
 ];
 
 const MONTH_NAMES = [
-  'Janeiro',
-  'Fevereiro',
-  'Março',
-  'Abril',
-  'Maio',
-  'Junho',
-  'Julho',
-  'Agosto',
-  'Setembro',
-  'Outubro',
-  'Novembro',
-  'Dezembro',
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 const MONTH_SHORT_NAMES = [
-  'Jan',
-  'Fev',
-  'Mar',
-  'Abr',
-  'Mai',
-  'Jun',
-  'Jul',
-  'Ago',
-  'Set',
-  'Out',
-  'Nov',
-  'Dez',
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
 ];
 
 export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
@@ -134,7 +129,8 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
       if (!key) return;
       const upper = key.toUpperCase();
       if (!map.has(upper)) {
-        const label = c.code && c.code !== c.name ? `${c.code} - ${c.name}` : c.name;
+        const label =
+          c.code && c.code !== c.name ? `${c.code} - ${c.name}` : c.name;
         map.set(upper, {
           value: upper,
           label,
@@ -143,8 +139,10 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
     });
 
     return [
-      { value: 'all', label: 'Todas as matérias' },
-      ...Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label)),
+      { value: "all", label: "Todas as disciplinas" },
+      ...Array.from(map.values()).sort((a, b) =>
+        a.label.localeCompare(b.label),
+      ),
     ];
   }, [courses]);
 
@@ -152,7 +150,7 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
     !showAcademic ||
     !showManual ||
     !showFeedTasks ||
-    (Boolean(selectedCourse) && selectedCourse !== 'all');
+    (Boolean(selectedCourse) && selectedCourse !== "all");
 
   const handleResetFilters = () => {
     if (onResetFilters) {
@@ -161,7 +159,7 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
       if (!showAcademic) onToggleAcademic();
       if (!showManual) onToggleManual();
       if (!showFeedTasks) onToggleFeedTasks();
-      if (selectedCourse !== 'all') onCourseChange('all');
+      if (selectedCourse !== "all") onCourseChange("all");
     }
   };
 
@@ -181,7 +179,10 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             >
               <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
             </button>
-            <PopoverPrimitive.Root open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
+            <PopoverPrimitive.Root
+              open={monthPickerOpen}
+              onOpenChange={setMonthPickerOpen}
+            >
               <PopoverPrimitive.Trigger
                 type="button"
                 title="Selecionar mês e ano"
@@ -226,9 +227,11 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
                     {/* Grade 3x4 de Meses */}
                     <div className="grid grid-cols-3 gap-1.5">
                       {MONTH_SHORT_NAMES.map((shortLabel, idx) => {
-                        const isSelected = pickerYear === year && idx === monthIndex;
+                        const isSelected =
+                          pickerYear === year && idx === monthIndex;
                         const isCurrentMonthToday =
-                          pickerYear === currentActualYear && idx === currentActualMonth;
+                          pickerYear === currentActualYear &&
+                          idx === currentActualMonth;
 
                         return (
                           <button
@@ -240,10 +243,10 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
                             }}
                             className={`cursor-pointer py-1.5 px-2 rounded-lg border-2 text-xs font-bold transition-colors select-none ${
                               isSelected
-                                ? 'border-ink bg-neo-blue font-black text-white hover:bg-neo-blueHover'
+                                ? "border-ink bg-neo-blue font-black text-white hover:bg-neo-blueHover"
                                 : isCurrentMonthToday
-                                ? 'border-ink bg-neo-yellow font-black text-ink hover:bg-neo-yellowHover'
-                                : 'border-transparent text-black hover:bg-neutral-100 dark:hover:bg-neutral-200 hover:border-ink/40'
+                                  ? "border-ink bg-neo-yellow font-black text-ink hover:bg-neo-yellowHover"
+                                  : "border-transparent text-black hover:bg-neutral-100 dark:hover:bg-neutral-200 hover:border-ink/40"
                             }`}
                           >
                             {shortLabel}
@@ -339,11 +342,11 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         {/* Select de filtro por matérias do usuário abrindo para baixo indo para a esquerda */}
         <div className="w-full sm:w-[240px] shrink-0">
           <FilterSelect
-            label="Matéria:"
-            value={selectedCourse || 'all'}
+            label="Disciplina:"
+            value={selectedCourse || "all"}
             options={courseOptions}
             onChange={onCourseChange}
-            active={Boolean(selectedCourse && selectedCourse !== 'all')}
+            active={Boolean(selectedCourse && selectedCourse !== "all")}
             align="end"
           />
         </div>

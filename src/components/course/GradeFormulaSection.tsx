@@ -296,8 +296,8 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                 </div>
               </div>
 
-              <p className="text-xs text-neutral-600 font-medium flex items-center gap-1">
-                <Info className="w-3 h-3 stroke-[2] shrink-0 text-blue-ink" />
+              <p className="flex text-xs text-neutral-600 font-semibold items-center gap-1">
+                <Info className="w-3 h-3 stroke-2 shrink-0 text-blue-ink" />
                 Use letras para os nomes das provas/trabalhos (ex: P1, P2, T).
                 Operadores permitidos: +, -, *, /, ( ).
               </p>
@@ -308,8 +308,7 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs font-black text-black">
-                    Notas Obtidas (deixe em branco se a avaliação for
-                    futura/pendente):
+                    Notas Obtidas:
                   </span>
                   {Object.keys(grades).some(
                     (k) => grades[k] !== null && grades[k] !== undefined,
@@ -408,12 +407,14 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                     {calculation.requirements.MM.isAlreadyAchieved ? (
                       <Alert
                         variant="green"
+                        className="shadow-none"
                         title="Aprovação garantida (Menção MM ≥ 5,0)"
                         description={`Nota acumulada já garante aprovação mesmo zerando ${calculation.pendingVariables.join(", ")}.`}
                       />
                     ) : calculation.requirements.MM.isAchievable ? (
                       <Alert
                         variant="yellow"
+                        className="shadow-none"
                         title={`Nota restante para aprovação (MM ≥ 5,0): ${formatGrade(calculation.requirements.MM.requiredGrade ?? 0, 2)}`}
                         description={
                           calculation.pendingVariables.length === 1
@@ -424,6 +425,7 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                     ) : (
                       <Alert
                         variant="destructive"
+                        className="shadow-none"
                         title={`Aprovação em risco (Máx. possível: ${formatGrade(calculation.maxPossibleGrade, 2)})`}
                         description="Mesmo tirando 10,0 nas avaliações restantes, a média não atinge 5,0 (MM)."
                       />

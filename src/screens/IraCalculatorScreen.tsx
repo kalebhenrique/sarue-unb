@@ -325,17 +325,15 @@ export const IraCalculatorScreen: React.FC<IraCalculatorScreenProps> = ({ onBack
 
   // Bootstrap em andamento (cenário frio na primeira entrada): skeleton da
   // tela, nunca flash de estado vazio.
-  if (!hydrated && !scenario) {
-    return (
-      <PageContainer>
-        <MyCourseSkeleton />
-      </PageContainer>
-    );
-  }
+  if (!hydrated || !scenario || !calculation) {
+    if (!hydrated) {
+      return (
+        <PageContainer>
+          <MyCourseSkeleton />
+        </PageContainer>
+      );
+    }
 
-  // Cenário ausente ou falha de construção (bootstrap já concluiu): estado de
-  // erro com retry, nunca página em branco nem flash.
-  if (hydrated && (!scenario || !calculation)) {
     return (
       <PageContainer>
         <PageHeader title="Calculadora de IRA" icon={Calculator} actions={backButton} />

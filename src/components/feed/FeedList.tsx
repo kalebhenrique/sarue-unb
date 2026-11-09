@@ -91,6 +91,7 @@ export const FeedList: React.FC<FeedListProps> = ({
       if (d.sigaaCourse) map.set(d.sigaaCourse.name, d.name);
       map.set(d.name, d.name);
       for (const ac of d.aprenderCourses) map.set(ac.name, d.name);
+      for (const tc of d.teamsCourses ?? []) map.set(tc.name, d.name);
     }
     return map;
   }, [disciplines]);

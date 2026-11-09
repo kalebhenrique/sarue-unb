@@ -35,7 +35,7 @@ import { GradeFormulaSection } from "../components/course";
 import { FeedList } from "../components/feed/FeedList";
 import { FeedToolbar } from "../components/feed/FeedToolbar";
 import { useFeedSelection } from "../hooks/useFeedSelection";
-import { getDefaultAcademicSemester, calculateAbsenceRisk } from "@/core";
+import { getDefaultAcademicSemester, calculateAbsenceRisk, convertSigaaHoursToClassAbsences } from "@/core";
 import type { Course, Discipline, FeedItemType, PlatformType } from "@/core";
 
 const PLATFORM_LABELS: Record<PlatformType, string> = {
@@ -117,11 +117,13 @@ export const CoursesScreen: React.FC = () => {
     setAbsenceOverride(value);
   };
 
-  // Faltas efetivas de uma disciplina: ajuste manual > SIGAA > undefined
+  // Faltas efetivas de uma disciplina: ajuste manual (em aulas) > SIGAA convertido de horas-falta para aulas > undefined
   const getEffectiveAbsences = (d: Discipline): number | undefined => {
     const overrideValue = readAbsenceOverride(d.id);
     if (overrideValue !== null) return overrideValue;
-    return d.absences ?? d.sigaaCourse?.absences ?? undefined;
+    const rawSigaa = d.absences ?? d.sigaaCourse?.absences ?? undefined;
+    if (rawSigaa === undefined) return undefined;
+    return convertSigaaHoursToClassAbsences(rawSigaa, d.schedule || d.sigaaCourse?.schedule);
   };
 
   // Plataformas que a disciplina efetivamente tem (SIGAA / Aprender 3 / Teams)
@@ -513,7 +515,7 @@ export const CoursesScreen: React.FC = () => {
                   size="sm"
                   title={
                     drillAbsenceStatus.warningMessage ||
-                    `Faltas registradas no SIGAA${hasManualAbsenceOverride ? " (ajustado manualmente)" : ""}: ${drillAbsenceStatus.absences} de ${drillAbsenceStatus.maxAbsences}h permitidas (limite de 25% da carga horária na UnB).`
+                    `Faltas registradas${hasManualAbsenceOverride ? " (ajustado manualmente)" : ""}: ${drillAbsenceStatus.absences} de ${drillAbsenceStatus.maxAbsences} aulas permitidas (limite de 25% da carga horária na UnB).`
                   }
                   className="font-black"
                 >
@@ -768,7 +770,7 @@ export const CoursesScreen: React.FC = () => {
                         }
                         title={
                           absenceStatus.warningMessage ||
-                          `Faltas registradas no SIGAA: ${absenceStatus.absences} de no máximo ${absenceStatus.maxAbsences} permitidas.`
+                          `Faltas registradas: ${absenceStatus.absences} de no máximo ${absenceStatus.maxAbsences} aulas permitidas.`
                         }
                         className="font-black"
                       >

@@ -52,7 +52,6 @@ export const GradeBuilderScreen: React.FC = () => {
     activeSearchQuery,
     activeDeptId,
     isFallbackSearch,
-    isSearching,
     executeSearch,
     resetSearch,
     fetchClasses,
@@ -339,30 +338,15 @@ export const GradeBuilderScreen: React.FC = () => {
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
         onSearch={() => executeSearch()}
-        isSearching={isSearching}
-        isScraping={isScraping}
         hasSearched={hasSearched}
         resultCount={filteredDisciplines.length}
+        onResetSearch={resetSearch}
       />
 
       {/* Grid Principal: filtros acima; catálogo à esquerda (5/12) e resultado à direita (7/12) a partir de lg */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Coluna Esquerda: montar a grade (5 colunas) */}
         <div className="lg:col-span-5 space-y-4">
-          <SelectedClassesCard
-            selectedClasses={selectedClasses}
-            disciplineColorMap={disciplineColorMap}
-            onClearGrade={clearGrade}
-            onRemoveClass={removeClass}
-            shiftFilter={shiftFilter}
-            onShiftFilterChange={setShiftFilter}
-            onGenerateCombinations={() => runSolver(shiftFilter)}
-            onSaveGrade={saveGrade}
-            isSolving={isSolving}
-            isSaving={isSaving}
-            isDirty={isDirty}
-          />
-
           <DisciplineCatalog
             filteredDisciplines={filteredDisciplines}
             selectedClasses={selectedClasses}
@@ -377,13 +361,26 @@ export const GradeBuilderScreen: React.FC = () => {
             catalogError={catalogError}
             onRetryCatalog={() => fetchClasses()}
             departmentsMap={departmentsMap}
-            onResetSearch={resetSearch}
             onSearchAllUnb={() => executeSearch(activeSearchQuery, "ALL")}
+          />
+
+          <SelectedClassesCard
+            selectedClasses={selectedClasses}
+            disciplineColorMap={disciplineColorMap}
+            onClearGrade={clearGrade}
+            onRemoveClass={removeClass}
+            shiftFilter={shiftFilter}
+            onShiftFilterChange={setShiftFilter}
+            onGenerateCombinations={() => runSolver(shiftFilter)}
+            onSaveGrade={saveGrade}
+            isSolving={isSolving}
+            isSaving={isSaving}
+            isDirty={isDirty}
           />
         </div>
 
         {/* Coluna Direita: resultado (7 colunas) */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className="lg:col-span-7 space-y-4 sticky top-6">
           {conflicts.length > 0 && selectedClasses.length > 0 ? (
             <Alert
               variant="destructive"
@@ -457,7 +454,6 @@ export const GradeBuilderScreen: React.FC = () => {
             conflicts={conflicts}
             onDownloadPng={handleDownloadPng}
             isExportingPng={isExportingPng}
-            defaultCompact={isCurrentSemesterMode}
           />
 
           {/* Confirmação de novo planejamento quando há turmas na grade */}
