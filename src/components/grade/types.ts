@@ -1,5 +1,3 @@
-import type { TabItem } from '@/components/ui';
-
 export interface DisciplineColor {
   bg: string;
   border: string;
@@ -43,9 +41,9 @@ export const TIME_ROWS = [
   { shift: 'N', period: 4, range: '21:40–22:30', globalIndex: 14 },
 ];
 
-export const SHIFT_TABS: TabItem[] = [
-  { id: 'ALL', label: 'Todos' },
-  { id: 'M', label: 'Manhã' },
-  { id: 'T', label: 'Tarde' },
-  { id: 'N', label: 'Noite' },
+export const SHIFT_OPTIONS: { value: string; label: string }[] = [
+  { value: 'ALL', label: 'Todos' },
+  { value: 'M', label: 'Manhã' },
+  { value: 'T', label: 'Tarde' },
+  { value: 'N', label: 'Noite' },
 ];

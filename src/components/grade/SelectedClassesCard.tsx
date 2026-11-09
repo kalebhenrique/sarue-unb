@@ -1,8 +1,8 @@
 import React from "react";
-import { Card, Button, Badge, Tabs } from "@/components/ui";
-import { BookMarked, Trash2, Sparkles, Save, BookOpen } from "lucide-react";
+import { Card, Button, Badge, FilterSelect } from "@/components/ui";
+import { BookMarked, Trash2, Sparkles, Save } from "lucide-react";
 import type { ScrapedClass } from "@/core";
-import { SHIFT_TABS, DISCIPLINE_COLORS, type DisciplineColor } from "./types";
+import { SHIFT_OPTIONS, DISCIPLINE_COLORS, type DisciplineColor } from "./types";
 
 export interface SelectedClassesCardProps {
   selectedClasses: ScrapedClass[];
@@ -15,6 +15,8 @@ export interface SelectedClassesCardProps {
   onSaveGrade: () => void;
   isSolving: boolean;
   isSaving: boolean;
+  /** A grade atual difere da última versão salva — liga o indicador "Não salva". */
+  isDirty?: boolean;
 }
 
 export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
@@ -28,13 +30,42 @@ export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
   onSaveGrade,
   isSolving,
   isSaving,
+  isDirty = false,
 }) => {
+  // A Regra do Risco Preto com guarda de 2 cliques: o primeiro clique arma a
+  // confirmação (4s); o segundo executa a limpeza de verdade.
+  const [confirmingClear, setConfirmingClear] = React.useState(false);
+  const clearTimerRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (clearTimerRef.current) window.clearTimeout(clearTimerRef.current);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (selectedClasses.length === 0) setConfirmingClear(false);
+  }, [selectedClasses.length]);
+
+  const handleClearClick = () => {
+    if (!confirmingClear) {
+      setConfirmingClear(true);
+      clearTimerRef.current = window.setTimeout(
+        () => setConfirmingClear(false),
+        4000,
+      );
+      return;
+    }
+    if (clearTimerRef.current) window.clearTimeout(clearTimerRef.current);
+    setConfirmingClear(false);
+    onClearGrade();
+  };
   return (
     <Card className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="p-1.5 bg-paper border-2 border-ink rounded-lg shadow-[2px_2px_0px_0px_var(--neo-shadow)] shrink-0">
-            <BookMarked className="w-4 h-4 stroke-[2.5] text-blue-ink" />
+          <div className="w-9 h-9 rounded-xl bg-blue-ink/10 border-2 border-ink flex items-center justify-center text-blue-ink shrink-0">
+            <BookMarked className="w-5 h-5 stroke-[2.5]" />
           </div>
           <h3 className="text-sm font-extrabold tracking-tight text-black">
             Minha grade
@@ -44,40 +75,46 @@ export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
               {selectedClasses.length}
             </Badge>
           ) : null}
+          {isDirty && selectedClasses.length > 0 ? (
+            <Badge variant="yellow" size="sm">
+              Não salva
+            </Badge>
+          ) : null}
         </div>
         {selectedClasses.length > 0 ? (
           <Button
             type="button"
-            variant="ghost"
+            variant={confirmingClear ? "destructive" : "outline"}
             size="sm"
-            onClick={onClearGrade}
-            className="text-neo-danger hover:text-neo-dangerHover hover:bg-pastel-red text-[11px] h-7 px-2 rounded-lg shadow-none hover:shadow-none"
+            onClick={handleClearClick}
+            title={
+              confirmingClear
+                ? "Clique de novo para confirmar a limpeza"
+                : "Remove todas as turmas da grade"
+            }
+            className="shrink-0"
           >
-            <Trash2 className="w-3 h-3 stroke-[2.5]" />
-            Limpar grade
+            <Trash2 className="w-3.5 h-3.5 stroke-[2.5]" />
+            {confirmingClear ? "Confirmar limpeza" : "Limpar grade"}
           </Button>
         ) : null}
       </div>
 
       {/* Ações do Gerador Automático de Horários */}
-      <div className="pb-4 border-b-2 border-neutral-400 space-y-3">
-        <div>
-          <span className="text-[11px] font-black uppercase tracking-wider text-neutral-600 block mb-1.5">
-            Preferência de turno
-          </span>
-          <Tabs
-            items={SHIFT_TABS}
-            activeId={shiftFilter}
-            onChange={(id) =>
-              onShiftFilterChange(id as "ALL" | "M" | "T" | "N")
+      <div className="pb-4 border-b-2 border-black/15 space-y-3">
+        <div className="flex items-end gap-2">
+          <FilterSelect
+            label="Turno:"
+            value={shiftFilter}
+            options={SHIFT_OPTIONS}
+            active={shiftFilter !== "ALL"}
+            onChange={(value) =>
+              onShiftFilterChange(value as "ALL" | "M" | "T" | "N")
             }
           />
-        </div>
-
-        <div className="flex items-center gap-2 pt-1">
           <Button
             type="button"
-            variant="accent"
+            variant="primary"
             size="sm"
             onClick={onGenerateCombinations}
             disabled={selectedClasses.length === 0 || isSolving}
@@ -91,22 +128,28 @@ export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
 
           <Button
             type="button"
-            variant="outline"
+            variant="accent"
             size="sm"
             onClick={onSaveGrade}
             disabled={isSaving}
             isLoading={isSaving}
-            title="Salva a grade no seu computador"
+            title="Salva a grade no seu computador para este semestre"
           >
             <Save className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Salvar grade</span>
           </Button>
+
         </div>
       </div>
 
       {selectedClasses.length === 0 ? (
-        <div className="py-5 px-4 text-center bg-pastel-blue/60 border-2 border-dashed border-ink/25 rounded-lg space-y-1.5">
-          <BookOpen className="w-5 h-5 stroke-[2.5] text-blue-ink mx-auto" />
+        <div className="py-5 px-4 text-center bg-pastel-blue border-2 border-dashed border-black/25 rounded-lg space-y-1.5">
+          <img
+            src="/sarue-doubt.png"
+            alt=""
+            aria-hidden="true"
+            className="w-16 h-16 object-contain mx-auto select-none pointer-events-none"
+          />
           <p className="text-xs font-extrabold text-black">
             Sua grade está vazia
           </p>

@@ -9,8 +9,22 @@ import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  EmptyState,
 } from "@/components/ui";
-import { SquareKanban, RotateCcw, PlusCircle, Info } from "lucide-react";
+import {
+  SquareKanban,
+  RotateCcw,
+  PlusCircle,
+  Info,
+  AlertTriangle,
+  RefreshCw,
+} from "lucide-react";
 import { toPng } from "html-to-image";
 import type { ScrapedClass } from "@/core";
 import { GradeFilters } from "../components/grade/GradeFilters";
@@ -32,8 +46,6 @@ export const GradeBuilderScreen: React.FC = () => {
     period,
     setPeriod,
     filteredDisciplines,
-    disciplines,
-    allDisciplines,
     searchQuery,
     setSearchQuery,
     hasSearched,
@@ -43,6 +55,7 @@ export const GradeBuilderScreen: React.FC = () => {
     isSearching,
     executeSearch,
     resetSearch,
+    fetchClasses,
     selectedClasses,
     conflicts,
     scheduleOptions,
@@ -50,7 +63,8 @@ export const GradeBuilderScreen: React.FC = () => {
     isScraping,
     isSolving,
     isSaving,
-    feedbackMessage,
+    catalogError,
+    isDirty,
     toggleClass,
     removeClass,
     clearGrade,
@@ -69,11 +83,54 @@ export const GradeBuilderScreen: React.FC = () => {
   const [expandedDisciplines, setExpandedDisciplines] = useState<
     Record<string, boolean>
   >({});
-  const [shiftFilter, setShiftFilter] = useState<"ALL" | "M" | "T" | "N">(
-    "ALL",
+  // Preferência de turno persiste entre visitas (como ano e período persistem)
+  const [shiftFilter, setShiftFilterState] = useState<"ALL" | "M" | "T" | "N">(
+    () => {
+      try {
+        const stored = localStorage.getItem("sarue_grade_shift");
+        return stored === "M" || stored === "T" || stored === "N"
+          ? (stored as "M" | "T" | "N")
+          : "ALL";
+      } catch {
+        return "ALL";
+      }
+    },
   );
+
+  const setShiftFilter = (shift: "ALL" | "M" | "T" | "N") => {
+    setShiftFilterState(shift);
+    try {
+      localStorage.setItem("sarue_grade_shift", shift);
+    } catch {
+      // localStorage indisponível: preferência vive só nesta sessão
+    }
+  };
+
   const [isExportingPng, setIsExportingPng] = useState(false);
   const scheduleGridRef = useRef<HTMLDivElement>(null);
+
+  // Beco sem saída do solver: estado persistente com próximo passo, não só toast
+  const [solverEmpty, setSolverEmpty] = useState(false);
+  const lastSolveSignatureRef = useRef("");
+  // Diálogo de confirmação do "Novo planejamento"
+  const [newPlanningOpen, setNewPlanningOpen] = useState(false);
+
+  // Roda o solver com a preferência atual e registra o estado de "nenhuma opção"
+  const runSolver = async (shift: "ALL" | "M" | "T" | "N") => {
+    lastSolveSignatureRef.current = selectedClasses
+      .map((c) => c.id)
+      .sort()
+      .join("|");
+    const n = await generateCombinations(shift === "ALL" ? undefined : shift);
+    setSolverEmpty(n === 0);
+  };
+
+  // Limpa o beco sem saída quando o usuário mexe na grade após o solver falhar
+  React.useEffect(() => {
+    if (!solverEmpty) return;
+    const sig = selectedClasses.map((c) => c.id).sort().join("|");
+    if (sig !== lastSolveSignatureRef.current) setSolverEmpty(false);
+  }, [selectedClasses, solverEmpty]);
 
   const toggleExpand = React.useCallback((code: string) => {
     setExpandedDisciplines((prev) => ({
@@ -124,33 +181,6 @@ export const GradeBuilderScreen: React.FC = () => {
     return days < 0 ? null : days;
   }, [calendar]);
 
-  // Feedback da tela vira toast no canto da tela (sucesso, aviso ou erro)
-  const lastToastRef = React.useRef<string | null>(null);
-  React.useEffect(() => {
-    if (!feedbackMessage) return;
-    if (lastToastRef.current === feedbackMessage) return;
-    lastToastRef.current = feedbackMessage;
-
-    const msg = feedbackMessage.replace(/^Aviso:\s*/i, "");
-    if (/^(exibindo|coleta|busca)/i.test(msg)) return; // busca silenciosa de turmas
-    if (/^erro/i.test(msg)) {
-      toast.add({
-        title: "Algo deu errado",
-        description: msg,
-        type: "error",
-        timeout: 7000,
-      });
-    } else if (/^(aviso|nenhuma|n\u00e3o|selecione)/i.test(msg)) {
-      toast.add({
-        title: "Aten\u00e7\u00e3o",
-        description: msg,
-        type: "warning",
-        timeout: 6000,
-      });
-    } else {
-      toast.add({ description: msg, type: "success", timeout: 4000 });
-    }
-  }, [feedbackMessage]);
 
   // Exportar grade horária para imagem PNG em alta resolução (2x retina)
   const handleDownloadPng = async () => {
@@ -195,9 +225,7 @@ export const GradeBuilderScreen: React.FC = () => {
   return (
     <PageContainer>
       {/* Título Padronizado da Página com Ícone da Sidebar */}
-      <div className="space-y-1.5">
-        <PageHeader icon={SquareKanban} title="Montar Grade Horária" />
-      </div>
+      <PageHeader icon={SquareKanban} title="Montar Grade Horária" />
 
       {/* Alerta de Semestre em Andamento para contas com Meu Curso ativado */}
       {hasSemesterAlert && (
@@ -259,6 +287,7 @@ export const GradeBuilderScreen: React.FC = () => {
                       variant="primary"
                       size="sm"
                       onClick={restoreEnrolledClasses}
+                      className="dark:bg-neo-yellow dark:text-ink dark:hover:bg-neo-yellowHover"
                     >
                       <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
                       <span>
@@ -270,7 +299,7 @@ export const GradeBuilderScreen: React.FC = () => {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={startNewPlanning}
+                  onClick={() => setNewPlanningOpen(true)}
                   className="dark:bg-neo-yellow dark:text-ink dark:hover:bg-neo-yellowHover"
                 >
                   <PlusCircle className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -282,7 +311,7 @@ export const GradeBuilderScreen: React.FC = () => {
           aside={
             daysLeftInSemester !== null ? (
               <div className="flex flex-col items-end gap-1 text-right">
-                <span className="text-5xl font-black tracking-tight leading-none text-black">
+                <span className="text-5xl font-black tracking-tight leading-none text-black tabular-nums">
                   {daysLeftInSemester}
                 </span>
                 <span className="text-xs font-medium text-black leading-snug max-w-[10rem]">
@@ -312,6 +341,8 @@ export const GradeBuilderScreen: React.FC = () => {
         onSearch={() => executeSearch()}
         isSearching={isSearching}
         isScraping={isScraping}
+        hasSearched={hasSearched}
+        resultCount={filteredDisciplines.length}
       />
 
       {/* Grid Principal: filtros acima; catálogo à esquerda (5/12) e resultado à direita (7/12) a partir de lg */}
@@ -325,14 +356,11 @@ export const GradeBuilderScreen: React.FC = () => {
             onRemoveClass={removeClass}
             shiftFilter={shiftFilter}
             onShiftFilterChange={setShiftFilter}
-            onGenerateCombinations={() =>
-              generateCombinations(
-                shiftFilter === "ALL" ? undefined : shiftFilter,
-              )
-            }
+            onGenerateCombinations={() => runSolver(shiftFilter)}
             onSaveGrade={saveGrade}
             isSolving={isSolving}
             isSaving={isSaving}
+            isDirty={isDirty}
           />
 
           <DisciplineCatalog
@@ -345,9 +373,9 @@ export const GradeBuilderScreen: React.FC = () => {
             activeSearchQuery={activeSearchQuery}
             activeDeptId={activeDeptId}
             isFallbackSearch={isFallbackSearch}
-            isCatalogLoaded={
-              allDisciplines.length > 0 || disciplines.length > 0
-            }
+            isScraping={isScraping}
+            catalogError={catalogError}
+            onRetryCatalog={() => fetchClasses()}
             departmentsMap={departmentsMap}
             onResetSearch={resetSearch}
             onSearchAllUnb={() => executeSearch(activeSearchQuery, "ALL")}
@@ -356,11 +384,66 @@ export const GradeBuilderScreen: React.FC = () => {
 
         {/* Coluna Direita: resultado (7 colunas) */}
         <div className="lg:col-span-7 space-y-4">
-          {scheduleOptions.length > 1 ? (
+          {conflicts.length > 0 && selectedClasses.length > 0 ? (
+            <Alert
+              variant="destructive"
+              icon={AlertTriangle}
+              title={`Conflito de horário (${conflicts.length})`}
+              description={
+                <div className="space-y-1">
+                  <p>
+                    {conflicts.slice(0, 2).join(" • ")}
+                    {conflicts.length > 2
+                      ? ` • +${conflicts.length - 2} outros`
+                      : ""}
+                  </p>
+                  <p>
+                    Remova uma das turmas conflitantes ou gere combinações
+                    para resolver.
+                  </p>
+                </div>
+              }
+              aside={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => runSolver(shiftFilter)}
+                >
+                  Gerar combinações
+                </Button>
+              }
+            />
+          ) : null}
+
+          {scheduleOptions.length >= 1 ? (
             <OptionNavigator
               optionsCount={scheduleOptions.length}
               currentIndex={currentOptionIndex}
               onApplyOption={applyOption}
+            />
+          ) : null}
+
+          {solverEmpty && !isSolving && selectedClasses.length > 0 ? (
+            <EmptyState
+              title="Nenhuma combinação sem conflito"
+              description={`As turmas disponíveis sempre colidem entre si. Remova uma disciplina, escolha outra turma manualmente no catálogo, ou aceite os conflitos e salve mesmo assim.`}
+              action={
+                shiftFilter !== "ALL" ? (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={() => {
+                      setShiftFilter("ALL");
+                      runSolver("ALL");
+                    }}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 stroke-[2.5]" />
+                    Tentar sem preferência de turno
+                  </Button>
+                ) : undefined
+              }
             />
           ) : null}
 
@@ -376,6 +459,41 @@ export const GradeBuilderScreen: React.FC = () => {
             isExportingPng={isExportingPng}
             defaultCompact={isCurrentSemesterMode}
           />
+
+          {/* Confirmação de novo planejamento quando há turmas na grade */}
+          <Dialog
+            open={newPlanningOpen}
+            onOpenChange={(open) => setNewPlanningOpen(open)}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Começar novo planejamento?</DialogTitle>
+                <DialogDescription>
+                  Isso limpa as {selectedClasses.length}{" "}
+                  {selectedClasses.length === 1 ? "turma" : "turmas"} da grade
+                  atual. Suas turmas matriculadas continuam salvas no Meu
+                  Curso — dá para restaurá-las depois neste banner.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setNewPlanningOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    startNewPlanning();
+                    setNewPlanningOpen(false);
+                  }}
+                >
+                  Limpar e planejar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </PageContainer>

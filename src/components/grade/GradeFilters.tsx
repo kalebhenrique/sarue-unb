@@ -7,6 +7,9 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
 } from "@/components/ui";
 import { Search, X } from "lucide-react";
 import type { Department, SemesterOption } from "@/core";
@@ -26,6 +29,10 @@ export interface GradeFiltersProps {
   onSearch: () => void;
   isSearching?: boolean;
   isScraping?: boolean;
+  /** Busca ativa — liga a contagem filtrada no rodape da toolbar. */
+  hasSearched?: boolean;
+  /** Resultados da busca ativa (contagem filtrada do card). */
+  resultCount?: number;
 }
 
 export const GradeFilters: React.FC<GradeFiltersProps> = ({
@@ -42,7 +49,10 @@ export const GradeFilters: React.FC<GradeFiltersProps> = ({
   onSearch,
   isSearching = false,
   isScraping = false,
+  hasSearched = false,
+  resultCount = 0,
 }) => {
+  const inputRef = React.useRef<HTMLInputElement>(null);
   // Opções de semestres letivos (foco no semestre atual e no próximo)
   const semesterOptions = React.useMemo(() => {
     if (semesters && semesters.length > 0) {
@@ -65,17 +75,13 @@ export const GradeFilters: React.FC<GradeFiltersProps> = ({
       {/* Cabeçalho da seção de busca */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="p-1.5 bg-paper border-2 border-ink rounded-lg shadow-[2px_2px_0px_0px_var(--neo-shadow)] shrink-0">
-            <Search className="w-4 h-4 stroke-[2.5] text-blue-ink" />
+          <div className="w-9 h-9 rounded-xl bg-blue-ink/10 border-2 border-ink flex items-center justify-center text-blue-ink shrink-0">
+            <Search className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div className="min-w-0">
             <h3 className="text-sm font-extrabold tracking-tight text-black">
               Filtrar turmas da UnB
             </h3>
-            <p className="text-[11px] font-semibold text-neutral-600">
-              Busque por nome, código ou sigla, filtre por departamento e monte
-              sua grade.
-            </p>
           </div>
         </div>
       </div>
@@ -84,7 +90,7 @@ export const GradeFilters: React.FC<GradeFiltersProps> = ({
       <div className="flex flex-col lg:flex-row lg:items-end gap-3">
         {/* Semestre letivo: contexto dos dados, vindo do scraping */}
         <div className="flex flex-col gap-1.5 shrink-0">
-          <span className="text-[11px] font-black uppercase tracking-wider text-neutral-600">
+          <span className="text-xs font-bold text-neutral-700">
             Semestre
           </span>
           <Select
@@ -99,10 +105,10 @@ export const GradeFilters: React.FC<GradeFiltersProps> = ({
           >
             <SelectTrigger className="w-full lg:w-44">
               <SelectValue placeholder="Semestre">
-                {
-                  semesterOptions.find((o) => o.value === `${year}-${period}`)
-                    ?.label || semesterOptions[0]?.label || `${year} • 2º semestre`
-                }
+                {semesterOptions.find((o) => o.value === `${year}-${period}`)
+                  ?.label ||
+                  semesterOptions[0]?.label ||
+                  `${year} • 2º semestre`}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -117,15 +123,20 @@ export const GradeFilters: React.FC<GradeFiltersProps> = ({
 
         {/* Unidade de busca: texto (nome, código ou sigla) e departamento */}
         <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-          <span className="text-[11px] font-black uppercase tracking-wider text-neutral-600">
+          <span className="text-xs font-bold text-neutral-700">
             Disciplina
           </span>
           <div className="flex flex-col lg:flex-row gap-2.5 lg:items-stretch">
             {/* Cavidade composta: campo de texto + escopo de departamento na mesma unidade */}
-            <div className="flex-1 min-w-0 flex items-stretch rounded-xl border-2 border-ink bg-paper focus-within:ring-2 focus-within:ring-neo-blue transition-[box-shadow]">
+            <div
+              className={`flex-1 min-w-0 flex items-stretch rounded-xl border-2 border-ink ${
+                searchQuery.trim() ? "bg-pastel-blue" : "bg-paper"
+              } focus-within:ring-2 focus-within:ring-neo-blue transition-[box-shadow]`}
+            >
               <div className="relative flex-1 min-w-0">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 stroke-[2.5] pointer-events-none" />
                 <input
+                  ref={inputRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => onSearchQueryChange(e.target.value)}
@@ -140,25 +151,35 @@ export const GradeFilters: React.FC<GradeFiltersProps> = ({
                   className="w-full bg-transparent pl-9 pr-8 h-9 text-xs font-semibold text-black rounded-l-xl shadow-none focus:outline-hidden placeholder:text-neutral-500"
                 />
                 {searchQuery ? (
-                  <button
-                    type="button"
-                    onClick={() => onSearchQueryChange("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black cursor-pointer p-0.5"
-                    aria-label="Limpar campo de busca"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSearchQueryChange("");
+                            inputRef.current?.focus();
+                          }}
+                          aria-label="Limpar campo de busca"
+                          className="cursor-pointer absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-neutral-400 hover:text-black hover:bg-black/5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue transition-colors duration-150"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      }
+                    />
+                    <TooltipContent>Limpar busca</TooltipContent>
+                  </Tooltip>
                 ) : null}
               </div>
 
               {/* Escopo de departamento */}
-              <div className="shrink-0 border-l-2 border-ink/15">
+              <div className="shrink-0 border-l-2 border-black/15">
                 <DepartmentSelect
                   departments={departments}
                   value={selectedDeptId}
                   onChange={onSelectDeptId}
                   bare
-                  triggerClassName="w-40 lg:w-52 rounded-r-xl hover:bg-neutral-50"
+                  triggerClassName="w-40 lg:w-52 rounded-r-xl hover:bg-neutral-100 dark:hover:bg-neutral-200"
                 />
               </div>
             </div>
@@ -168,7 +189,7 @@ export const GradeFilters: React.FC<GradeFiltersProps> = ({
               type="button"
               variant="primary"
               size="md"
-              className="rounded-xl h-10 shrink-0"
+              className="shrink-0"
               isLoading={isSearching || isScraping}
               onClick={onSearch}
             >
@@ -178,6 +199,18 @@ export const GradeFilters: React.FC<GradeFiltersProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Contagem filtrada: rodape da toolbar com divisor superior, como no catalogo de Avaliacoes */}
+      {hasSearched ? (
+        <div className="border-t-2 border-black/10 pt-2.5" aria-live="polite">
+          <span className="text-xs font-bold text-neutral-700">
+            <strong className="text-black">{resultCount}</strong>{" "}
+            {resultCount === 1
+              ? "disciplina encontrada"
+              : "disciplinas encontradas"}
+          </span>
+        </div>
+      ) : null}
     </Card>
   );
 };

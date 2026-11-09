@@ -77,7 +77,7 @@ export const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
         <Popover.Positioner side="bottom" align="end" sideOffset={6} className="isolate z-50">
           <Popover.Popup className="relative z-50 w-max min-w-[260px] max-w-[460px] rounded-lg border-2 border-ink bg-canvas text-black outline-hidden origin-(--transform-origin)">
             {/* Busca interna */}
-            <div className="p-2 border-b-2 border-ink/10">
+            <div className="p-2 border-b-2 border-black/10">
               <div className="relative">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 stroke-[2.5]" />
                 <input

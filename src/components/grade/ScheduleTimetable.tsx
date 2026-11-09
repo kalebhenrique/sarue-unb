@@ -1,4 +1,4 @@
-import { forwardRef, memo, useEffect, useMemo, useState } from "react";
+import { forwardRef, memo, useEffect, useMemo, useRef, useState } from "react";
 import { Card, Button, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui";
 import {
   Download,
@@ -50,10 +50,42 @@ export const ScheduleTimetable = memo(forwardRef<
     ref,
   ) => {
     // Compactar: esconde linhas de horário sem nenhuma aula na semana
-    const [isCompact, setIsCompact] = useState(defaultCompact);
+    // Estado compacto persiste entre visitas — o reload não perde a escolha
+    const [isCompact, setIsCompactState] = useState<boolean>(() => {
+      try {
+        const stored = localStorage.getItem("sarue_grade_compact");
+        return stored === "true" || stored === "false" ? stored === "true" : defaultCompact;
+      } catch {
+        return defaultCompact;
+      }
+    });
+
+    const setIsCompact = (
+      updater: boolean | ((prev: boolean) => boolean),
+    ) => {
+      setIsCompactState((prev) => {
+        const next =
+          typeof updater === "function"
+            ? (updater as (p: boolean) => boolean)(prev)
+            : updater;
+        try {
+          localStorage.setItem("sarue_grade_compact", String(next));
+        } catch {
+          // localStorage indisponível: preferência vale só nesta sessão
+        }
+        return next;
+      });
+    };
 
     // Reage a mudanças do modo semestre corrente (ex.: restaurar matriculadas compacta a grade)
+    // Reage a mudanças do modo semestre corrente (ex.: restaurar matriculadas
+    // compacta a grade) — mas não no primeiro render, que já leu o localStorage
+    const firstCompactSync = useRef(true);
     useEffect(() => {
+      if (firstCompactSync.current) {
+        firstCompactSync.current = false;
+        return;
+      }
       setIsCompact(defaultCompact);
     }, [defaultCompact]);
 
@@ -81,9 +113,12 @@ export const ScheduleTimetable = memo(forwardRef<
           {/* Cabeçalho institucional (integrante do PNG exportado) */}
           <div className="flex items-center justify-between gap-3 pb-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 bg-unb-blue text-white border-2 border-ink rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-[2px_2px_0px_0px_var(--neo-shadow)]">
-                UnB
-              </div>
+              <img
+                src="/sarue-logo.png"
+                alt=""
+                aria-hidden="true"
+                className="w-9 h-9 rounded-xl border-2 border-ink shrink-0 shadow-[2px_2px_0px_0px_var(--neo-shadow)] object-cover select-none pointer-events-none"
+              />
               <div className="min-w-0">
                 <h3 className="text-sm font-black uppercase text-blue-ink tracking-tight">
                   Universidade de Brasília
@@ -109,7 +144,7 @@ export const ScheduleTimetable = memo(forwardRef<
                         ? `Conflito de horário (${conflicts.length})`
                         : "Nenhum conflito de horário"
                     }
-                    className={`flex h-7 w-7 items-center justify-center cursor-help ${
+                    className={`flex h-7 w-7 items-center justify-center cursor-help rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue ${
                       conflicts.length > 0
                         ? "text-ink-error"
                         : "text-ink-success"
@@ -161,7 +196,7 @@ export const ScheduleTimetable = memo(forwardRef<
                       ? "Mostra todos os horários do dia"
                       : "Remove os horários sem aula"
                   }
-                  className="h-8 px-3 text-[11px] rounded-xl"
+                  className="h-8 px-3 text-xs rounded-xl"
                 >
                   {isCompact ? (
                     <UnfoldVertical className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -180,7 +215,7 @@ export const ScheduleTimetable = memo(forwardRef<
                 isLoading={isExportingPng}
                 title="Baixar grade em PNG"
                 aria-label="Baixar grade em PNG"
-                className="h-8 px-3 text-[11px] rounded-xl"
+                className="h-8 px-3 text-xs rounded-xl"
               >
                 {!isExportingPng && (
                   <Download className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -191,7 +226,7 @@ export const ScheduleTimetable = memo(forwardRef<
           </div>
 
           {/* Cabeçalho dos Dias da Semana */}
-          <div className="grid grid-cols-[88px_repeat(6,minmax(0,1fr))] gap-1.5 pb-2 border-b-2 border-neutral-400 text-center text-xs font-black uppercase text-black">
+          <div className="grid grid-cols-[88px_repeat(6,minmax(0,1fr))] gap-1.5 pb-2 border-b-2 border-black/15 text-center text-xs font-black uppercase text-black">
             <div className="p-1.5 text-[11px] font-black uppercase tracking-wider text-neutral-600">
               Horário
             </div>
@@ -206,7 +241,7 @@ export const ScheduleTimetable = memo(forwardRef<
           </div>
 
           {/* Linhas de Horários (15 slots, 3 turnos) */}
-          <div className="divide-y divide-black/10 mt-1">
+          <div className="divide-y-2 divide-black/10 mt-1">
             {TIME_ROWS.map((timeRow, idx) => {
               if (hideEmptyRows && !activeSlots.has(timeRow.globalIndex))
                 return null;
@@ -219,12 +254,12 @@ export const ScheduleTimetable = memo(forwardRef<
                   key={`${timeRow.shift}-${timeRow.period}`}
                   className={`grid grid-cols-[88px_repeat(6,minmax(0,1fr))] gap-1.5 py-1 items-stretch ${
                     isShiftStart
-                      ? "mt-1.5 pt-1.5 border-t-2 border-ink/20"
+                      ? "mt-1.5 pt-1.5 border-t-2 border-black/20"
                       : ""
                   }`}
                 >
                   {/* Faixa horária na esquerda */}
-                  <div className="flex flex-col justify-center items-center text-[11px] font-mono font-bold text-neutral-600 bg-neutral-50 rounded border border-ink/15 px-2 py-1">
+                  <div className="flex flex-col justify-center items-center text-[11px] font-mono font-bold text-neutral-600 bg-neutral-50 rounded border border-black/15 px-2 py-1">
                     <span className="font-black text-black">
                       {timeRow.shift}
                       {timeRow.period}
@@ -244,7 +279,7 @@ export const ScheduleTimetable = memo(forwardRef<
                       return (
                         <div
                           key={day.id}
-                          className="h-11 rounded-lg border border-dashed border-ink/15 bg-neutral-50"
+                          className="h-11 rounded-lg border border-dashed border-black/15 bg-neutral-50"
                         />
                       );
                     }
@@ -255,7 +290,7 @@ export const ScheduleTimetable = memo(forwardRef<
                         <div
                           key={day.id}
                           className="h-11 p-1 rounded-lg border-2 border-neo-danger bg-pastel-red text-ink-error shadow-[1px_1px_0px_0px_var(--neo-shadow)] flex flex-col justify-center items-center text-center focus:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-danger"
-                          role="status"
+                          role="img"
                           aria-label={`Conflito entre ${classesInSlot.map((c) => c.disciplineCode).join(" e ")}`}
                           tabIndex={0}
                           title={`Conflito: ${classesInSlot.map((c) => c.disciplineCode).join(" vs ")}`}
@@ -305,7 +340,7 @@ export const ScheduleTimetable = memo(forwardRef<
 
           {/* Legenda das Disciplinas (incluída no PNG exportado) */}
           {selectedClasses.length > 0 ? (
-            <div className="pt-3 mt-2 border-t-2 border-ink/15">
+            <div className="pt-3 mt-2 border-t-2 border-black/15">
               <span className="text-[11px] font-black uppercase text-black block mb-1.5">
                 Legenda das disciplinas
               </span>
@@ -317,19 +352,17 @@ export const ScheduleTimetable = memo(forwardRef<
                   return (
                     <div
                       key={cls.id}
-                      className="flex items-center gap-2 p-1.5 bg-neutral-50 border border-ink/20 rounded-lg text-[11px]"
+                      className="flex items-center gap-2 p-1.5 bg-neutral-50 border border-black/20 rounded-lg text-[11px]"
                     >
                       <span
                         className="w-3 h-3 rounded-full border border-ink shrink-0"
                         style={{ backgroundColor: color.hex }}
                       />
-                      <span className="font-black text-black">
-                        {cls.disciplineCode} (T{cls.classCode}):
+                      <span className="font-black text-black truncate">
+                        {cls.disciplineCode} - {cls.disciplineName} (T
+                        {cls.classCode})
                       </span>
-                      <span className="truncate text-neutral-700 font-medium">
-                        {cls.disciplineName}
-                      </span>
-                      <span className="text-neutral-500 font-mono ml-auto shrink-0">
+                      <span className="text-neutral-500 font-medium ml-auto shrink-0">
                         {cls.classroom}
                       </span>
                     </div>

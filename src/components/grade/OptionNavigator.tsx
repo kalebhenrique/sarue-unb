@@ -21,11 +21,14 @@ export const OptionNavigator: React.FC<OptionNavigatorProps> = ({
     <div className="bg-pastel-yellow border-2 border-ink rounded-lg shadow-(--neo-card-shadow) p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0">
         <div className="p-1.5 bg-paper border-2 border-ink rounded-lg shadow-[2px_2px_0px_0px_var(--neo-shadow)] shrink-0">
-          <Sparkles className="w-4 h-4 stroke-[2.5] text-black" />
+          <Sparkles className="w-4 h-4 stroke-[2.5] text-blue-ink" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0" aria-live="polite">
           <p className="text-xs font-extrabold text-black tracking-tight">
-            {optionsCount} opções sem conflito geradas
+            {optionsCount}{" "}
+            {optionsCount === 1
+              ? "opção sem conflito gerada"
+              : "opções sem conflito geradas"}
           </p>
           <p className="text-[11px] font-semibold text-neutral-600 mt-0.5">
             Navegue entre as opções — a grade abaixo atualiza na hora.

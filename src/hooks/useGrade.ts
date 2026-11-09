@@ -33,6 +33,13 @@ export function resetGradeCache() {
   notifyGradeUpdate();
 }
 
+// Assinatura estável do conteúdo da grade (ids ordenados) — comparações de "dirty"
+const gradeSignature = (classes: ScrapedClass[]) =>
+  classes.map((c) => c.id).sort().join('|');
+
+// Top N de combinações mostradas — 200 opções viram ruído de navegação
+const MAX_GRADE_OPTIONS = 10;
+
 // Busca sem sensibilidade a acentos, maiúsculas ou pontuação ("calculo" acha "Cálculo")
 const normalizeText = (text: string) =>
   text
@@ -152,7 +159,9 @@ export function useGrade() {
   const [isScraping, setIsScraping] = useState<boolean>(false);
   const [isSolving, setIsSolving] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  // Assinatura da última grade salva — base do indicador "Não salva" da tela
+  const [savedSignature, setSavedSignature] = useState<string | null>(null);
 
   const { allCredentials, hasCredentials } = useCredentials();
   const { profile } = useMyCourse();
@@ -305,7 +314,12 @@ export function useGrade() {
 
   const restoreEnrolledClasses = useCallback(() => {
     if (currentEnrolledClasses.length === 0) {
-      setFeedbackMessage('Nenhuma turma matriculada disponível para restaurar agora.');
+      toast.add({
+        title: 'Nada para restaurar',
+        description: 'Nenhuma turma matriculada disponível agora.',
+        type: 'warning',
+        timeout: 5000,
+      });
       return;
     }
     hasEditedGradeRef.current = false;
@@ -319,16 +333,24 @@ export function useGrade() {
     setScheduleOptions([]);
     setCurrentOptionIndex(0);
     const n = currentEnrolledClasses.length;
-    setFeedbackMessage(
-      `Grade restaurada: ${n} ${n === 1 ? 'turma matriculada' : 'turmas matriculadas'} do semestre.`,
-    );
+    toast.add({
+      title: 'Grade restaurada',
+      description: `${n} ${n === 1 ? 'turma matriculada' : 'turmas matriculadas'} do semestre na grade.`,
+      type: 'success',
+      timeout: 4000,
+    });
   }, [currentEnrolledClasses]);
 
   const startNewPlanning = useCallback(() => {
     hasEditedGradeRef.current = true;
     setSelectedClasses([]);
     setIsCurrentSemesterMode(false);
-    setFeedbackMessage('Grade limpa para novo planejamento!');
+    toast.add({
+      title: 'Novo planejamento',
+      description: 'A grade foi limpa. Salve quando quiser fixar as turmas do semestre.',
+      type: 'success',
+      timeout: 4000,
+    });
   }, []);
 
   // Carrega departamentos, semestres e grade salva no início
@@ -379,15 +401,6 @@ export function useGrade() {
           }
         }
 
-        // Tenta carregar grade salva do semestre atual
-        const semKey = `${year}.${period}`;
-        const saved = await container.useCases.manageGrade.get(semKey);
-        savedGradeCache = saved;
-        if (isMounted && saved) {
-          hasEditedGradeRef.current = true;
-          setSelectedClasses(saved.selectedClasses ?? []);
-          setIsCurrentSemesterMode(false);
-        }
       } catch {
         // Inicialização com degradação elegante
       }
@@ -411,12 +424,25 @@ export function useGrade() {
         if (!isMounted) return;
         savedGradeCache = saved;
         if (saved) {
-          hasEditedGradeRef.current = true;
+          const savedSig = gradeSignature(saved.selectedClasses ?? []);
+          const sameAsEnrolled =
+            currentEnrolledClasses.length > 0 &&
+            savedSig === gradeSignature(currentEnrolledClasses);
+          setSavedSignature(savedSig);
           setSelectedClasses(saved.selectedClasses ?? []);
-          setIsCurrentSemesterMode(false);
+          if (sameAsEnrolled && !hasEditedGradeRef.current) {
+            // A grade salva ainda espelha as matriculadas: segue em modo
+            // semestre corrente, sem pedir restauração
+            appliedEnrolledSignatureRef.current = savedSig;
+            setIsCurrentSemesterMode(true);
+          } else {
+            hasEditedGradeRef.current = true;
+            setIsCurrentSemesterMode(false);
+          }
           setScheduleOptions([]);
           setCurrentOptionIndex(0);
         } else {
+          setSavedSignature(null);
           // Se for o semestre atual do calendário e o aluno tiver turmas matriculadas
           const isCurrentSem = (year === '2026' && period === '2') || semesters.some((s) => s.year === year && s.period === period && s.isCurrent);
           if (isCurrentSem && currentEnrolledClasses.length > 0 && !hasEditedGradeRef.current) {
@@ -473,6 +499,7 @@ export function useGrade() {
       }
 
       setIsScraping(true);
+      setCatalogError(null);
       try {
         const result = await container.useCases.scrapeClasses.execute('ALL', y, p);
         disciplinesCache.set(allKey, result);
@@ -481,7 +508,13 @@ export function useGrade() {
           deptId === 'ALL' ? result : result.filter((d) => d.departmentId === deptId);
         setDisciplines(deptList);
       } catch (err) {
-        setFeedbackMessage(`Aviso: ${errMsg(err)}`);
+        setCatalogError(errMsg(err));
+        toast.add({
+          title: 'Não conseguimos carregar as turmas',
+          description: 'Ocorreu um problema ao buscar o catálogo da UnB. Tente buscar de novo.',
+          type: 'error',
+          timeout: 6000,
+        });
       } finally {
         setIsScraping(false);
       }
@@ -608,20 +641,37 @@ export function useGrade() {
   }, [hasSearched, activeDeptId, activeSearchQuery, allDisciplines, disciplines, filteredDisciplines]);
 
   // Adiciona ou remove turma
-  const toggleClass = useCallback((cls: ScrapedClass) => {
-    hasEditedGradeRef.current = true;
-    setIsCurrentSemesterMode(false);
-    setSelectedClasses((prev) => {
-      const exists = prev.some((c) => c.id === cls.id);
-      if (exists) {
-        return prev.filter((c) => c.id !== cls.id);
-      } else {
-        // Se já existe turma da mesma disciplina, substitui por esta turma escolhida
-        const filtered = prev.filter((c) => c.disciplineCode !== cls.disciplineCode);
-        return [...filtered, cls];
+  const toggleClass = useCallback(
+    (cls: ScrapedClass) => {
+      hasEditedGradeRef.current = true;
+      setIsCurrentSemesterMode(false);
+
+      // Se já existe outra turma da mesma disciplina, esta escolha a substitui —
+      // a troca é explícita, nunca silenciosa.
+      const replaced = selectedClasses.find(
+        (c) => c.disciplineCode === cls.disciplineCode && c.id !== cls.id,
+      );
+      if (replaced) {
+        toast.add({
+          title: `Turma ${replaced.classCode} substituída`,
+          description: `${cls.disciplineCode} agora tem a turma ${cls.classCode} na grade.`,
+          type: 'info',
+          timeout: 4500,
+        });
       }
-    });
-  }, []);
+
+      setSelectedClasses((prev) => {
+        const exists = prev.some((c) => c.id === cls.id);
+        if (exists) {
+          return prev.filter((c) => c.id !== cls.id);
+        } else {
+          const filtered = prev.filter((c) => c.disciplineCode !== cls.disciplineCode);
+          return [...filtered, cls];
+        }
+      });
+    },
+    [selectedClasses],
+  );
 
   const removeClass = useCallback((classId: string) => {
     hasEditedGradeRef.current = true;
@@ -636,20 +686,23 @@ export function useGrade() {
     setConflicts([]);
     setScheduleOptions([]);
     setCurrentOptionIndex(0);
-    setFeedbackMessage(null);
   }, []);
 
   // Gerador automático de combinações sem conflito
   const generateCombinations = useCallback(
     async (preferenceShift?: 'M' | 'T' | 'N') => {
       if (selectedClasses.length === 0) {
-        setFeedbackMessage('Selecione ao menos uma disciplina para gerar combinações.');
-        return;
+        toast.add({
+          title: 'Selecione disciplinas',
+          description: 'Escolha ao menos uma turma para gerar combinações.',
+          type: 'warning',
+          timeout: 5000,
+        });
+        return 0;
       }
 
       hasEditedGradeRef.current = true;
       setIsSolving(true);
-      setFeedbackMessage(null);
 
       try {
         // Pega todas as turmas disponíveis para as disciplinas atualmente selecionadas na base completa
@@ -667,19 +720,37 @@ export function useGrade() {
         const pool = candidateClasses.length > 0 ? candidateClasses : selectedClasses;
         const options = await container.useCases.solveSchedule.execute(pool, preferenceShift);
 
-        setScheduleOptions(options);
+        // Corta no top N: ranqueia pelo score do solver (a preferência de turno
+        // já pesa no score) e mantém só as melhores opções.
+        const ranked = [...options].sort((a, b) => b.score - a.score);
+        const best = ranked.slice(0, MAX_GRADE_OPTIONS);
+
+        setScheduleOptions(best);
         setCurrentOptionIndex(0);
 
-        if (options.length > 0) {
-          setSelectedClasses(options[0].classes);
-          setFeedbackMessage(
-            `Geradas ${options.length} opções sem conflito! Exibindo opção 1.`
-          );
-        } else {
-          setFeedbackMessage('Nenhuma combinação sem conflito foi encontrada para essas disciplinas.');
+        if (best.length > 0) {
+          setSelectedClasses(best[0].classes);
+          toast.add({
+            description:
+              best.length === 1
+                ? 'Gerada 1 opção sem conflito. Ela já está na grade.'
+                : ranked.length > MAX_GRADE_OPTIONS
+                  ? `${ranked.length} opções sem conflito — exibindo as ${MAX_GRADE_OPTIONS} melhores de acordo com sua preferência. Opção 1 na grade.`
+                  : `Geradas ${best.length} opções sem conflito. Exibindo a opção 1.`,
+            type: 'success',
+            timeout: 4500,
+          });
+          return best.length;
         }
+        return 0;
       } catch (err) {
-        setFeedbackMessage(`Erro ao gerar grade: ${errMsg(err)}`);
+        toast.add({
+          title: 'Erro ao gerar grade',
+          description: errMsg(err),
+          type: 'error',
+          timeout: 7000,
+        });
+        return 0;
       } finally {
         setIsSolving(false);
       }
@@ -698,6 +769,12 @@ export function useGrade() {
     [scheduleOptions]
   );
 
+  // Indicador "Não salva": a grade atual difere da última versão persistida
+  const isDirty = useMemo(() => {
+    if (savedSignature === null) return selectedClasses.length > 0;
+    return gradeSignature(selectedClasses) !== savedSignature;
+  }, [selectedClasses, savedSignature]);
+
   // Salvar no SQLite (grade vazia também é salvable: persiste o estado "sem grade")
   const saveGrade = useCallback(async () => {
     setIsSaving(true);
@@ -712,13 +789,33 @@ export function useGrade() {
 
       await container.useCases.manageGrade.save(grade);
       savedGradeCache = grade;
-      setFeedbackMessage('Grade salva com sucesso no seu computador!');
+      setSavedSignature(gradeSignature(selectedClasses));
+      if (conflicts.length > 0) {
+        toast.add({
+          title: 'Grade salva com conflitos',
+          description: `${conflicts.length} ${conflicts.length === 1 ? 'conflito segue' : 'conflitos seguem'} na grade — resolva antes da matrícula se possível.`,
+          type: 'warning',
+          timeout: 6000,
+        });
+      } else {
+        toast.add({
+          title: 'Grade salva',
+          description: 'Salva no seu computador para este semestre.',
+          type: 'success',
+          timeout: 4000,
+        });
+      }
     } catch (err) {
-      setFeedbackMessage(`Erro ao salvar grade: ${errMsg(err)}`);
+      toast.add({
+        title: 'Erro ao salvar grade',
+        description: errMsg(err),
+        type: 'error',
+        timeout: 7000,
+      });
     } finally {
       setIsSaving(false);
     }
-  }, [container, selectedClasses, year, period]);
+  }, [container, selectedClasses, year, period, conflicts]);
 
   // Envia disciplina para a grade do semestre adequado
   const sendDisciplineToGrade = useCallback(
@@ -758,7 +855,8 @@ export function useGrade() {
     isScraping,
     isSolving,
     isSaving,
-    feedbackMessage,
+    catalogError,
+    isDirty,
     fetchClasses,
     toggleClass,
     removeClass,

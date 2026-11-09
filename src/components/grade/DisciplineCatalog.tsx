@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, Button, Badge } from "@/components/ui";
+import { Card, Button, Badge, Skeleton } from "@/components/ui";
 import {
   ChevronDown,
   ChevronUp,
@@ -10,6 +10,7 @@ import {
   LibraryBig,
   Search,
   X,
+  RefreshCw,
   Sparkles,
 } from "lucide-react";
 import type { ScrapedDiscipline, ScrapedClass } from "@/core";
@@ -23,9 +24,13 @@ export interface DisciplineCatalogProps {
   hasSearched: boolean;
   activeSearchQuery: string;
   activeDeptId: string;
-  isCatalogLoaded: boolean;
   departmentsMap?: Map<string, string>;
   isFallbackSearch?: boolean;
+  /** Carregando o catalogo da rede — espelha a geometria das linhas com skeleton. */
+  isScraping?: boolean;
+  /** Erro de scrape com catalogo vazio — painel de erro com retry. */
+  catalogError?: string | null;
+  onRetryCatalog?: () => void;
   onResetSearch: () => void;
   onSearchAllUnb?: () => void;
 }
@@ -42,6 +47,29 @@ const getDeptLabel = (name?: string) => {
     .replace(/^FACULDADE DE\s+/i, "")
     .replace(/^INSTITUTO DE\s+/i, "");
 };
+
+const CATALOG_SKELETON_ROWS = [
+  { pill: "w-14", name: "w-3/4", meta: "w-1/3" },
+  { pill: "w-16", name: "w-2/3", meta: "w-1/4" },
+  { pill: "w-12", name: "w-4/5", meta: "w-2/5" },
+  { pill: "w-16", name: "w-3/5", meta: "w-1/3" },
+  { pill: "w-14", name: "w-2/3", meta: "w-1/4" },
+];
+
+const CatalogSkeleton = () => (
+  <div className="p-3 space-y-1 bg-paper" aria-hidden="true">
+    {CATALOG_SKELETON_ROWS.map((row, i) => (
+      <div key={i} className="p-3.5 border-b-2 border-black/10 last:border-b-0">
+        <div className="flex items-center gap-2 mb-2">
+          <Skeleton className={`h-5 ${row.pill} rounded-full`} />
+          <Skeleton className="h-3.5 w-16 rounded-full" />
+        </div>
+        <Skeleton className={`h-3.5 ${row.name}`} />
+        <Skeleton className={`mt-2 h-3 ${row.meta}`} />
+      </div>
+    ))}
+  </div>
+);
 
 interface DisciplineRowProps {
   discipline: ScrapedDiscipline;
@@ -78,9 +106,9 @@ const DisciplineRow = React.memo<DisciplineRowProps>(function DisciplineRow({
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <Badge variant="outline" size="sm">
+            <span className="font-mono text-[11px] font-black bg-paper border border-ink rounded-md px-2 py-0.5">
               {discipline.code}
-            </Badge>
+            </span>
             <span className="text-[11px] font-bold text-neutral-600">
               {discipline.classes.length}{" "}
               {discipline.classes.length === 1 ? "turma" : "turmas"}
@@ -115,7 +143,7 @@ const DisciplineRow = React.memo<DisciplineRowProps>(function DisciplineRow({
 
       {/* Turmas Ofertadas (quando expandido) */}
       {isExpanded ? (
-        <div className="p-3 bg-neutral-50 border-t-2 border-ink/10 space-y-2.5">
+        <div className="p-3 bg-neutral-50 border-t-2 border-black/10 space-y-2.5">
           {discipline.classes.map((cls) => (
             <ClassCard
               key={cls.id}
@@ -150,7 +178,7 @@ const ClassCard = React.memo<ClassCardProps>(function ClassCard({
       className={`p-3 rounded-lg border-2 transition-[transform,box-shadow,background-color,border-color] ${
         isSelected
           ? "border-ink bg-pastel-green shadow-[2px_2px_0px_0px_var(--neo-shadow)]"
-          : "border-ink/25 bg-paper"
+          : "border-black/25 bg-paper"
       }`}
     >
       <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -159,7 +187,7 @@ const ClassCard = React.memo<ClassCardProps>(function ClassCard({
             Turma {cls.classCode}
           </span>
           {cls.dateRange ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded-md border border-ink/20">
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded-md border border-black/20">
               <Calendar className="w-2.5 h-2.5 text-neutral-500 shrink-0" />
               {cls.dateRange}
             </span>
@@ -189,7 +217,7 @@ const ClassCard = React.memo<ClassCardProps>(function ClassCard({
         ) : null}
       </div>
 
-      <div className="pt-2 mt-2 border-t border-ink/10 flex items-center justify-between">
+      <div className="pt-2 mt-2 border-t border-black/10 flex items-center justify-between">
         {(() => {
           const rawOcc = cls.occupied ?? 0;
           const rawVac = cls.vacancies ?? 0;
@@ -232,9 +260,11 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
   hasSearched,
   activeSearchQuery,
   activeDeptId,
-  isCatalogLoaded,
   departmentsMap,
   isFallbackSearch = false,
+  isScraping = false,
+  catalogError = null,
+  onRetryCatalog,
   onResetSearch,
   onSearchAllUnb,
 }) => {
@@ -249,20 +279,13 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
       {/* Header do Catálogo */}
       <div className="px-4 py-3 border-b-2 border-ink flex items-center justify-between gap-3 bg-paper">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="p-1.5 bg-paper border-2 border-ink rounded-lg shadow-[2px_2px_0px_0px_var(--neo-shadow)] shrink-0">
-            <LibraryBig className="w-4 h-4 stroke-[2.5] text-blue-ink" />
+          <div className="w-9 h-9 rounded-xl bg-blue-ink/10 border-2 border-ink flex items-center justify-center text-blue-ink shrink-0">
+            <LibraryBig className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-extrabold tracking-tight text-black whitespace-nowrap">
               Catálogo de disciplinas
             </h3>
-            {hasSearched ? (
-              <span aria-live="polite">
-                <Badge variant="neutral" size="sm">
-                  {filteredDisciplines.length}
-                </Badge>
-              </span>
-            ) : null}
           </div>
         </div>
 
@@ -283,7 +306,7 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
 
       {/* Alerta de fallback quando disciplina não foi achada no departamento escolhido */}
       {hasSearched && isFallbackSearch && (
-        <div className="px-4 py-2.5 bg-pastel-yellow border-b-2 border-ink/10 flex items-center gap-2 text-xs font-semibold text-neutral-800">
+        <div className="px-4 py-2.5 bg-pastel-yellow border-b-2 border-black/10 flex items-center gap-2 text-xs font-semibold text-neutral-800">
           <Sparkles className="w-4 h-4 text-black shrink-0" />
           <span>
             Não encontramos "{activeSearchQuery}" em{" "}
@@ -298,7 +321,7 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
         !isFallbackSearch &&
         activeDeptId &&
         activeDeptId !== "ALL" && (
-          <div className="px-4 py-2 bg-neutral-50 border-b-2 border-ink/10 flex items-center justify-between text-xs font-semibold text-neutral-700">
+          <div className="px-4 py-2 bg-neutral-50 border-b-2 border-black/10 flex items-center justify-between text-xs font-semibold text-neutral-700">
             <span className="truncate">
               Filtrando departamento:{" "}
               <strong className="text-black">
@@ -309,7 +332,7 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
               <button
                 type="button"
                 onClick={onSearchAllUnb}
-                className="text-xs font-extrabold text-blue-ink hover:underline cursor-pointer shrink-0 ml-2"
+                className="text-xs font-extrabold text-blue-ink underline decoration-2 underline-offset-2 hover:opacity-80 cursor-pointer shrink-0 ml-2"
               >
                 Buscar em toda a UnB
               </button>
@@ -319,7 +342,7 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
 
       {/* Dica para busca geral UnB sem termo de texto */}
       {hasSearched && activeDeptId === "ALL" && !activeSearchQuery && (
-        <div className="px-4 py-2 bg-pastel-blue/40 border-b-2 border-ink/10 text-[11px] font-semibold text-neutral-700 flex items-center justify-between">
+        <div className="px-4 py-2 bg-pastel-blue border-b-2 border-black/10 text-[11px] font-semibold text-neutral-700 flex items-center justify-between">
           <span>
             Mostrando as primeiras {filteredDisciplines.length} disciplinas da
             UnB. Digite o nome acima para refinar.
@@ -330,7 +353,7 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
       {/* Conteúdo: estado inicial (antes de buscar) OU sem resultados OU lista de disciplinas */}
       {!hasSearched ? (
         <div className="p-8 text-center bg-paper space-y-3">
-          <div className="w-12 h-12 mx-auto bg-pastel-blue border-2 border-ink rounded-2xl shadow-[2px_2px_0px_0px_var(--neo-shadow)] flex items-center justify-center">
+          <div className="w-12 h-12 mx-auto bg-pastel-blue border-2 border-ink rounded-2xl flex items-center justify-center">
             <Search className="w-6 h-6 stroke-[2.5] text-blue-ink" />
           </div>
           <div className="space-y-1">
@@ -344,6 +367,35 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
             </p>
           </div>
         </div>
+      ) : filteredDisciplines.length === 0 && isScraping ? (
+        <CatalogSkeleton />
+      ) : filteredDisciplines.length === 0 && catalogError ? (
+        <div className="p-8 text-center bg-paper space-y-2">
+          <img
+            src="/sarue-doubt.png"
+            alt=""
+            aria-hidden="true"
+            className="w-16 h-16 object-contain mx-auto select-none pointer-events-none"
+          />
+          <p className="text-xs font-extrabold text-black">
+            Não conseguimos carregar as turmas
+          </p>
+          <p className="text-[11px] font-semibold text-neutral-600 max-w-xs mx-auto">
+            Ocorreu um problema ao buscar o catálogo da UnB. Verifique sua
+            conexão e tente de novo.
+          </p>
+          <div className="pt-2 flex justify-center">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={onRetryCatalog}
+            >
+              <RefreshCw className="w-3.5 h-3.5 stroke-[2.5]" />
+              Tentar novamente
+            </Button>
+          </div>
+        </div>
       ) : filteredDisciplines.length === 0 ? (
         <div className="p-8 text-center bg-paper space-y-2">
           <div className="w-10 h-10 mx-auto bg-pastel-blue border-2 border-ink rounded-xl shadow-[2px_2px_0px_0px_var(--neo-shadow)] flex items-center justify-center">
@@ -355,9 +407,7 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
           <p className="text-[11px] font-semibold text-neutral-600 max-w-xs mx-auto">
             {activeSearchQuery
               ? `Nenhuma disciplina corresponde a "${activeSearchQuery}". Tente parte do nome ou código (ex.: APC, Cálculo).`
-              : isCatalogLoaded
-                ? "Nenhuma turma encontrada para os filtros selecionados."
-                : "Carregando catálogo de turmas..."}
+              : "Nenhuma turma encontrada para os filtros selecionados."}
           </p>
           <div className="flex items-center justify-center gap-2 pt-2">
             {activeDeptId && activeDeptId !== "ALL" && onSearchAllUnb && (
