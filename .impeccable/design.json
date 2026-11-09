@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-08T00:00:00-03:00",
+  "generatedAt": "2026-11-09T04:19:54.045Z",
   "title": "Design System: Saruê UnB",
   "extensions": {
     "colorMeta": {
@@ -766,7 +766,7 @@
       },
       {
         "name": "A Regra do Código em Máquina",
-        "body": "Código de disciplina é carimbo de máquina, nunca título: onde vira etiqueta, é pill mono (font-mono, 11px, font-black, borda de 1px, fundo branco); nas listas do Fluxograma anda colado ao nome em texto corrido (\"CIC0004 - Nome\"), mesmo peso, sem mono — a lista lê como frase, não como tabela.",
+        "body": "Código de disciplina é carimbo de máquina, nunca título: onde vira etiqueta isolada, é pill mono (font-mono, 11px, font-black, borda de 1px, fundo branco); nas listas — Fluxograma, catálogo da Grade e legenda da Grade Horária — anda colado ao nome em texto corrido (\"CIC0004 - Nome\"), mesmo peso, sem mono — a lista lê como frase, não como tabela.",
         "section": "typography"
       },
       {
