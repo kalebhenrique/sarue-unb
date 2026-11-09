@@ -3,7 +3,7 @@ import { Card, Skeleton } from '@/components/ui';
 import { FeedListSkeleton } from '@/components/feed/FeedListSkeleton';
 
 // Larguras determinísticas por item de nav — lista viva, não fileira de blocos iguais
-const NAV_LABEL_WIDTHS = ['w-12', 'w-24', 'w-24', 'w-28', 'w-20', 'w-28'] as const;
+const NAV_LABEL_WIDTHS = ['w-12', 'w-24', 'w-24', 'w-24', 'w-28', 'w-20', 'w-28'] as const;
 
 /**
  * Shell de arranque sem tinta: espelha a geometria exata do app principal
@@ -34,7 +34,7 @@ export const AppBootSkeleton: React.FC = () => (
             <Skeleton className="ml-3 h-4 w-24" />
           </div>
 
-          {/* Navegação: 6 linhas com as divisórias reais da sidebar */}
+          {/* Navegação: 7 linhas com as divisórias reais da sidebar (Calendário incluso) */}
           <nav className="border-b-2 border-ink">
             <ul className="flex flex-col">
               {NAV_LABEL_WIDTHS.map((labelWidth, index) => (
@@ -66,7 +66,7 @@ export const AppBootSkeleton: React.FC = () => (
 
       {/* Conteúdo central: composição de primeira carga da Home */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
+        <main className="flex-1 overflow-y-auto px-2 py-6 md:px-4 md:py-8">
           <div className="w-full max-w-6xl mx-auto space-y-6 pb-12">
             {/* Título da página */}
             <Skeleton className="h-7 w-40" />

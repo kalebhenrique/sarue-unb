@@ -715,12 +715,18 @@ export const PlatformAccountsAccordion: React.FC<
                       {p.id === "teams" && (
                         <>
                           <p className="text-xs font-medium text-neutral-600 leading-relaxed">
-                            Uma janela oficial do Teams será aberta com uma
-                            barra de controle no topo. Faça login com seu e-mail
-                            institucional (@aluno.unb.br ou @unb.br), confirme a
-                            verificação em duas etapas (2FA) e clique em
-                            &quot;Concluir Login&quot; assim que suas turmas
-                            carregarem.
+                            Uma janela do Teams será aberta com uma barra de
+                            controle no topo. Entre com seu e-mail institucional
+                            (@aluno.unb.br ou @unb.br) pela opção{" "}
+                            <strong className="font-bold text-black">
+                              &quot;Usar minha senha&quot;
+                            </strong>{" "}
+                            (chave de segurança e biometria não são suportadas
+                            na janela integrada), confirme o 2FA e clique em{" "}
+                            <strong className="font-bold text-black">
+                              &quot;Concluir Login&quot;
+                            </strong>{" "}
+                            assim que suas turmas carregarem.
                           </p>
                           {teamsConnected &&
                           (teamsSuccessMsg || allCredentials.teams?.email) ? (

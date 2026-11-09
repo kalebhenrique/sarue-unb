@@ -172,13 +172,13 @@ const AppShell: React.FC = () => {
 
       {/* Área Central de Conteúdo (Sem Header global, títulos direto no corpo) */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
+        <main className="flex-1 overflow-y-auto px-2 py-6 md:px-4 md:py-8">
           <ErrorBoundary key={currentTab} onReset={() => setCurrentTab('home')}>
             {currentTab === 'home' && <DashboardScreen />}
             {currentTab === 'courses' && <CoursesScreen />}
             {currentTab === 'grade' && <GradeBuilderScreen />}
             {currentTab === 'calendar' && <CalendarScreen />}
-            {currentTab === 'my-course' && <MyCourseScreen />}
+            {currentTab === 'my-course' && <MyCourseScreen onOpenSettings={() => setCurrentTab('settings')} />}
             {currentTab === 'evaluations' && <ProfessorEvaluationsScreen />}
             {currentTab === 'settings' && (
               <SettingsScreen

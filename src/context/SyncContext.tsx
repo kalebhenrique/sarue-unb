@@ -512,10 +512,19 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
               const teamsItems = res.items.filter(
                 (i) => i.platform === "teams",
               );
+              const teamsPostsCount = teamsItems.filter(
+                (i) => i.itemType === "post",
+              ).length;
+              const teamsAssignmentsCount = teamsItems.filter(
+                (i) => i.itemType === "assignment",
+              ).length;
               updateStep("teams", {
                 status: "success",
                 count: teamsCourses.length,
-                message: `${teamsCourses.length} turmas • ${teamsItems.length} avisos`,
+                message:
+                  teamsAssignmentsCount > 0
+                    ? `${teamsCourses.length} turmas • ${teamsPostsCount} avisos • ${teamsAssignmentsCount} atividades`
+                    : `${teamsCourses.length} turmas • ${teamsItems.length} avisos`,
                 lastUpdated: new Date().toISOString(),
               });
               setLastSyncedAt(new Date().toISOString());

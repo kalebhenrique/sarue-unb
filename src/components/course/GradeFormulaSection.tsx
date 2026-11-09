@@ -5,9 +5,9 @@ import {
   ChevronDown,
   CheckCircle2,
   AlertTriangle,
-  RotateCcw,
   Sparkles,
   Info,
+  X,
 } from "lucide-react";
 import {
   validateFormula,
@@ -232,7 +232,7 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
         inert={!isExpanded}
       >
         <div className="min-h-0 overflow-hidden">
-          <div className="pb-2 pl-4 sm:pl-12 pr-1.5 mt-3 space-y-4">
+          <div className="pb-2 pl-4 sm:pl-12 pr-1.5 mt-3 space-y-5">
             {/* Seletor de Presets Rápidos */}
             <div className="space-y-2">
               <div className="flex items-center gap-1.5 text-xs font-black text-black">
@@ -317,9 +317,8 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                     <button
                       type="button"
                       onClick={handleResetGrades}
-                      className="text-[11px] font-bold text-neutral-500 hover:text-ink-error underline cursor-pointer inline-flex items-center gap-1"
+                      className="text-xs font-bold text-neutral-500 hover:text-ink-error underline cursor-pointer inline-flex items-center gap-1"
                     >
-                      <RotateCcw className="w-3 h-3 stroke-[2.5]" />
                       <span>Limpar notas lançadas</span>
                     </button>
                   )}
@@ -352,11 +351,11 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                                   [variable]: null,
                                 }))
                               }
-                              className="text-xs font-black text-neutral-500 hover:text-ink-error cursor-pointer px-1 leading-none"
+                              className="text-xs font-black text-neutral-500 hover:text-ink-error cursor-pointer p-1 leading-none"
                               title="Limpar nota"
                               aria-label={`Limpar nota de ${variable}`}
                             >
-                              ✕
+                              <X className="size-3 " />
                             </button>
                           )}
                         </div>
@@ -390,13 +389,15 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                   calculation.finalMention && (
                     <Alert
                       variant={
-                        calculation.finalMention.passed ? "green" : "destructive"
+                        calculation.finalMention.passed
+                          ? "green"
+                          : "destructive"
                       }
                       title={`Nota Final: ${formatGrade(calculation.finalGrade, 2)} (${calculation.finalMention.mention} — ${calculation.finalMention.label})`}
                       description={
                         calculation.finalMention.passed
-                          ? "Aprovado na disciplina (critério UnB: MM, MS ou SS)."
-                          : "Reprovado por nota (abaixo de 5,0 — MM)."
+                          ? "Aprovado na disciplina."
+                          : "Reprovado na disciplina."
                       }
                     />
                   )}
@@ -451,14 +452,14 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                           <span className="font-bold text-neutral-700">
                             {label}:
                           </span>
-                          <div className="font-mono font-black shrink-0">
+                          <div className="font-black shrink-0">
                             {req.isAlreadyAchieved ? (
                               <Badge
                                 variant="success"
                                 size="sm"
                                 className="font-black"
                               >
-                                ✓ Garantido
+                                Garantido
                               </Badge>
                             ) : req.isAchievable &&
                               req.requiredGrade !== null ? (

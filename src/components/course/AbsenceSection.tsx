@@ -180,7 +180,7 @@ export const AbsenceSection: React.FC<AbsenceSectionProps> = ({
           <div className="pb-2 pl-4 sm:pl-12 mt-3 space-y-4">
             {/* Registro oficial do SIGAA */}
             <div className="flex items-start gap-1.5 text-xs font-semibold text-neutral-600">
-              <Info className="w-3.5 h-3.5 shrink-0 stroke-[2.5] text-neutral-500" />
+              <Info className="w-3.5 h-3.5 shrink-0 stroke-[2.5] text-blue-ink" />
               <span>
                 {sigaaAbsences !== null ? (
                   <>
