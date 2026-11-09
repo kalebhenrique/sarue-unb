@@ -59,6 +59,7 @@ jobs:
 
       - name: Pre-cache Tauri AppImage dependencies
         if: matrix.platform == 'ubuntu-22.04'
+        continue-on-error: true
         run: |
           mkdir -p ~/.cache/tauri
           curl -fL --retry 5 --retry-delay 3 -o ~/.cache/tauri/AppRun-x86_64 https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-x86_64
