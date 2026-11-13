@@ -3,7 +3,6 @@ import { useContainer } from '@/context/ContainerContext';
 import {
   type UnifiedCalendarEvent,
   type UserCalendarEvent,
-  type CalendarEventCategory,
   type AcademicCalendar,
   type Course,
   type Discipline,
@@ -265,89 +264,50 @@ export function useCalendar() {
 
     const cells: CalendarDayCell[] = [];
 
+    const buildCell = (dateStr: string, dayNumber: number, isCurrentMonth: boolean): CalendarDayCell => {
+      const cellEvents = filteredEvents.filter((evt) => {
+        if (evt.date === dateStr) return true;
+        if (evt.endDate && evt.date <= dateStr && evt.endDate >= dateStr) return true;
+        return false;
+      });
+
+      return {
+        date: dateStr,
+        dayNumber,
+        isCurrentMonth,
+        isToday: dateStr === todayStr,
+        isSelected: dateStr === selectedDate,
+        events: cellEvents,
+        hasAcademic: cellEvents.some((e) => e.type === 'academic'),
+        hasDeadline: cellEvents.some((e) => e.isDeadline && !e.isCompleted),
+        hasManual: cellEvents.some((e) => e.type === 'manual'),
+        hasFeedTask: cellEvents.some((e) => e.type === 'feed_task'),
+      };
+    };
+
+    const formatIso = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
     // Dias do mês anterior para completar o início da semana
     const prevMonthLastDay = new Date(year, month, 0).getDate();
     for (let i = firstDayWeekday - 1; i >= 0; i--) {
       const dayNum = prevMonthLastDay - i;
-      const prevDate = new Date(year, month - 1, dayNum);
-      const y = prevDate.getFullYear();
-      const m = String(prevDate.getMonth() + 1).padStart(2, '0');
-      const d = String(dayNum).padStart(2, '0');
-      const dateStr = `${y}-${m}-${d}`;
-
-      const cellEvents = filteredEvents.filter((evt) => {
-        if (evt.date === dateStr) return true;
-        if (evt.endDate && evt.date <= dateStr && evt.endDate >= dateStr) return true;
-        return false;
-      });
-
-      cells.push({
-        date: dateStr,
-        dayNumber: dayNum,
-        isCurrentMonth: false,
-        isToday: dateStr === todayStr,
-        isSelected: dateStr === selectedDate,
-        events: cellEvents,
-        hasAcademic: cellEvents.some((e) => e.type === 'academic'),
-        hasDeadline: cellEvents.some((e) => e.isDeadline),
-        hasManual: cellEvents.some((e) => e.type === 'manual'),
-        hasFeedTask: cellEvents.some((e) => e.type === 'feed_task'),
-      });
+      cells.push(buildCell(formatIso(new Date(year, month - 1, dayNum)), dayNum, false));
     }
 
     // Dias do mês corrente
     for (let dayNum = 1; dayNum <= totalDaysInMonth; dayNum++) {
-      const m = String(month + 1).padStart(2, '0');
-      const d = String(dayNum).padStart(2, '0');
-      const dateStr = `${year}-${m}-${d}`;
-
-      const cellEvents = filteredEvents.filter((evt) => {
-        if (evt.date === dateStr) return true;
-        if (evt.endDate && evt.date <= dateStr && evt.endDate >= dateStr) return true;
-        return false;
-      });
-
-      cells.push({
-        date: dateStr,
-        dayNumber: dayNum,
-        isCurrentMonth: true,
-        isToday: dateStr === todayStr,
-        isSelected: dateStr === selectedDate,
-        events: cellEvents,
-        hasAcademic: cellEvents.some((e) => e.type === 'academic'),
-        hasDeadline: cellEvents.some((e) => e.isDeadline),
-        hasManual: cellEvents.some((e) => e.type === 'manual'),
-        hasFeedTask: cellEvents.some((e) => e.type === 'feed_task'),
-      });
+      cells.push(buildCell(formatIso(new Date(year, month, dayNum)), dayNum, true));
     }
 
     // Dias do próximo mês para completar 42 células (6 linhas de 7) ou múltiplo de 7
     const remainingDays = 42 - cells.length;
     for (let dayNum = 1; dayNum <= remainingDays; dayNum++) {
-      const nextDate = new Date(year, month + 1, dayNum);
-      const y = nextDate.getFullYear();
-      const m = String(nextDate.getMonth() + 1).padStart(2, '0');
-      const d = String(dayNum).padStart(2, '0');
-      const dateStr = `${y}-${m}-${d}`;
-
-      const cellEvents = filteredEvents.filter((evt) => {
-        if (evt.date === dateStr) return true;
-        if (evt.endDate && evt.date <= dateStr && evt.endDate >= dateStr) return true;
-        return false;
-      });
-
-      cells.push({
-        date: dateStr,
-        dayNumber: dayNum,
-        isCurrentMonth: false,
-        isToday: dateStr === todayStr,
-        isSelected: dateStr === selectedDate,
-        events: cellEvents,
-        hasAcademic: cellEvents.some((e) => e.type === 'academic'),
-        hasDeadline: cellEvents.some((e) => e.isDeadline),
-        hasManual: cellEvents.some((e) => e.type === 'manual'),
-        hasFeedTask: cellEvents.some((e) => e.type === 'feed_task'),
-      });
+      cells.push(buildCell(formatIso(new Date(year, month + 1, dayNum)), dayNum, false));
     }
 
     return cells;
@@ -367,25 +327,11 @@ export function useCalendar() {
   );
 
   const openEditDialog = useCallback((event: UserCalendarEvent | UnifiedCalendarEvent) => {
+    if ('type' in event && event.type !== 'manual') {
+      return;
+    }
     if ('type' in event && event.type === 'manual' && event.rawPayload) {
       setEditingEvent(event.rawPayload as UserCalendarEvent);
-    } else if ('type' in event && event.type !== 'manual') {
-      setEditingEvent({
-        id: event.id,
-        title: event.title,
-        date: event.date,
-        endDate: event.endDate || event.date,
-        startTime: event.startTime,
-        endTime: event.endTime,
-        allDay: event.allDay,
-        category: (event.type === 'academic' ? 'academic' : 'personal') as CalendarEventCategory,
-        courseName: event.courseName,
-        courseCode: event.courseCode,
-        description: event.description,
-        createdAt: '',
-        updatedAt: '',
-        isReadOnly: true,
-      } as UserCalendarEvent & { isReadOnly?: boolean });
     } else {
       setEditingEvent(event as UserCalendarEvent);
     }

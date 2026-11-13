@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar as CalendarIcon, Clock, Edit3, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, CheckCircle2, Clock, Edit3, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui';
 import type { UnifiedCalendarEvent, UserCalendarEvent } from '@/core';
 import { getCalendarEventColors } from './calendar-colors';
@@ -26,6 +26,7 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
   hasShadow = false,
 }) => {
   const isManual = event.type === 'manual';
+  const canEdit = isManual && Boolean(onEditEvent);
   const isCompleted = Boolean(event.isCompleted);
   const color = getCalendarEventColors(event);
 
@@ -41,14 +42,14 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
   return (
     <div
       onClick={() => {
-        if (onEditEvent) {
-          onEditEvent(isManual && event.rawPayload ? (event.rawPayload as UserCalendarEvent) : event);
+        if (canEdit && onEditEvent) {
+          onEditEvent(event.rawPayload ? (event.rawPayload as UserCalendarEvent) : event);
         }
       }}
       className={`p-3 rounded-lg border-2 ${color.border} ${color.bg} transition-all ${
-        onEditEvent ? 'cursor-pointer hover:border-black/50' : ''
+        canEdit ? 'cursor-pointer hover:border-black/50' : ''
       } ${hasShadow ? 'shadow-[2px_2px_0px_0px_var(--neo-shadow)]' : ''} ${
-        isCompleted ? 'opacity-50' : ''
+        isCompleted ? 'opacity-60 hover:opacity-90' : ''
       }`}
     >
       {/* Linha de Badges e Ações */}
@@ -61,6 +62,13 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
           {event.categoryLabel && (
             <Badge variant="neutral" size="sm" className="font-bold">
               {event.categoryLabel}
+            </Badge>
+          )}
+
+          {isCompleted && (
+            <Badge variant="success" size="sm" className="font-black">
+              <CheckCircle2 className="w-3 h-3 stroke-[2.5]" aria-hidden="true" />
+              Concluída
             </Badge>
           )}
 
@@ -106,7 +114,11 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
 
       {/* Título do Evento e Detalhes */}
       <div className="space-y-1.5">
-        <h3 className="text-sm font-extrabold text-black leading-snug break-words">
+        <h3
+          className={`text-sm font-extrabold leading-snug break-words ${
+            isCompleted ? 'line-through decoration-2 text-neutral-700' : 'text-black'
+          }`}
+        >
           {event.title}
         </h3>
 

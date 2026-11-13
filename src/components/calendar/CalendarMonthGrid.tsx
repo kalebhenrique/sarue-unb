@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Check, Plus } from 'lucide-react';
 import type { CalendarDayCell } from '@/hooks/useCalendar';
 import type { UnifiedCalendarEvent } from '@/core';
 import { getCalendarEventColors } from './calendar-colors';
@@ -181,12 +181,16 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                 spanLength,
               };
             })
-            // Ordenação: blocos lineares que duram mais dias vêm primeiro, depois por coluna inicial
+            // Ordenação: blocos lineares que duram mais dias vêm primeiro, depois por coluna inicial,
+            // priorizando tarefas pendentes sobre concluídas na mesma trilha
             .sort((a, b) => {
               if (b.spanLength !== a.spanLength) {
                 return b.spanLength - a.spanLength;
               }
-              return a.startCol - b.startCol;
+              if (a.startCol !== b.startCol) {
+                return a.startCol - b.startCol;
+              }
+              return Number(Boolean(a.event.isCompleted)) - Number(Boolean(b.event.isCompleted));
             });
 
           // 3. Alocação de trilhas (tracks) horizontais para garantir blocos lineares contínuos
@@ -362,6 +366,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                     track,
                   } = seg;
 
+                  const isCompleted = Boolean(event.isCompleted);
                   const color = getCalendarEventColors(event);
 
                   // Bordas e raios para formar um bloco linear contínuo
@@ -391,14 +396,18 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         onSelectDate(event.date);
-                        onEventClick?.(event);
+                        if (event.type === 'manual') {
+                          onEventClick?.(event);
+                        }
                       }}
-                      className={`pointer-events-auto h-[22px] min-w-0 px-1.5 ${roundedClass} ${borderClass} ${marginClass} ${color.border} ${color.bg} ${color.text} flex items-center gap-1 text-[11px] font-extrabold tracking-tight cursor-pointer hover:opacity-90 transition-opacity select-none overflow-hidden`}
+                      className={`pointer-events-auto h-[22px] min-w-0 px-1.5 ${roundedClass} ${borderClass} ${
+                        isCompleted ? 'opacity-60' : ''
+                      } ${marginClass} ${color.border} ${color.bg} ${color.text} flex items-center gap-1 text-[11px] font-extrabold tracking-tight cursor-pointer hover:opacity-90 transition-opacity select-none overflow-hidden`}
                       style={{
                         gridColumn: `${startCol + 1} / ${endCol + 2}`,
                         gridRow: `${track + 1}`,
                       }}
-                      title={`${event.title}${
+                      title={`${event.title}${isCompleted ? ' (Concluída)' : ''}${
                         event.endDate && event.endDate !== event.date
                           ? ` (Período: ${formatDateBR(event.date)} a ${formatDateBR(event.endDate)})`
                           : ''
@@ -413,7 +422,11 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                         </span>
                       )}
 
-                      <span className="truncate leading-none">
+                      {isCompleted && (
+                        <Check className="w-3 h-3 stroke-[3] shrink-0" aria-hidden="true" />
+                      )}
+
+                      <span className={`truncate leading-none ${isCompleted ? 'line-through decoration-2' : ''}`}>
                         {event.title}
                       </span>
 
