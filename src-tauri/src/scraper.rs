@@ -1,7 +1,7 @@
 use crate::models::{Course, FeedItem, FeedItemType, PlatformType};
 use serde_json::Value;
 use std::collections::HashSet;
-use tauri::{AppHandle, WebviewUrl, WebviewWindowBuilder};
+use tauri::AppHandle;
 
 pub struct HiddenWebviewScraper;
 
@@ -12,186 +12,195 @@ impl HiddenWebviewScraper {
         _email: &str,
         _senha: &str,
     ) -> Result<(Vec<FeedItem>, Vec<Course>), String> {
-        use std::sync::{Arc, Mutex};
-
-        use tauri::Manager;
-        for (label, existing_win) in app.webview_windows() {
-            if label.starts_with("scraper-teams-") {
-                let _ = existing_win.destroy();
-            }
+        #[cfg(not(desktop))]
+        {
+            let _ = (app, _email, _senha);
+            Err("Sincronização do Microsoft Teams não é suportada no mobile.".into())
         }
+        #[cfg(desktop)]
+        {
+            use std::sync::{Arc, Mutex};
+            use tauri::{WebviewUrl, WebviewWindowBuilder};
 
-        let window_label = format!(
-            "scraper-teams-{}",
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_millis()
-        );
-        let target_url = "https://teams.microsoft.com";
-
-        log::info!(
-            "Iniciando webview 100% invisível em segundo plano para sincronizar Teams: {}",
-            window_label
-        );
-
-        let (tx, rx) =
-            tokio::sync::oneshot::channel::<Result<(Vec<FeedItem>, Vec<Course>), String>>();
-        let tx_cell = Arc::new(Mutex::new(Some(tx)));
-        let tx_clone_nav = tx_cell.clone();
-
-        let chunks_map = Arc::new(Mutex::new(
-            std::collections::BTreeMap::<usize, String>::new(),
-        ));
-        let chunks_clone = chunks_map.clone();
-
-        let raw_payload_cell = Arc::new(Mutex::new(String::new()));
-        let raw_payload_clone = raw_payload_cell.clone();
-
-        let modern_ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
-
-        let auto_crawl_script =
-            format!("window.__unb_auto_crawl = true;\n{}", TEAMS_CRAWLER_SCRIPT);
-
-        let maybe_window = WebviewWindowBuilder::new(
-            app,
-            &window_label,
-            WebviewUrl::External(
-                target_url
-                    .parse()
-                    .map_err(|e| format!("URL inválida: {}", e))?,
-            ),
-        )
-        .inner_size(1200.0, 800.0)
-        .visible(false)
-        .focused(false)
-        .skip_taskbar(true)
-        .background_throttling(tauri::utils::config::BackgroundThrottlingPolicy::Disabled)
-        .user_agent(modern_ua)
-        .initialization_script(&auto_crawl_script)
-        .on_navigation(move |url| {
-            let is_bridge = url.scheme() == "unb-bridge"
-                || url.path().starts_with("/__aggregator_bridge__")
-                || url.host_str() == Some("__aggregator_bridge__");
-
-            if is_bridge {
-                let mut action = String::new();
-                if url.scheme() == "unb-bridge" {
-                    if let Some(host) = url.host_str() {
-                        action = host.to_string();
-                    }
+            use tauri::Manager;
+            for (label, existing_win) in app.webview_windows() {
+                if label.starts_with("scraper-teams-") {
+                    let _ = existing_win.destroy();
                 }
-                let mut payload_str = String::new();
-                let mut chunk_str = String::new();
-                let mut seq: usize = 0;
-                let mut total: usize = 1;
-                let mut error_msg = String::new();
+            }
 
-                for (k, v) in url.query_pairs() {
-                    if k == "action" {
-                        action = v.to_string();
-                    } else if k == "payload" {
-                        payload_str = v.to_string();
-                    } else if k == "chunk" {
-                        chunk_str = v.to_string();
-                    } else if k == "seq" {
-                        seq = v.parse().unwrap_or(0);
-                    } else if k == "total" {
-                        total = v.parse().unwrap_or(1);
-                    } else if k == "error" {
-                        error_msg = v.to_string();
-                    }
-                }
+            let window_label = format!(
+                "scraper-teams-{}",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis()
+            );
+            let target_url = "https://teams.microsoft.com";
 
-                if action == "sync_error" || !error_msg.is_empty() {
-                    if let Ok(mut lock) = tx_clone_nav.lock() {
-                        if let Some(sender) = lock.take() {
-                            let _ = sender.send(Err(if error_msg.is_empty() {
-                                "Erro durante sincronização do Teams".into()
-                            } else {
-                                error_msg
-                            }));
+            log::info!(
+                "Iniciando webview 100% invisível em segundo plano para sincronizar Teams: {}",
+                window_label
+            );
+
+            let (tx, rx) =
+                tokio::sync::oneshot::channel::<Result<(Vec<FeedItem>, Vec<Course>), String>>();
+            let tx_cell = Arc::new(Mutex::new(Some(tx)));
+            let tx_clone_nav = tx_cell.clone();
+
+            let chunks_map = Arc::new(Mutex::new(
+                std::collections::BTreeMap::<usize, String>::new(),
+            ));
+            let chunks_clone = chunks_map.clone();
+
+            let raw_payload_cell = Arc::new(Mutex::new(String::new()));
+            let raw_payload_clone = raw_payload_cell.clone();
+
+            let modern_ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
+
+            let auto_crawl_script =
+                format!("window.__unb_auto_crawl = true;\n{}", TEAMS_CRAWLER_SCRIPT);
+
+            let maybe_window = WebviewWindowBuilder::new(
+                app,
+                &window_label,
+                WebviewUrl::External(
+                    target_url
+                        .parse()
+                        .map_err(|e| format!("URL inválida: {}", e))?,
+                ),
+            )
+            .inner_size(1200.0, 800.0)
+            .visible(false)
+            .focused(false)
+            .skip_taskbar(true)
+            .background_throttling(tauri::utils::config::BackgroundThrottlingPolicy::Disabled)
+            .user_agent(modern_ua)
+            .initialization_script(&auto_crawl_script)
+            .on_navigation(move |url| {
+                let is_bridge = url.scheme() == "unb-bridge"
+                    || url.path().starts_with("/__aggregator_bridge__")
+                    || url.host_str() == Some("__aggregator_bridge__");
+
+                if is_bridge {
+                    let mut action = String::new();
+                    if url.scheme() == "unb-bridge" {
+                        if let Some(host) = url.host_str() {
+                            action = host.to_string();
                         }
                     }
-                } else if action == "sync_chunk" {
-                    let mut completed_payload: Option<String> = None;
-                    if let Ok(mut chunks) = chunks_clone.lock() {
-                        chunks.insert(seq, chunk_str);
-                        if chunks.len() >= total && total > 0 {
-                            let mut full_payload = String::new();
-                            for i in 0..total {
-                                if let Some(piece) = chunks.get(&i) {
-                                    full_payload.push_str(piece);
+                    let mut payload_str = String::new();
+                    let mut chunk_str = String::new();
+                    let mut seq: usize = 0;
+                    let mut total: usize = 1;
+                    let mut error_msg = String::new();
+
+                    for (k, v) in url.query_pairs() {
+                        if k == "action" {
+                            action = v.to_string();
+                        } else if k == "payload" {
+                            payload_str = v.to_string();
+                        } else if k == "chunk" {
+                            chunk_str = v.to_string();
+                        } else if k == "seq" {
+                            seq = v.parse().unwrap_or(0);
+                        } else if k == "total" {
+                            total = v.parse().unwrap_or(1);
+                        } else if k == "error" {
+                            error_msg = v.to_string();
+                        }
+                    }
+
+                    if action == "sync_error" || !error_msg.is_empty() {
+                        if let Ok(mut lock) = tx_clone_nav.lock() {
+                            if let Some(sender) = lock.take() {
+                                let _ = sender.send(Err(if error_msg.is_empty() {
+                                    "Erro durante sincronização do Teams".into()
+                                } else {
+                                    error_msg
+                                }));
+                            }
+                        }
+                    } else if action == "sync_chunk" {
+                        let mut completed_payload: Option<String> = None;
+                        if let Ok(mut chunks) = chunks_clone.lock() {
+                            chunks.insert(seq, chunk_str);
+                            if chunks.len() >= total && total > 0 {
+                                let mut full_payload = String::new();
+                                for i in 0..total {
+                                    if let Some(piece) = chunks.get(&i) {
+                                        full_payload.push_str(piece);
+                                    }
+                                }
+                                completed_payload = Some(full_payload);
+                            }
+                        }
+                        if let Some(full_payload) = completed_payload {
+                            if let Ok(mut raw_lock) = raw_payload_clone.lock() {
+                                *raw_lock = full_payload.clone();
+                            }
+                            let parsed = parse_teams_bridge_payload(&full_payload);
+                            if let Ok(mut lock) = tx_clone_nav.lock() {
+                                if let Some(sender) = lock.take() {
+                                    let _ = sender.send(Ok(parsed));
                                 }
                             }
-                            completed_payload = Some(full_payload);
                         }
-                    }
-                    if let Some(full_payload) = completed_payload {
+                    } else {
                         if let Ok(mut raw_lock) = raw_payload_clone.lock() {
-                            *raw_lock = full_payload.clone();
+                            *raw_lock = payload_str.clone();
                         }
-                        let parsed = parse_teams_bridge_payload(&full_payload);
+                        let parsed = parse_teams_bridge_payload(&payload_str);
                         if let Ok(mut lock) = tx_clone_nav.lock() {
                             if let Some(sender) = lock.take() {
                                 let _ = sender.send(Ok(parsed));
                             }
                         }
                     }
-                } else {
-                    if let Ok(mut raw_lock) = raw_payload_clone.lock() {
-                        *raw_lock = payload_str.clone();
-                    }
-                    let parsed = parse_teams_bridge_payload(&payload_str);
-                    if let Ok(mut lock) = tx_clone_nav.lock() {
-                        if let Some(sender) = lock.take() {
-                            let _ = sender.send(Ok(parsed));
-                        }
-                    }
+                    return false;
                 }
-                return false;
-            }
-            true
-        })
-        .build();
+                true
+            })
+            .build();
 
-        let window = match maybe_window {
-            Ok(w) => w,
-            Err(e) => {
-                log::error!("Falha ao instanciar WebviewWindow para Teams: {}", e);
-                return Err(format!(
-                    "Falha ao inicializar sincronizador do Teams: {}",
-                    e
-                ));
-            }
-        };
-
-        let sync_result: Result<(Vec<FeedItem>, Vec<Course>), String> =
-            match tokio::time::timeout(tokio::time::Duration::from_secs(45), rx).await {
-                Ok(Ok(inner_res)) => inner_res,
-                Ok(Err(_)) => {
-                    Err("Comunicação com a janela do Teams em segundo plano interrompida.".into())
-                }
-                Err(_) => {
-                    log::warn!("[Teams Sync] Timeout no rastreamento do Teams.");
-                    Ok((Vec::new(), Vec::new()))
+            let window = match maybe_window {
+                Ok(w) => w,
+                Err(e) => {
+                    log::error!("Falha ao instanciar WebviewWindow para Teams: {}", e);
+                    return Err(format!(
+                        "Falha ao inicializar sincronizador do Teams: {}",
+                        e
+                    ));
                 }
             };
 
-        let _ = window
-            .eval("try { window.stop(); window.location.replace('about:blank'); } catch(e) {}");
-        let _ = window.hide();
-        let _ = window.destroy();
-        log::info!("Webview em segundo plano do Teams finalizada e destruída com sucesso.");
+            let sync_result: Result<(Vec<FeedItem>, Vec<Course>), String> =
+                match tokio::time::timeout(tokio::time::Duration::from_secs(45), rx).await {
+                    Ok(Ok(inner_res)) => inner_res,
+                    Ok(Err(_)) => Err(
+                        "Comunicação com a janela do Teams em segundo plano interrompida.".into(),
+                    ),
+                    Err(_) => {
+                        log::warn!("[Teams Sync] Timeout no rastreamento do Teams.");
+                        Ok((Vec::new(), Vec::new()))
+                    }
+                };
 
-        let (items, courses) = sync_result?;
-        let raw_payload = raw_payload_cell
-            .lock()
-            .map(|l| l.clone())
-            .unwrap_or_default();
-        let (enriched_items, enriched_courses) =
-            enrich_teams_via_reqwest(&raw_payload, items, courses).await;
-        Ok((enriched_items, enriched_courses))
+            let _ = window
+                .eval("try { window.stop(); window.location.replace('about:blank'); } catch(e) {}");
+            let _ = window.hide();
+            let _ = window.destroy();
+            log::info!("Webview em segundo plano do Teams finalizada e destruída com sucesso.");
+
+            let (items, courses) = sync_result?;
+            let raw_payload = raw_payload_cell
+                .lock()
+                .map(|l| l.clone())
+                .unwrap_or_default();
+            let (enriched_items, enriched_courses) =
+                enrich_teams_via_reqwest(&raw_payload, items, courses).await;
+            Ok((enriched_items, enriched_courses))
+        }
     }
 }
 

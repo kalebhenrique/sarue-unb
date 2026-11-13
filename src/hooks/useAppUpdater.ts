@@ -2,6 +2,7 @@ import { useSyncExternalStore, useEffect } from 'react';
 import { check, type Update, type DownloadEvent } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { getVersion } from '@tauri-apps/api/app';
+import { isMobileDevice } from '@/lib/platform';
 
 export type UpdaterStatus =
   | 'idle'
@@ -95,7 +96,7 @@ if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
 export async function checkForUpdates(silent = false): Promise<Update | null> {
   // Em compilações distribuídas pela Microsoft Store, atualizações são gerenciadas
   // exclusivamente pela própria loja (Política 10.2 / 10.8 da Microsoft Store).
-  if (import.meta.env.VITE_TARGET_STORE === 'microsoft') {
+  if (import.meta.env.VITE_TARGET_STORE === 'microsoft' || isMobileDevice()) {
     return null;
   }
 

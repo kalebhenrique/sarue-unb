@@ -25,6 +25,7 @@ import {
 import type { PlatformType } from "@/core";
 import { useOptionalSync } from "@/context/SyncContext";
 import { notifyFeedListeners } from "@/hooks/useFeed";
+import { isMobileDevice } from "@/lib/platform";
 
 export interface PlatformAccountsAccordionProps {
   /** Título opcional do bloco (o onboarding usa; a Settings tem PageHeader próprio) */
@@ -714,20 +715,29 @@ export const PlatformAccountsAccordion: React.FC<
 
                       {p.id === "teams" && (
                         <>
-                          <p className="text-xs font-medium text-neutral-600 leading-relaxed">
-                            Uma janela do Teams será aberta com uma barra de
-                            controle no topo. Entre com seu e-mail institucional
-                            (@aluno.unb.br ou @unb.br) pela opção{" "}
-                            <strong className="font-bold text-black">
-                              &quot;Usar minha senha&quot;
-                            </strong>{" "}
-                            (chave de segurança e biometria não são suportadas
-                            na janela integrada), confirme o 2FA e clique em{" "}
-                            <strong className="font-bold text-black">
-                              &quot;Concluir Login&quot;
-                            </strong>{" "}
-                            assim que suas turmas carregarem.
-                          </p>
+                          {isMobileDevice() ? (
+                            <div className="p-3 bg-pastel-yellow text-black border-2 border-ink rounded-lg text-xs font-semibold leading-relaxed flex items-start gap-2">
+                              <AlertCircle className="w-4 h-4 text-ink-warning stroke-[2.5] shrink-0 mt-0.5" />
+                              <span>
+                                A integração com o Microsoft Teams requer suporte a múltiplas janelas de autenticação institucional e está disponível exclusivamente na versão Desktop do Saruê UnB.
+                              </span>
+                            </div>
+                          ) : (
+                            <p className="text-xs font-medium text-neutral-600 leading-relaxed">
+                              Uma janela do Teams será aberta com uma barra de
+                              controle no topo. Entre com seu e-mail institucional
+                              (@aluno.unb.br ou @unb.br) pela opção{" "}
+                              <strong className="font-bold text-black">
+                                &quot;Usar minha senha&quot;
+                              </strong>{" "}
+                              (chave de segurança e biometria não são suportadas
+                              na janela integrada), confirme o 2FA e clique em{" "}
+                              <strong className="font-bold text-black">
+                                &quot;Concluir Login&quot;
+                              </strong>{" "}
+                              assim que suas turmas carregarem.
+                            </p>
+                          )}
                           {teamsConnected &&
                           (teamsSuccessMsg || allCredentials.teams?.email) ? (
                             <div className="p-3 bg-pastel-green text-black border-2 border-ink rounded-lg text-xs font-bold flex items-center gap-2">
@@ -747,16 +757,18 @@ export const PlatformAccountsAccordion: React.FC<
                               }
                               size="md"
                               isLoading={isVerifying}
-                              disabled={isLoading || isVerifying}
+                              disabled={isLoading || isVerifying || isMobileDevice()}
                               onClick={handleToggleTeams}
                             >
                               <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
                               <span>
-                                {isVerifying
-                                  ? "Aguardando login no Teams..."
-                                  : teamsConnected
-                                    ? "Desconectar Microsoft Teams"
-                                    : "Acessar Microsoft Teams"}
+                                {isMobileDevice()
+                                  ? "Exclusivo para Desktop"
+                                  : isVerifying
+                                    ? "Aguardando login no Teams..."
+                                    : teamsConnected
+                                      ? "Desconectar Microsoft Teams"
+                                      : "Acessar Microsoft Teams"}
                               </span>
                             </Button>
                           </div>

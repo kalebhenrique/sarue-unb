@@ -5,6 +5,7 @@ pub mod moodle;
 pub mod schedule_solver;
 pub mod scraper;
 pub mod sigaa;
+#[cfg(desktop)]
 pub mod tray;
 
 use tauri::Manager;
@@ -51,7 +52,7 @@ pub fn builder() -> Builder<tauri::Wry> {
 pub fn run() {
     let builder = builder();
 
-    #[cfg(debug_assertions)]
+    #[cfg(all(debug_assertions, desktop))]
     builder
         .export(
             specta_typescript::Typescript::default(),
@@ -59,14 +60,44 @@ pub fn run() {
         )
         .expect("Falha ao exportar bindings TypeScript");
 
-    tauri::Builder::default()
+    #[allow(unused_mut)]
+    let mut app_builder = tauri::Builder::default()
         .manage(BackgroundRunState(std::sync::atomic::AtomicBool::new(true)))
-        .manage(IsQuitting(std::sync::atomic::AtomicBool::new(false)))
-        .plugin(
+        .manage(IsQuitting(std::sync::atomic::AtomicBool::new(false)));
+
+    #[cfg(desktop)]
+    {
+        app_builder = app_builder.plugin(
             tauri_plugin_window_state::Builder::new()
                 .with_filter(|label| label == "main")
                 .build(),
-        )
+        );
+    }
+
+    #[cfg(desktop)]
+    {
+        app_builder = app_builder.on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == "main" {
+                    let app = window.app_handle();
+                    if let Some(quitting) = app.try_state::<IsQuitting>() {
+                        if quitting.0.load(std::sync::atomic::Ordering::Relaxed) {
+                            // Encerramento/atualização em andamento: permite o fechamento padrão da janela (não previne)
+                            return;
+                        }
+                    }
+                    if let Some(state) = app.try_state::<BackgroundRunState>() {
+                        if state.0.load(std::sync::atomic::Ordering::Relaxed) {
+                            api.prevent_close();
+                            let _ = window.hide();
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    app_builder
         .setup(|app| {
             // Inicialização do cofre criptográfico com derivação Argon2 do Tauri Stronghold
             let app_data_dir = app
@@ -86,26 +117,30 @@ pub fn run() {
             app.handle()
                 .plugin(tauri_plugin_stronghold::Builder::with_argon2(&salt_path).build())?;
 
-            let migrations = vec![
-                tauri_plugin_sql::Migration {
-                    version: 1,
-                    description: "create_initial_schema",
-                    sql: include_str!("../migrations/01_initial_schema.sql"),
-                    kind: tauri_plugin_sql::MigrationKind::Up,
-                },
-                tauri_plugin_sql::Migration {
-                    version: 2,
-                    description: "create_app_settings",
-                    sql: include_str!("../migrations/02_app_settings.sql"),
-                    kind: tauri_plugin_sql::MigrationKind::Up,
-                },
-            ];
+            fn get_migrations() -> Vec<tauri_plugin_sql::Migration> {
+                vec![
+                    tauri_plugin_sql::Migration {
+                        version: 1,
+                        description: "create_initial_schema",
+                        sql: include_str!("../migrations/01_initial_schema.sql"),
+                        kind: tauri_plugin_sql::MigrationKind::Up,
+                    },
+                    tauri_plugin_sql::Migration {
+                        version: 2,
+                        description: "create_app_settings",
+                        sql: include_str!("../migrations/02_app_settings.sql"),
+                        kind: tauri_plugin_sql::MigrationKind::Up,
+                    },
+                ]
+            }
             app.handle().plugin(
                 tauri_plugin_sql::Builder::default()
-                    .add_migrations("sqlite:sarue_unb.db", migrations)
+                    .add_migrations("sqlite:sarue_unb.db", get_migrations())
+                    .add_migrations("sqlite:sarue_unb_dev.db", get_migrations())
                     .build(),
             )?;
 
+            app.handle().plugin(tauri_plugin_opener::init())?;
             app.handle().plugin(tauri_plugin_notification::init())?;
 
             #[cfg(desktop)]
@@ -148,25 +183,6 @@ pub fn run() {
 
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                if window.label() == "main" {
-                    let app = window.app_handle();
-                    if let Some(quitting) = app.try_state::<IsQuitting>() {
-                        if quitting.0.load(std::sync::atomic::Ordering::Relaxed) {
-                            // Encerramento/atualização em andamento: permite o fechamento padrão da janela (não previne)
-                            return;
-                        }
-                    }
-                    if let Some(state) = app.try_state::<BackgroundRunState>() {
-                        if state.0.load(std::sync::atomic::Ordering::Relaxed) {
-                            api.prevent_close();
-                            let _ = window.hide();
-                        }
-                    }
-                }
-            }
-        })
         .invoke_handler(builder.invoke_handler())
         .build(tauri::generate_context!())
         .expect("erro durante a compilação do aplicativo Saruê UnB")
@@ -180,6 +196,27 @@ pub fn run() {
                 }
             }
         });
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub unsafe extern "C" fn Java_br_unb_sarue_MainActivity_initPlatformVerifier<'local>(
+    mut env: jni::EnvUnowned<'local>,
+    _class: jni::objects::JClass<'local>,
+    context: jni::objects::JObject<'local>,
+) {
+    env.with_env(|inner_env| -> jni::errors::Result<()> {
+        if let Err(e) = rustls_platform_verifier::android::init_with_env(inner_env, context) {
+            log::error!(
+                "Falha ao inicializar rustls-platform-verifier no Android: {:?}",
+                e
+            );
+            return Err(e);
+        }
+        log::info!("rustls-platform-verifier inicializado com sucesso no Android.");
+        Ok(())
+    })
+    .resolve::<jni::errors::ThrowRuntimeExAndDefault>();
 }
 
 #[cfg(test)]

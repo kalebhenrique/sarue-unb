@@ -3,8 +3,7 @@
   "identifier": "default",
   "description": "Default permissions for Saruê UnB",
   "windows": [
-    "main",
-    "scraper-*"
+    "main"
   ],
   "permissions": [
     "core:default",
@@ -17,6 +16,7 @@
     "sql:allow-execute",
     "sql:allow-select",
     "sql:allow-load",
-    "sql:allow-close"
+    "sql:allow-close",
+    "opener:default"
   ]
 }

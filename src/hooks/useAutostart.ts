@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { isMobileDevice } from '@/lib/platform';
 
 const STORAGE_KEY = 'sarue_autostart_enabled';
 
@@ -10,7 +11,9 @@ export function useAutostart() {
     let isMounted = true;
     (async () => {
       try {
-        if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+        if (isMobileDevice()) {
+          if (isMounted) setIsEnabled(false);
+        } else if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
           const { isEnabled: checkEnabled } = await import('@tauri-apps/plugin-autostart');
           const enabled = await checkEnabled();
           if (isMounted) setIsEnabled(enabled);
@@ -31,6 +34,7 @@ export function useAutostart() {
   }, []);
 
   const toggle = useCallback(async (nextValue: boolean) => {
+    if (isMobileDevice()) return;
     setIsEnabled(nextValue);
     try {
       if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {

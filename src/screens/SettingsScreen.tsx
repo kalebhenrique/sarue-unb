@@ -57,6 +57,7 @@ import {
   UI_ZOOM_STEP_PERCENT,
   type UiZoom,
 } from "../lib/accessibility";
+import { isMobileDevice } from "../lib/platform";
 
 export interface SettingsScreenProps {
   onResetCredentials: () => void;
@@ -226,44 +227,48 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         <SettingsSection icon={SlidersHorizontal} label="Preferências">
           <div className="space-y-4">
             {/* Inicialização com o Sistema */}
-            <div className="flex items-center justify-between gap-4 py-1">
-              <div className="max-w-md">
-                <span className="text-xs font-black text-black block">
-                  Iniciar com o sistema
-                </span>
-                <p className="text-xs font-semibold text-neutral-600 leading-snug mt-0.5">
-                  O Saruê abre em segundo plano quando você liga o computador,
-                  para você não perder prazos.
-                </p>
+            {!isMobileDevice() && (
+              <div className="flex items-center justify-between gap-4 py-1">
+                <div className="max-w-md">
+                  <span className="text-xs font-black text-black block">
+                    Iniciar com o sistema
+                  </span>
+                  <p className="text-xs font-semibold text-neutral-600 leading-snug mt-0.5">
+                    O Saruê abre em segundo plano quando você liga o computador,
+                    para você não perder prazos.
+                  </p>
+                </div>
+                <Switch
+                  checked={isAutostartEnabled}
+                  disabled={isAutostartLoading}
+                  onCheckedChange={toggleAutostart}
+                  aria-label="Iniciar automaticamente com o sistema"
+                  className="shrink-0"
+                />
               </div>
-              <Switch
-                checked={isAutostartEnabled}
-                disabled={isAutostartLoading}
-                onCheckedChange={toggleAutostart}
-                aria-label="Iniciar automaticamente com o sistema"
-                className="shrink-0"
-              />
-            </div>
+            )}
 
             {/* Rodar em segundo plano */}
-            <div className="flex items-center justify-between gap-4 py-1">
-              <div className="max-w-md">
-                <span className="text-xs font-black text-black block">
-                  Rodar em segundo plano
-                </span>
-                <p className="text-xs font-semibold text-neutral-600 leading-snug mt-0.5">
-                  Mantém o Saruê ativo na bandeja para não perder prazos e sincroniza
-                  a cada 6 horas automaticamente.
-                </p>
+            {!isMobileDevice() && (
+              <div className="flex items-center justify-between gap-4 py-1">
+                <div className="max-w-md">
+                  <span className="text-xs font-black text-black block">
+                    Rodar em segundo plano
+                  </span>
+                  <p className="text-xs font-semibold text-neutral-600 leading-snug mt-0.5">
+                    Mantém o Saruê ativo na bandeja para não perder prazos e sincroniza
+                    a cada 6 horas automaticamente.
+                  </p>
+                </div>
+                <Switch
+                  checked={isBackgroundRunEnabled}
+                  disabled={isBackgroundRunLoading}
+                  onCheckedChange={toggleBackgroundRun}
+                  aria-label="Rodar em segundo plano"
+                  className="shrink-0"
+                />
               </div>
-              <Switch
-                checked={isBackgroundRunEnabled}
-                disabled={isBackgroundRunLoading}
-                onCheckedChange={toggleBackgroundRun}
-                aria-label="Rodar em segundo plano"
-                className="shrink-0"
-              />
-            </div>
+            )}
 
             {/* Feedback Sonoro / Switch Mecânico */}
             <div className="flex items-center justify-between gap-4 py-1">
@@ -411,7 +416,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </SettingsSection>
 
         {/* Atualizações do Aplicativo */}
-        <AppUpdaterCard />
+        {!isMobileDevice() && <AppUpdaterCard />}
 
         {/* Zona de Perigo — logo após Atualizações, com respiro maior antes */}
         <div className="pt-6">

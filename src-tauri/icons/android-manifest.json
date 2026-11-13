@@ -1,0 +1,6 @@
+{
+  "default": "../../public/sarue-logo.png",
+  "bg_color": "#215EE3",
+  "android_fg": "android-foreground.png",
+  "android_monochrome": "android-monochrome.png"
+}
