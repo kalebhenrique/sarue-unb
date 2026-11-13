@@ -263,7 +263,7 @@ export const NumberInput: React.FC<NumberInputProps> = ({
         <NumberFieldInput
           placeholder={placeholder}
           aria-label={ariaLabel}
-          className={inputClassName}
+          className={cn(controls === "sides" && "px-1", inputClassName)}
         />
 
         {controls === "sides" && (

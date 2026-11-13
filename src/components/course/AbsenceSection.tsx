@@ -312,7 +312,7 @@ export const AbsenceSection: React.FC<AbsenceSectionProps> = ({
                 smallStep={1}
                 placeholder="—"
                 controls="sides"
-                className="w-24 shrink-0"
+                className="w-28 shrink-0"
                 aria-label="Quantidade de faltas da disciplina, em aulas faltadas"
               />
               <span className="text-[11px] font-bold text-neutral-500 shrink-0">

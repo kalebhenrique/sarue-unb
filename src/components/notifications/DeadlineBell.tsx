@@ -82,7 +82,7 @@ const DeadlineRow: React.FC<{
           {item.title}
         </span>
 
-        <div className="mt-1 flex items-center gap-2 min-w-0 text-[11px] font-semibold text-neutral-500">
+        <div className="mt-1 flex items-center gap-1.5 min-w-0 text-[11px] font-semibold text-neutral-500">
           <Badge variant={item.platform} size="sm" className="shrink-0">
             {PLATFORM_LABELS[item.platform] ?? item.platform}
           </Badge>
@@ -90,7 +90,7 @@ const DeadlineRow: React.FC<{
             <Badge
               variant="neutral"
               size="sm"
-              className="shrink-0 max-w-[118px]"
+              className="min-w-0 max-w-[128px]"
               title={item.courseName}
             >
               <span className="min-w-0 truncate">
@@ -225,7 +225,7 @@ export const DeadlineBell: React.FC<{ className?: string }> = ({ className }) =>
         >
           <PopoverPrimitive.Popup
             aria-label="Prazos próximos"
-            className="w-[380px] max-h-[min(28rem,var(--available-height))] flex flex-col overflow-hidden rounded-lg border-2 border-ink bg-canvas outline-none origin-[var(--transform-origin)] transition-[opacity,transform] duration-150 ease-out data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0"
+            className="w-[min(420px,calc(100vw-2rem))] max-h-[min(28rem,var(--available-height))] flex flex-col overflow-hidden rounded-lg border-2 border-ink bg-canvas outline-none origin-[var(--transform-origin)] transition-[opacity,transform] duration-150 ease-out data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0"
           >
             {/* Cabeçalho do painel */}
             <div className="flex items-center justify-between px-4 py-3 border-b-2 border-ink/15 shrink-0">
@@ -245,7 +245,7 @@ export const DeadlineBell: React.FC<{ className?: string }> = ({ className }) =>
             </div>
 
             {/* Seções de urgência */}
-            <div className="overflow-y-auto overscroll-contain">
+            <div className="overflow-y-auto overflow-x-hidden overscroll-contain">
               {snapshot.length === 0 ? (
                 <div className="px-6 py-10 text-center space-y-3">
                   <div className="w-12 h-12 mx-auto bg-paper border-2 border-ink rounded-lg shadow-[2px_2px_0px_0px_var(--neo-shadow)] flex items-center justify-center">
