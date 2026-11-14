@@ -24,3 +24,4 @@ export * from './filter-select';
 export * from './number-field';
 export * from './calendar';
 export * from './date-picker';
+export * from './progress';

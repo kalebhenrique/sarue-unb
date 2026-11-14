@@ -1,4 +1,5 @@
 import React from "react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import {
   Home,
   BookOpen,
@@ -10,10 +11,16 @@ import {
   RefreshCw,
   GraduationCap,
   MessageSquareQuote,
+  Utensils,
+  IdCard,
+  LayoutGrid,
+  Bell,
 } from "lucide-react";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
+import { Progress } from "@/components/ui/progress";
 import { SyncStatusTooltip } from "./SyncStatusTooltip";
 import { DeadlineBell } from "./notifications/DeadlineBell";
+import { useDeadlines } from "../context/DeadlineContext";
 import { useUpdateAvailable } from "../hooks/useAppUpdater";
 import type { SyncStepInfo } from "../context/SyncContext";
 
@@ -24,6 +31,7 @@ export type NavTab =
   | "calendar"
   | "my-course"
   | "evaluations"
+  | "notifications"
   | "settings";
 
 export interface SidebarProps {
@@ -61,6 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const hookHasUpdateAvailable = useUpdateAvailable();
   const hasUpdate = propHasUpdateAvailable ?? hookHasUpdateAvailable;
+  const { badgeCount } = useDeadlines();
 
   // Popover de status: controlado pelo AppShell (ritual pós-cadastro), com fallback interno
   const [internalSyncPopoverOpen, setInternalSyncPopoverOpen] =
@@ -135,7 +144,52 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "settings" as NavTab, label: "Configurações", icon: Settings },
   ];
 
+  const moreNavItems = [
+    { id: "calendar" as NavTab, label: "Calendário", icon: CalendarDays },
+    { id: "grade" as NavTab, label: "Montar Grade", icon: SquareKanban },
+    {
+      id: "evaluations" as NavTab,
+      label: "Avaliar Professor",
+      icon: MessageSquareQuote,
+    },
+    { id: "my-course" as NavTab, label: "Meu Curso", icon: GraduationCap },
+    { id: "settings" as NavTab, label: "Configurações", icon: Settings },
+  ];
+
+  const [isMoreOpen, setIsMoreOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMoreOpen(false);
+  }, [currentTab]);
+
+  React.useEffect(() => {
+    if (!isMoreOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMoreOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMoreOpen]);
+
   const isHomeActive = currentTab === "home";
+  const isCoursesActive = currentTab === "courses";
+  const isNotificationsActive = currentTab === "notifications";
+  const isMoreRouteActive = moreNavItems.some((item) => item.id === currentTab);
+  const shouldReduceMotion = useReducedMotion();
+
+  // Índice ativo para o thumb deslizante da Bottom Tab Bar (estilo SegmentedControl):
+  // 0 = Início, 1 = Disciplinas, 3 = Notificações, 4 = Mais (quando aberto ou em rota interna)
+  const activeMobileIndex = isMoreOpen
+    ? 4
+    : isHomeActive
+      ? 0
+      : isCoursesActive
+        ? 1
+        : isNotificationsActive
+          ? 3
+          : isMoreRouteActive
+            ? 4
+            : -1;
 
   const formatLastSync = (isoString?: string | null) => {
     if (!isoString) return "Não sincronizado";
@@ -169,6 +223,62 @@ export const Sidebar: React.FC<SidebarProps> = ({
         .find((s) => s?.status === "syncing")
     : undefined;
 
+  // Cálculo estritamente sequencial de 4 etapas para a barra verde do mobile:
+  // 1) SIGAA + Aprender 3 (juntos no primeiro check em 25%)
+  // 2) Meu Curso (50%)
+  // 3) Catálogo UnB / ghPages (75%)
+  // 4) Planilha de Avaliações (100%)
+  const syncProgressInfo = React.useMemo(() => {
+    const total = 4;
+    if (!syncSteps) {
+      return {
+        total,
+        completed: lastSyncedAt ? total : 0,
+        percent: lastSyncedAt ? 100 : 0,
+      };
+    }
+
+    const isDone = (
+      id: "sigaa" | "aprender3" | "myCourse" | "ghPages" | "planilha",
+    ) => {
+      const st = syncSteps[id]?.status;
+      return st === "success" || st === "error" || st === "skipped";
+    };
+
+    const isCurrentlySyncing = isSyncing || Boolean(activeSyncStep);
+    if (!isCurrentlySyncing) {
+      const anySuccess = (
+        ["sigaa", "aprender3", "myCourse", "ghPages", "planilha"] as const
+      ).some((id) => syncSteps[id]?.status === "success");
+      const allDone = anySuccess || Boolean(lastSyncedAt);
+      return {
+        total,
+        completed: allDone ? total : 0,
+        percent: allDone ? 100 : 0,
+      };
+    }
+
+    // Cada check exige que o anterior já tenha concluído (progresso contínuo sem pular checks)
+    const stage1 = isDone("sigaa") && isDone("aprender3");
+    const stage2 = stage1 && isDone("myCourse");
+    const stage3 = stage2 && isDone("ghPages");
+    const stage4 = stage3 && isDone("planilha");
+
+    const completed = [stage1, stage2, stage3, stage4].filter(Boolean).length;
+    const stepSize = 100 / total; // 25% por etapa
+    // Enquanto sincroniza a próxima etapa, avança parcialmente (+10%) sem nunca ultrapassar o próximo check
+    const percent =
+      completed >= total
+        ? 100
+        : Math.round(completed * stepSize + stepSize * 0.4);
+
+    return {
+      total,
+      completed,
+      percent,
+    };
+  }, [syncSteps, isSyncing, activeSyncStep, lastSyncedAt]);
+
   // Painel do popover: status das plataformas + ação de sincronizar
   // (o status mudou de tooltip no hover para popover no clique — persiste até clique fora)
   const syncPanel = (
@@ -189,8 +299,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   return (
+    <>
     <aside
-      className={`group h-full bg-paper border-r-2 border-ink flex flex-col transition-[width] duration-300 ease-[cubic-bezier(0.2,0,0,1)] select-none z-20 shrink-0 overflow-x-hidden ${
+      className={`group hidden md:flex h-full bg-paper border-r-2 border-ink flex-col transition-[width] duration-300 ease-[cubic-bezier(0.2,0,0,1)] select-none z-20 shrink-0 overflow-x-hidden ${
         isCollapsed ? "w-20" : "w-64"
       }`}
     >
@@ -426,5 +537,258 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
     </aside>
+
+    {/* Backdrop escurecido quando o menu "Mais" está aberto */}
+    <AnimatePresence>
+      {isMoreOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          aria-hidden="true"
+          onClick={() => setIsMoreOpen(false)}
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-xs md:hidden"
+        />
+      )}
+    </AnimatePresence>
+
+    {/* Unidade Inferior Mobile: Bottom Sheet "Mais" (arrastável para baixo) + Bottom Tab Bar.
+        Quando aberto, a borda superior fica no topo do sheet e não há linha entre o menu e a tabbar. */}
+    <div className="fixed bottom-0 inset-x-0 z-40 flex flex-col md:hidden select-none">
+      <AnimatePresence initial={false}>
+        {isMoreOpen && (
+          <motion.nav
+            id="mobile-more-menu"
+            role="navigation"
+            aria-label="Mais opções de navegação"
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.65 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 60 || info.velocity.y > 300) {
+                setIsMoreOpen(false);
+              }
+            }}
+            initial={
+              shouldReduceMotion
+                ? { height: "auto", opacity: 0 }
+                : { height: 0, opacity: 0 }
+            }
+            animate={{ height: "auto", opacity: 1, y: 0 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden bg-paper border-t-2 border-ink rounded-t-2xl touch-pan-x"
+          >
+            {/* Alça (drag handle) do Bottom Sheet */}
+            <div className="pt-2.5 pb-1 flex justify-center cursor-grab active:cursor-grabbing">
+              <div className="w-10 h-1.5 rounded-full bg-neutral-300 border border-ink/40" />
+            </div>
+
+            {/* Topo: Botão de Sincronizar (sem popover no mobile) + Progress Verde Contínuo com Checks */}
+            <div className="px-4 pt-2 pb-3.5 bg-neutral-50 border-b-2 border-ink space-y-2.5">
+              <button
+                type="button"
+                disabled={!hasConnectedAccounts}
+                onClick={() => {
+                  if (!hasConnectedAccounts || isSyncing) return;
+                  onSync?.();
+                }}
+                className={`w-full h-11 flex items-center justify-center gap-2 font-extrabold text-xs rounded-xl border-2 transition-[transform,box-shadow,background-color,border-color] duration-150 select-none ${
+                  !hasConnectedAccounts
+                    ? "bg-neutral-200 text-neutral-400 border-neutral-300 cursor-not-allowed shadow-none"
+                    : "cursor-pointer bg-neo-blue hover:bg-neo-blueHover text-white border-ink shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2"
+                }`}
+              >
+                <RefreshCw
+                  className={`w-4 h-4 shrink-0 stroke-[2.5] ${
+                    isSyncing || activeSyncStep ? "animate-spin" : ""
+                  }`}
+                />
+                <span>{isSyncing ? "Sincronizando..." : "Sincronizar"}</span>
+              </button>
+
+              <Progress
+                value={syncProgressInfo.percent}
+                stepsCount={syncProgressInfo.total}
+                completedSteps={syncProgressInfo.completed}
+                aria-label="Progresso da sincronização"
+              />
+            </div>
+
+            {/* Lista de Navegação Expansível (incluindo Carteirinha placeholder) */}
+            <div className="flex flex-col divide-y-2 divide-black/10 py-1">
+              <button
+                type="button"
+                data-no-sound="true"
+                className="cursor-pointer w-full px-5 py-4 text-sm font-extrabold flex items-center gap-3 text-left text-black hover:bg-neutral-100 hover:text-neo-blue active:bg-neutral-200 transition-colors focus-visible:outline-hidden"
+              >
+                <IdCard className="w-5 h-5 shrink-0 stroke-[2.5]" />
+                <span className="truncate">Carteirinha</span>
+              </button>
+
+              {moreNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentTab === item.id;
+                const isSettingsWithUpdate = item.id === "settings" && hasUpdate;
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    data-no-sound={isActive ? "true" : undefined}
+                    aria-current={isActive ? "page" : undefined}
+                    onClick={() => {
+                      onSelectTab(item.id);
+                      setIsMoreOpen(false);
+                    }}
+                    className={`cursor-pointer w-full px-5 py-4 text-sm font-extrabold flex items-center gap-3 text-left transition-colors focus-visible:outline-hidden ${
+                      isActive
+                        ? "text-neo-blue bg-neutral-100"
+                        : "text-black hover:bg-neutral-100 hover:text-neo-blue active:bg-neutral-200"
+                    }`}
+                  >
+                    <Icon className="w-5 h-5 shrink-0 stroke-[2.5]" />
+                    <span className="truncate">{item.label}</span>
+                    {isSettingsWithUpdate && (
+                      <span
+                        aria-label="Atualização disponível"
+                        className="w-2 h-2 rounded-full shrink-0 ml-auto bg-neo-blue"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
+
+      {/* Bottom Tab Bar inspirada em SegmentedControl (sem border-t quando o sheet está aberto) */}
+      <nav
+        aria-label="Navegação principal mobile"
+        className={`relative z-10 w-full bg-paper px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] ${
+          isMoreOpen ? "border-t-0" : "border-t-2 border-ink"
+        }`}
+      >
+        <div className="relative w-full grid grid-cols-5 gap-1">
+          {/* Thumb-adesivo: pill Azul Caneta que desliza até a aba ativa em 150ms ease-out */}
+          <span
+            aria-hidden="true"
+            className={`pointer-events-none absolute inset-y-0 left-0 rounded-xl bg-neo-blue transition-[transform,opacity] duration-150 ease-out ${
+              activeMobileIndex === -1 ? "opacity-0" : ""
+            }`}
+            style={{
+              width: "calc((100% - 16px) / 5)",
+              transform: `translateX(calc(${Math.max(0, activeMobileIndex) * 100}% + ${Math.max(0, activeMobileIndex) * 4}px))`,
+            }}
+          />
+
+          {/* 1. Início */}
+          <button
+            type="button"
+            data-no-sound={isHomeActive && !isMoreOpen ? "true" : undefined}
+            aria-current={isHomeActive ? "page" : undefined}
+            onClick={() => {
+              setIsMoreOpen(false);
+              onSelectTab("home");
+            }}
+            className={`relative z-10 cursor-pointer flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] font-extrabold leading-none tracking-tight transition-colors duration-150 active:translate-y-px focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue ${
+              activeMobileIndex === 0
+                ? "text-white"
+                : "text-black hover:bg-neutral-100"
+            }`}
+          >
+            <Home className="w-5 h-5 stroke-[2.5]" />
+            <span>Início</span>
+          </button>
+
+          {/* 2. Disciplinas */}
+          <button
+            type="button"
+            data-no-sound={isCoursesActive && !isMoreOpen ? "true" : undefined}
+            aria-current={isCoursesActive ? "page" : undefined}
+            onClick={() => {
+              setIsMoreOpen(false);
+              onSelectTab("courses");
+            }}
+            className={`relative z-10 cursor-pointer flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] font-extrabold leading-none tracking-tight transition-colors duration-150 active:translate-y-px focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue ${
+              activeMobileIndex === 1
+                ? "text-white"
+                : "text-black hover:bg-neutral-100"
+            }`}
+          >
+            <BookOpen className="w-5 h-5 stroke-[2.5]" />
+            <span>Disciplinas</span>
+          </button>
+
+          {/* 3. RU (placeholder estático) */}
+          <button
+            type="button"
+            data-no-sound="true"
+            className="relative z-10 cursor-pointer flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-black hover:bg-neutral-100 text-[11px] font-extrabold leading-none tracking-tight transition-colors duration-150 active:translate-y-px focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue"
+          >
+            <Utensils className="w-5 h-5 stroke-[2.5]" />
+            <span>RU</span>
+          </button>
+
+          {/* 4. Notificações */}
+          <button
+            type="button"
+            data-no-sound={
+              isNotificationsActive && !isMoreOpen ? "true" : undefined
+            }
+            aria-current={isNotificationsActive ? "page" : undefined}
+            onClick={() => {
+              setIsMoreOpen(false);
+              onSelectTab("notifications");
+            }}
+            className={`relative z-10 cursor-pointer flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] font-extrabold leading-none tracking-tight transition-colors duration-150 active:translate-y-px focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue ${
+              activeMobileIndex === 3
+                ? "text-white"
+                : "text-black hover:bg-neutral-100"
+            }`}
+          >
+            <div className="relative">
+              <Bell className="w-5 h-5 stroke-[2.5]" />
+              {badgeCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-1.5 -right-2.5 min-w-[16px] h-[16px] px-1 inline-flex items-center justify-center text-[10px] leading-none font-bold text-white bg-neo-danger border-2 border-ink rounded-full"
+                >
+                  {badgeCount > 9 ? "9+" : badgeCount}
+                </span>
+              )}
+            </div>
+            <span>Notificações</span>
+          </button>
+
+          {/* 5. Mais */}
+          <button
+            type="button"
+            aria-expanded={isMoreOpen}
+            aria-controls="mobile-more-menu"
+            onClick={() => setIsMoreOpen((prev) => !prev)}
+            className={`relative z-10 cursor-pointer flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] font-extrabold leading-none tracking-tight transition-colors duration-150 active:translate-y-px focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue ${
+              activeMobileIndex === 4
+                ? "text-white"
+                : "text-black hover:bg-neutral-100"
+            }`}
+          >
+            <LayoutGrid className="w-5 h-5 stroke-[2.5]" />
+            <span>Mais</span>
+            {hasUpdate && (
+              <span
+                aria-hidden="true"
+                className={`absolute top-1.5 right-2.5 w-2 h-2 rounded-full ${
+                  activeMobileIndex === 4 ? "bg-paper" : "bg-neo-blue"
+                }`}
+              />
+            )}
+          </button>
+        </div>
+      </nav>
+    </div>
+    </>
   );
 };

@@ -32,15 +32,20 @@ const MINIMAP_TITLE = "Minimapa — clique para navegar";
 interface FeedbackWidgetProps {
   /** Nome em pt-BR da tela atual (vai nos dados opt-in de dispositivo). */
   screen: string;
+  /** "floating" = FAB fixo no desktop; "inline" = botão na tela de Configurações. */
+  variant?: "floating" | "inline";
 }
 
 /**
- * Feedback flutuante: adesivo de ação fixo no canto inferior direito do
- * conteúdo, com popup de envio ancorado acima (padrão Sentry no mundo
- * adesivo). O envio cria uma issue no repositório via endpoint do site —
- * o app nunca vê credencial do GitHub.
+ * Feedback: adesivo de ação fixo no canto inferior direito no desktop
+ * ("floating", oculto no mobile) ou botão inline em Configurações ("inline"),
+ * com popup de envio ancorado acima. O envio cria uma issue no repositório via
+ * endpoint do site — o app nunca vê credencial do GitHub.
  */
-export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({ screen }) => {
+export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
+  screen,
+  variant = "floating",
+}) => {
   const [open, setOpen] = React.useState(false);
 
   // Rascunho vive no widget (sempre montado): fechar o popup não perde texto.
@@ -139,41 +144,54 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({ screen }) => {
     <>
       {/* Adesivo de ação flutuante (gatilho) */}
       <PopoverPrimitive.Root open={open} onOpenChange={handleOpenChange}>
-        <Tooltip>
-          <TooltipTrigger
+        {variant === "inline" ? (
+          <PopoverPrimitive.Trigger
             render={
-              <PopoverPrimitive.Trigger
-                type="button"
-                aria-label="Enviar feedback"
-                style={{ bottom: liftBottom ?? 16 }}
-                className={cn(
-                  "cursor-pointer fixed right-4 z-40 flex h-10 w-10 items-center justify-center select-none",
-                  "rounded-xl border-2 border-ink bg-paper dark:bg-btn-raise text-black",
-                  "shadow-[2px_2px_0px_0px_var(--neo-shadow)]",
-                  "hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-neutral-100 hover:shadow-[1px_1px_0px_0px_var(--neo-shadow)]",
-                  "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
-                  "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2",
-                  "disabled:opacity-50",
-                  "transition-[bottom,transform,box-shadow,background-color] duration-150 ease-out",
-                )}
-              >
-                <Megaphone className="h-5 w-5 stroke-[2.5]" />
-              </PopoverPrimitive.Trigger>
+              <Button type="button" variant="outline" size="md">
+                <Megaphone className="h-4 w-4 stroke-[2.5]" />
+                <span>Enviar feedback ou reportar bug</span>
+              </Button>
             }
           />
-          <TooltipContent>Enviar feedback</TooltipContent>
-        </Tooltip>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <PopoverPrimitive.Trigger
+                  type="button"
+                  aria-label="Enviar feedback"
+                  style={
+                    liftBottom !== null ? { bottom: liftBottom } : undefined
+                  }
+                  className={cn(
+                    "cursor-pointer fixed bottom-4 right-4 z-40 hidden md:flex h-10 w-10 items-center justify-center select-none",
+                    "rounded-xl border-2 border-ink bg-paper dark:bg-btn-raise text-black",
+                    "shadow-[2px_2px_0px_0px_var(--neo-shadow)]",
+                    "hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-neutral-100 hover:shadow-[1px_1px_0px_0px_var(--neo-shadow)]",
+                    "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+                    "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2",
+                    "disabled:opacity-50",
+                    "transition-[bottom,transform,box-shadow,background-color] duration-150 ease-out",
+                  )}
+                >
+                  <Megaphone className="h-5 w-5 stroke-[2.5]" />
+                </PopoverPrimitive.Trigger>
+              }
+            />
+            <TooltipContent>Enviar feedback</TooltipContent>
+          </Tooltip>
+        )}
 
         <PopoverPrimitive.Portal>
           <PopoverPrimitive.Positioner
             side="top"
-            align="end"
+            align={variant === "inline" ? "center" : "end"}
             sideOffset={10}
-            className="z-40"
+            className="z-50"
           >
             <PopoverPrimitive.Popup
               aria-label="Formulário de feedback"
-              className="w-[360px] max-h-[min(600px,calc(100vh-96px))] overflow-y-auto rounded-lg border-2 border-ink bg-canvas text-black outline-none origin-[var(--transform-origin)] transition-[opacity,transform] duration-150 ease-out data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0"
+              className="w-[min(360px,calc(100vw-2rem))] max-h-[min(600px,calc(100vh-96px))] overflow-y-auto rounded-lg border-2 border-ink bg-canvas text-black outline-none origin-[var(--transform-origin)] transition-[opacity,transform] duration-150 ease-out data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0"
             >
               {status === "success" && issue ? (
                 /* Estado de sucesso: feedback virou issue */

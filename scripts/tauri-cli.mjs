@@ -119,7 +119,13 @@ function setupAndroidEnvironment() {
 
       for (const t of targets) {
         const clangPath = path.join(toolchainBin, t.clang);
+        const clangxxPath = `${clangPath}++`;
+        const lowerPrefix = t.envPrefix.toLowerCase();
+        process.env[`CC_${lowerPrefix}`] = clangPath;
+        process.env[`CXX_${lowerPrefix}`] = clangxxPath;
+        process.env[`AR_${lowerPrefix}`] = llvmAr;
         process.env[`CC_${t.envPrefix}`] = clangPath;
+        process.env[`CXX_${t.envPrefix}`] = clangxxPath;
         process.env[`AR_${t.envPrefix}`] = llvmAr;
         process.env[`CARGO_TARGET_${t.envPrefix}_LINKER`] = clangPath;
         process.env[`CARGO_TARGET_${t.envPrefix}_AR`] = llvmAr;

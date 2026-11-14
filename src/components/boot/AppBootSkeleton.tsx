@@ -20,7 +20,7 @@ export const AppBootSkeleton: React.FC = () => (
       className="flex h-full bg-canvas bg-grid overflow-hidden"
     >
       {/* Sidebar preview: cromo real, conteúdo sem tinta */}
-      <aside className="h-full w-64 shrink-0 bg-paper border-r-2 border-ink flex flex-col select-none overflow-x-hidden">
+      <aside className="hidden md:flex h-full w-64 shrink-0 bg-paper border-r-2 border-ink flex-col select-none overflow-x-hidden">
         <div className="min-h-0 flex-1 flex flex-col">
           {/* Header com o logo-bloco real (identidade âncora) e wordmark sem tinta */}
           <div className="shrink-0 p-4 border-b-2 border-ink flex items-center min-h-[69px]">
@@ -67,7 +67,7 @@ export const AppBootSkeleton: React.FC = () => (
       {/* Conteúdo central: composição de primeira carga da Home */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         <main className="flex-1 overflow-y-auto px-2 py-6 md:px-4 md:py-8">
-          <div className="w-full max-w-6xl mx-auto space-y-6 pb-12">
+          <div className="w-full max-w-6xl mx-auto space-y-6 pb-20 md:pb-12">
             {/* Título da página */}
             <Skeleton className="h-7 w-40" />
 

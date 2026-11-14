@@ -60,10 +60,41 @@ pub fn run() {
         )
         .expect("Falha ao exportar bindings TypeScript");
 
+    fn get_migrations() -> Vec<tauri_plugin_sql::Migration> {
+        vec![
+            tauri_plugin_sql::Migration {
+                version: 1,
+                description: "create_initial_schema",
+                sql: include_str!("../migrations/01_initial_schema.sql"),
+                kind: tauri_plugin_sql::MigrationKind::Up,
+            },
+            tauri_plugin_sql::Migration {
+                version: 2,
+                description: "create_app_settings",
+                sql: include_str!("../migrations/02_app_settings.sql"),
+                kind: tauri_plugin_sql::MigrationKind::Up,
+            },
+            tauri_plugin_sql::Migration {
+                version: 3,
+                description: "create_user_calendar_events",
+                sql: include_str!("../migrations/03_user_calendar_events.sql"),
+                kind: tauri_plugin_sql::MigrationKind::Up,
+            },
+        ]
+    }
+
     #[allow(unused_mut)]
     let mut app_builder = tauri::Builder::default()
         .manage(BackgroundRunState(std::sync::atomic::AtomicBool::new(true)))
-        .manage(IsQuitting(std::sync::atomic::AtomicBool::new(false)));
+        .manage(IsQuitting(std::sync::atomic::AtomicBool::new(false)))
+        .plugin(
+            tauri_plugin_sql::Builder::default()
+                .add_migrations("sqlite:sarue_unb.db", get_migrations())
+                .add_migrations("sqlite:sarue_unb_dev.db", get_migrations())
+                .build(),
+        )
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init());
 
     #[cfg(desktop)]
     {
@@ -116,38 +147,6 @@ pub fn run() {
 
             app.handle()
                 .plugin(tauri_plugin_stronghold::Builder::with_argon2(&salt_path).build())?;
-
-            fn get_migrations() -> Vec<tauri_plugin_sql::Migration> {
-                vec![
-                    tauri_plugin_sql::Migration {
-                        version: 1,
-                        description: "create_initial_schema",
-                        sql: include_str!("../migrations/01_initial_schema.sql"),
-                        kind: tauri_plugin_sql::MigrationKind::Up,
-                    },
-                    tauri_plugin_sql::Migration {
-                        version: 2,
-                        description: "create_app_settings",
-                        sql: include_str!("../migrations/02_app_settings.sql"),
-                        kind: tauri_plugin_sql::MigrationKind::Up,
-                    },
-                    tauri_plugin_sql::Migration {
-                        version: 3,
-                        description: "create_user_calendar_events",
-                        sql: include_str!("../migrations/03_user_calendar_events.sql"),
-                        kind: tauri_plugin_sql::MigrationKind::Up,
-                    },
-                ]
-            }
-            app.handle().plugin(
-                tauri_plugin_sql::Builder::default()
-                    .add_migrations("sqlite:sarue_unb.db", get_migrations())
-                    .add_migrations("sqlite:sarue_unb_dev.db", get_migrations())
-                    .build(),
-            )?;
-
-            app.handle().plugin(tauri_plugin_opener::init())?;
-            app.handle().plugin(tauri_plugin_notification::init())?;
 
             #[cfg(desktop)]
             {

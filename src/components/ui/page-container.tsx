@@ -11,7 +11,7 @@ export const PageContainer: React.FC<PageContainerProps> = ({
   ...props
 }) => {
   return (
-    <div className={cn('w-full max-w-6xl mx-auto space-y-6 pb-12', className)} {...props}>
+    <div className={cn('w-full max-w-6xl mx-auto space-y-6 pb-20 md:pb-12', className)} {...props}>
       {children}
     </div>
   );

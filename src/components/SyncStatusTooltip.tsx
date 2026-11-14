@@ -84,7 +84,7 @@ export const SyncStatusTooltip: React.FC<SyncStatusTooltipProps> = ({
   ];
 
   return (
-    <div className="w-80 p-3 space-y-3 bg-canvas text-black select-none">
+    <div className="w-full p-3 space-y-3 bg-canvas text-black select-none">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between border-b-2 border-ink pb-2">
         <div className="flex items-center gap-1.5 font-black text-xs uppercase tracking-wider">

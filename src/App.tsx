@@ -7,6 +7,7 @@ import { CalendarScreen } from './screens/CalendarScreen';
 import { MyCourseScreen } from './screens/MyCourseScreen';
 import { ProfessorEvaluationsScreen } from './screens/ProfessorEvaluationsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { NotificationsScreen } from './screens/NotificationsScreen';
 import { Sidebar, type NavTab } from './components/Sidebar';
 import { AppBootSkeleton } from './components/boot/AppBootSkeleton';
 import { TooltipProvider, Toaster, ErrorBoundary } from '@/components/ui';
@@ -34,6 +35,7 @@ const SCREEN_LABELS: Record<NavTab, string> = {
   calendar: 'Calendário',
   evaluations: 'Avaliações',
   'my-course': 'Meu Curso',
+  notifications: 'Notificações',
   settings: 'Configurações',
 };
 
@@ -180,6 +182,7 @@ const AppShell: React.FC = () => {
             {currentTab === 'calendar' && <CalendarScreen />}
             {currentTab === 'my-course' && <MyCourseScreen onOpenSettings={() => setCurrentTab('settings')} />}
             {currentTab === 'evaluations' && <ProfessorEvaluationsScreen />}
+            {currentTab === 'notifications' && <NotificationsScreen />}
             {currentTab === 'settings' && (
               <SettingsScreen
                 onResetCredentials={() => {

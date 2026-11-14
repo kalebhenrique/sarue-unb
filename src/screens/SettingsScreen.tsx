@@ -43,6 +43,7 @@ import { useBackgroundRun } from "../hooks/useBackgroundRun";
 import { AppUpdaterCard } from "@/components/settings/AppUpdaterCard";
 import { PatchNotesView } from "@/components/settings/PatchNotesView";
 import { ContributorsDialog } from "@/components/settings/ContributorsDialog";
+import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import {
   isSoundEffectsEnabled,
@@ -495,7 +496,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               GitHub.
             </p>
 
-            <Button
+             <Button
               type="button"
               variant="ghost"
               size="sm"
@@ -507,7 +508,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               <span>Contribuidores</span>
             </Button>
 
-            <span className="text-xs font-bold text-neutral-600 mt-3">
+            <div className="mt-4">
+              <FeedbackWidget screen="Configurações" variant="inline" />
+            </div>
+
+            <span className="text-xs font-bold text-neutral-600 mt-4">
               © {new Date().getFullYear()} Kaleb Henrique
             </span>
           </div>
