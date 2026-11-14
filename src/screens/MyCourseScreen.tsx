@@ -518,7 +518,7 @@ export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }
                   >
                     <div className="min-w-0 pr-2">
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="font-mono text-[11px] font-black bg-paper px-1.5 py-0.5 border border-ink rounded">
+                        <span className="text-[11px] font-bold text-neutral-700">
                           {d.code}
                         </span>
                         {d.workloadHours && (

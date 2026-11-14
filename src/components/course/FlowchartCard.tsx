@@ -15,7 +15,7 @@ export const FlowchartCard: React.FC<FlowchartCardProps> = React.memo(
           <span className="text-[11px] font-bold text-neutral-700 truncate">
             {discipline.code}
           </span>
-          <span className="text-[11px] font-bold px-1.5 py-0.5 bg-paper/80 border border-ink rounded-md text-neutral-700">
+          <span className="text-[11px] font-bold text-neutral-600">
             {discipline.workloadHours}h
           </span>
         </div>
