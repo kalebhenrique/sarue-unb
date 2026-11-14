@@ -9,7 +9,7 @@ import {
   type CreateUserEventDTO,
   type UpdateUserEventDTO,
 } from '@/core';
-import { subscribeToFeedUpdates } from '@/hooks/useFeed';
+import { subscribeToFeedUpdates, notifyFeedListeners } from '@/hooks/useFeed';
 import { toast } from '@/components/ui';
 
 export type CalendarViewMode = 'month' | 'agenda';
@@ -422,6 +422,23 @@ export function useCalendar() {
     [useCases.manageUserEvents, loadData]
   );
 
+  // Tarefa do Feed no calendário: o evento usa id "task_<feedItemId>" —
+  // remove o prefixo antes de persistir a conclusão no repositório do feed.
+  const toggleFeedTaskCompleted = useCallback(
+    async (event: UnifiedCalendarEvent) => {
+      const feedId = event.id.replace(/^task_/, '');
+      try {
+        await useCases.getFeed.markAsCompleted(feedId, !event.isCompleted);
+        // Sino de prazos e tela do Feed acompanham a mudança.
+        notifyFeedListeners();
+        await loadData();
+      } catch (err) {
+        console.error('Falha ao alternar conclusão da tarefa do feed:', err);
+      }
+    },
+    [useCases.getFeed, loadData]
+  );
+
   return {
     currentDate,
     selectedDate,
@@ -465,5 +482,6 @@ export function useCalendar() {
     setEventToDelete,
     deleteManualEvent,
     toggleEventCompleted,
+    toggleFeedTaskCompleted,
   };
 }

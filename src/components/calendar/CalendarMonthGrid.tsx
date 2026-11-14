@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Check, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type { CalendarDayCell } from '@/hooks/useCalendar';
 import type { UnifiedCalendarEvent } from '@/core';
 import { getCalendarEventColors } from './calendar-colors';
@@ -420,10 +420,6 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                         >
                           ‹
                         </span>
-                      )}
-
-                      {isCompleted && (
-                        <Check className="w-3 h-3 stroke-[3] shrink-0" aria-hidden="true" />
                       )}
 
                       <span className={`truncate leading-none ${isCompleted ? 'line-through decoration-2' : ''}`}>

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Calendar as CalendarIcon, CheckCircle2, Clock, Edit3, Trash2 } from 'lucide-react';
-import { Badge } from '@/components/ui';
+import { Calendar as CalendarIcon, Clock, Edit3, Trash2 } from 'lucide-react';
+import { Badge, Checkbox } from '@/components/ui';
 import type { UnifiedCalendarEvent, UserCalendarEvent } from '@/core';
 import { getCalendarEventColors } from './calendar-colors';
 
@@ -8,6 +8,8 @@ export interface CalendarEventCardProps {
   event: UnifiedCalendarEvent;
   onEditEvent?: (event: UserCalendarEvent | UnifiedCalendarEvent) => void;
   onDeleteEvent?: (event: UnifiedCalendarEvent) => void;
+  /** Marca/desmarca conclusão de Tarefa do Feed (checkbox verde, receita do FeedList). */
+  onToggleFeedTask?: (event: UnifiedCalendarEvent) => void;
   /** Exibe a linha de data (DD/MM). Omitir no painel lateral do dia selecionado para evitar ruído. */
   showDate?: boolean;
   /** Adiciona sombra ao card (padrão false para cards internos em painéis) */
@@ -22,6 +24,7 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
   event,
   onEditEvent,
   onDeleteEvent,
+  onToggleFeedTask,
   showDate = true,
   hasShadow = false,
 }) => {
@@ -55,6 +58,24 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
       {/* Linha de Badges e Ações */}
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Conclusão de Tarefa do Feed: checkbox Verde Giz, igual à lista do Feed */}
+          {event.type === 'feed_task' && onToggleFeedTask && (
+            <Checkbox
+              checked={Boolean(event.isCompleted)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFeedTask(event);
+              }}
+              title={
+                event.isCompleted
+                  ? 'Marcar como não concluído'
+                  : 'Marcar como concluído'
+              }
+              aria-label={`${event.isCompleted ? 'Marcar como não concluído' : 'Marcar como concluído'}: ${event.title}`}
+              className="data-checked:bg-neo-green data-checked:text-ink hover:bg-neutral-100"
+            />
+          )}
+
           <Badge variant={color.badgeVariant} size="sm" className="font-black">
             {color.label}
           </Badge>
@@ -62,13 +83,6 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
           {event.categoryLabel && (
             <Badge variant="neutral" size="sm" className="font-bold">
               {event.categoryLabel}
-            </Badge>
-          )}
-
-          {isCompleted && (
-            <Badge variant="success" size="sm" className="font-black">
-              <CheckCircle2 className="w-3 h-3 stroke-[2.5]" aria-hidden="true" />
-              Concluída
             </Badge>
           )}
 

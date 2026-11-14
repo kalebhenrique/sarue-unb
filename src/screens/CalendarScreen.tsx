@@ -49,6 +49,7 @@ export const CalendarScreen: React.FC = () => {
     eventToDelete,
     setEventToDelete,
     deleteManualEvent,
+    toggleFeedTaskCompleted,
   } = useCalendar();
 
   return (
@@ -106,6 +107,7 @@ export const CalendarScreen: React.FC = () => {
                 onAddEvent={(date) => openCreateDialog(date)}
                 onEditEvent={openEditDialog}
                 onDeleteEvent={setEventToDelete}
+                onToggleFeedTask={toggleFeedTaskCompleted}
               />
             </div>
           </div>
@@ -117,6 +119,7 @@ export const CalendarScreen: React.FC = () => {
               onAddEvent={() => openCreateDialog()}
               onEditEvent={openEditDialog}
               onDeleteEvent={setEventToDelete}
+              onToggleFeedTask={toggleFeedTaskCompleted}
             />
           </div>
         )}

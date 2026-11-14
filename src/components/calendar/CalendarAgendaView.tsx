@@ -10,6 +10,7 @@ interface CalendarAgendaViewProps {
   onAddEvent: () => void;
   onEditEvent: (event: UserCalendarEvent | UnifiedCalendarEvent) => void;
   onDeleteEvent: (event: UnifiedCalendarEvent) => void;
+  onToggleFeedTask?: (event: UnifiedCalendarEvent) => void;
 }
 
 export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
@@ -17,6 +18,7 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
   onAddEvent,
   onEditEvent,
   onDeleteEvent,
+  onToggleFeedTask,
 }) => {
   const todayStr = getLocalTodayIso();
 
@@ -114,6 +116,7 @@ export const CalendarAgendaView: React.FC<CalendarAgendaViewProps> = ({
               event={evt}
               onEditEvent={onEditEvent}
               onDeleteEvent={onDeleteEvent}
+              onToggleFeedTask={onToggleFeedTask}
               showDate={Boolean(evt.endDate && evt.endDate !== evt.date)}
               hasShadow={false}
             />

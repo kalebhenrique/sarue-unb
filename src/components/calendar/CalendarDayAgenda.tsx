@@ -11,6 +11,7 @@ interface CalendarDayAgendaProps {
   onAddEvent: (date: string) => void;
   onEditEvent: (event: UserCalendarEvent | UnifiedCalendarEvent) => void;
   onDeleteEvent: (event: UnifiedCalendarEvent) => void;
+  onToggleFeedTask?: (event: UnifiedCalendarEvent) => void;
 }
 
 const MONTH_NAMES = [
@@ -44,6 +45,7 @@ export const CalendarDayAgenda: React.FC<CalendarDayAgendaProps> = ({
   onAddEvent,
   onEditEvent,
   onDeleteEvent,
+  onToggleFeedTask,
 }) => {
   const [yearStr, monthStr, dayStr] = selectedDate.split('-');
   const y = Number(yearStr);
@@ -118,6 +120,7 @@ export const CalendarDayAgenda: React.FC<CalendarDayAgendaProps> = ({
               event={evt}
               onEditEvent={onEditEvent}
               onDeleteEvent={onDeleteEvent}
+              onToggleFeedTask={onToggleFeedTask}
               showDate={false}
               hasShadow={false}
             />
