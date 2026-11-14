@@ -1,5 +1,6 @@
 import type { IraScenario } from '../domain/entities/ira-scenario';
 import type { IIraScenarioRepository } from '../domain/interfaces/ira-scenario-repo.interface';
+import { parseIraScenarioJson } from './persistence-codec';
 
 // Espelho em localStorage para a prévia web (fora do Tauri): o cenário sobrevive
 // a recarregamentos no dev, sem banco.
@@ -18,9 +19,11 @@ export class InMemoryIraScenarioRepository implements IIraScenarioRepository {
       try {
         const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
         if (raw) {
-          const parsed = JSON.parse(raw) as IraScenario;
-          this.scenarioInMemory = parsed;
-          return parsed;
+          const parsed = parseIraScenarioJson(raw);
+          if (parsed) {
+            this.scenarioInMemory = parsed;
+            return parsed;
+          }
         }
       } catch {}
     }

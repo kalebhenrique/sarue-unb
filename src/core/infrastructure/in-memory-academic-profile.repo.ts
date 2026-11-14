@@ -10,6 +10,7 @@ import {
   sharedDisciplineNameMap,
   type RawCurriculumStructureDto,
 } from './mappers/curriculum.mapper';
+import { parseAcademicProfileJson, parseCurriculumListJson } from './persistence-codec';
 
 export { sharedDisciplineNameMap };
 
@@ -39,9 +40,11 @@ export class InMemoryAcademicProfileRepository implements IAcademicProfileReposi
       try {
         const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
         if (raw) {
-          const parsed = JSON.parse(raw) as StudentAcademicProfile;
-          this.profileInMemory = parsed;
-          return parsed;
+          const parsed = parseAcademicProfileJson(raw);
+          if (parsed) {
+            this.profileInMemory = parsed;
+            return parsed;
+          }
         }
       } catch {}
     }
@@ -139,8 +142,8 @@ export class InMemoryAcademicProfileRepository implements IAcademicProfileReposi
       try {
         const rawLocal = localStorage.getItem(storageKey);
         if (rawLocal) {
-          const parsed = JSON.parse(rawLocal) as CurriculumStructure[];
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          const parsed = parseCurriculumListJson(rawLocal);
+          if (parsed.length > 0) {
             sharedCurriculaByCourse.set(courseId, Promise.resolve(parsed));
             return parsed;
           }

@@ -923,4 +923,56 @@ mod tests {
         // A grade completa da UnB varia dinamicamente por semestre (~4000+ turmas)
         assert!(disc.len() >= 1000);
     }
+
+    /// Guardrail de compatibilidade retroativa do CDN (gh-pages):
+    #[tokio::test]
+    async fn test_cdn_backward_and_forward_compatibility_contract() {
+        // 1. Contrato real dos arquivos de dados atuais
+        let courses = SigaaGradeScraper::fetch_courses_catalog().await.unwrap();
+        assert!(
+            courses.len() >= 50,
+            "courses.json deve deserializar o catálogo completo"
+        );
+
+        let all_curricula = SigaaGradeScraper::fetch_all_curricula().await.unwrap();
+        assert!(
+            !all_curricula.is_empty(),
+            "curricula.json deve deserializar sem erro de contrato"
+        );
+
+        // 2. Simulação de evolução do CDN (novos campos desconhecidos adicionados pelo scraper no futuro)
+        // Clientes antigos instalados via Microsoft Store / Android NÃO devem falhar ao encontrar campos novos.
+        let future_course_json = r#"[{
+            "id": "414002",
+            "name": "CIÊNCIA DA COMPUTAÇÃO",
+            "degree": "Bacharelado",
+            "shift": "DIURNO",
+            "campus": "BRASÍLIA",
+            "modality": "Presencial",
+            "future_schema_v2_field": "ignorado_com_seguranca",
+            "nested_new_feature": { "enabled": true }
+        }]"#;
+        let parsed_courses: Vec<CourseCatalogItem> =
+            serde_json::from_str(future_course_json).expect("Deve ignorar campos futuros no JSON");
+        assert_eq!(parsed_courses.len(), 1);
+        assert_eq!(parsed_courses[0].id, "414002");
+
+        // 3. Simulação de payload minimalista (campos #[serde(default)] omitidos)
+        let minimal_discipline_json = r#"[{
+            "code": "CIC0004",
+            "name": "APC",
+            "department_id": "508",
+            "classes": [{
+                "id": "CIC0004-01",
+                "discipline_code": "CIC0004",
+                "discipline_name": "APC",
+                "class_code": "01",
+                "schedule_code": "24M34"
+            }]
+        }]"#;
+        let parsed_disc: Vec<ScrapedDiscipline> = serde_json::from_str(minimal_discipline_json)
+            .expect("Deve aplicar defaults para campos opcionais ausentes");
+        assert_eq!(parsed_disc[0].classes[0].teachers.len(), 0);
+        assert_eq!(parsed_disc[0].classes[0].schedule_slots.len(), 0);
+    }
 }

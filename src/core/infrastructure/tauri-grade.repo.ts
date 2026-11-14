@@ -23,6 +23,7 @@ import type { IGradeRepository } from "../domain/interfaces/grade-repo.interface
 import { InMemoryGradeRepository } from "./in-memory-grade.repo";
 import { getDatabase } from "./sqlite-feed.repo";
 import { mapCurriculaDtos } from "./mappers/curriculum.mapper";
+import { parseSavedGradeClassesJson } from "./persistence-codec";
 
 const inMemorySavedGrades = new Map<string, SavedGrade>();
 let inMemoryLatestGrade: SavedGrade | null = null;
@@ -334,7 +335,7 @@ export class TauriGradeRepository implements IGradeRepository {
             id: row.id,
             name: row.name,
             semester: row.semester,
-            selectedClasses: JSON.parse(row.data),
+            selectedClasses: parseSavedGradeClassesJson(row.data),
             updatedAt: row.updated_at,
           };
           inMemorySavedGrades.set(loaded.semester, loaded);

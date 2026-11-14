@@ -2,6 +2,7 @@ import type { IraScenario } from '../domain/entities/ira-scenario';
 import type { IIraScenarioRepository } from '../domain/interfaces/ira-scenario-repo.interface';
 import { InMemoryIraScenarioRepository } from './in-memory-ira-scenario.repo';
 import { getDatabase } from './sqlite-feed.repo';
+import { parseIraScenarioJson } from './persistence-codec';
 
 const SCENARIO_ROW_ID = 'current';
 
@@ -19,10 +20,7 @@ export class SqliteIraScenarioRepository implements IIraScenarioRepository {
         [SCENARIO_ROW_ID],
       );
       if (result && result.length > 0 && result[0].payload) {
-        const parsed = JSON.parse(result[0].payload) as IraScenario;
-        if (parsed && Array.isArray(parsed.semesters)) {
-          return parsed;
-        }
+        return parseIraScenarioJson(result[0].payload);
       }
       return null;
     } catch (e) {

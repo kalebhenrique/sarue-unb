@@ -8,6 +8,7 @@ import type {
 import { InMemoryAcademicProfileRepository } from './in-memory-academic-profile.repo';
 import { getDatabase } from './sqlite-feed.repo';
 import { mapCurriculaDtos } from './mappers/curriculum.mapper';
+import { parseAcademicProfileJson, parseCurriculumListJson } from './persistence-codec';
 
 const PROFILE_ROW_ID = 'current';
 
@@ -39,8 +40,8 @@ export class TauriAcademicProfileRepository implements IAcademicProfileRepositor
           [PROFILE_ROW_ID]
         );
         if (rows && rows.length > 0) {
-          const parsed = JSON.parse(rows[0].payload) as StudentAcademicProfile;
-          if (parsed && typeof parsed.matricula === 'string') {
+          const parsed = parseAcademicProfileJson(rows[0].payload);
+          if (parsed) {
             return parsed;
           }
         }
@@ -118,8 +119,8 @@ export class TauriAcademicProfileRepository implements IAcademicProfileRepositor
           [courseId]
         );
         if (rows && rows.length > 0) {
-          const cached = JSON.parse(rows[0].payload) as CurriculumStructure[];
-          if (Array.isArray(cached) && cached.length > 0) {
+          const cached = parseCurriculumListJson(rows[0].payload);
+          if (cached.length > 0) {
             return cached;
           }
         }

@@ -131,6 +131,12 @@ pub fn run() {
                         sql: include_str!("../migrations/02_app_settings.sql"),
                         kind: tauri_plugin_sql::MigrationKind::Up,
                     },
+                    tauri_plugin_sql::Migration {
+                        version: 3,
+                        description: "create_user_calendar_events",
+                        sql: include_str!("../migrations/03_user_calendar_events.sql"),
+                        kind: tauri_plugin_sql::MigrationKind::Up,
+                    },
                 ]
             }
             app.handle().plugin(
