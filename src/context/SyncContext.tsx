@@ -12,6 +12,7 @@ import { notifyMyCourseListeners, resolveCourseIdForProfile } from "../hooks/use
 import { notifyFeedListeners } from "../hooks/useFeed";
 import { toast } from "@/components/ui";
 import {
+  checkIsAutoSyncAllowed,
   fetchAndCacheRuMenus,
   fetchAndCacheStudentWallet,
   getSavedRuCampus,
@@ -40,11 +41,16 @@ export interface SyncStepInfo {
   lastUpdated?: string;
 }
 
+export interface SyncOptions {
+  /** Marca sincronizações disparadas automaticamente (boot/timer em segundo plano). */
+  isAutoSync?: boolean;
+}
+
 export interface SyncContextValue {
   isSyncing: boolean;
   lastSyncedAt: string | null;
   steps: Record<SyncStepId, SyncStepInfo>;
-  syncAll: () => Promise<void>;
+  syncAll: (options?: SyncOptions) => Promise<void>;
   cancelSync: () => void;
 }
 
@@ -124,7 +130,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     useState<Record<SyncStepId, SyncStepInfo>>(INITIAL_STEPS);
   const syncInFlightRef = useRef<boolean>(false);
   const syncGenerationRef = useRef<number>(0);
-  const syncAllRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const syncAllRef = useRef<(options?: SyncOptions) => Promise<void>>(() => Promise.resolve());
 
   const updateStep = useCallback(
     (id: SyncStepId, patch: Partial<SyncStepInfo>) => {
@@ -157,10 +163,19 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  const syncAll = useCallback(async () => {
+  const syncAll = useCallback(async (options?: SyncOptions) => {
     if (syncInFlightRef.current) {
       return;
     }
+
+    // Sincronizações automáticas respeitam a trava de Wi-Fi sem afetar o sync manual.
+    if (options?.isAutoSync) {
+      const allowed = await checkIsAutoSyncAllowed();
+      if (!allowed) {
+        return;
+      }
+    }
+
     const myGen = ++syncGenerationRef.current;
     const isCancelled = () => syncGenerationRef.current !== myGen;
 
@@ -592,13 +607,24 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
   syncAllRef.current = syncAll;
 
   useEffect(() => {
-    let unlisten: (() => void) | undefined;
+    let disposed = false;
+    let unlistenManual: (() => void) | undefined;
+    let unlistenAuto: (() => void) | undefined;
+
     if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
       void import("@tauri-apps/api/event").then(({ listen }) => {
         void listen("request-sync", () => {
           void syncAllRef.current();
         }).then((fn) => {
-          unlisten = fn;
+          if (disposed) fn();
+          else unlistenManual = fn;
+        });
+
+        void listen("request-auto-sync", () => {
+          void syncAllRef.current({ isAutoSync: true });
+        }).then((fn) => {
+          if (disposed) fn();
+          else unlistenAuto = fn;
         });
       });
     }
@@ -611,7 +637,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!isBgEnabled) return;
       const last = localStorage.getItem("sarue_last_synced_at");
       if (!last || Date.now() - new Date(last).getTime() >= SIX_HOURS_MS) {
-        void syncAllRef.current();
+        void syncAllRef.current({ isAutoSync: true });
       }
     };
 
@@ -620,7 +646,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     const intervalId = setInterval(checkPeriodicSync, 10 * 60 * 1000);
 
     return () => {
-      if (unlisten) unlisten();
+      disposed = true;
+      if (unlistenManual) unlistenManual();
+      if (unlistenAuto) unlistenAuto();
       clearTimeout(bootTimer);
       clearInterval(intervalId);
     };

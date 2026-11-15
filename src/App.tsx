@@ -113,7 +113,7 @@ const AppShell: React.FC = () => {
     if (hasCredentials) {
       setStep('main');
       // Sessão restabelecida: atualiza os dados locais em segundo plano
-      void syncAll();
+      void syncAll({ isAutoSync: true });
     } else if (hasLocalData) {
       setStep('main');
     }

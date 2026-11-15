@@ -1,0 +1,7 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = "Permite ativar brilho máximo na tela e manter a tela ativa."
+permissions = [
+  "allow-set-max-brightness",
+]

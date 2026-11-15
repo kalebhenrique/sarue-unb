@@ -133,7 +133,7 @@ export const WalletScreen: React.FC = () => {
               </div>
               {wallet.ruBalance && (
                 <div className="w-full flex items-center justify-end px-3 pb-2">
-                  <span className="text-xs font-black text-black">
+                  <span className="text-xs font-black text-ink">
                     Saldo RU: {wallet.ruBalance}
                   </span>
                 </div>
@@ -192,10 +192,10 @@ export const WalletScreen: React.FC = () => {
               </div>
 
               <div className="shrink-0 flex flex-col items-center gap-1">
-                <div className="p-2.5 bg-white border-2 border-black rounded-xl shadow-neo-xs">
+                <div className="p-4 bg-white border-2 border-ink rounded-xl shadow-neo-xs flex items-center justify-center">
                   <QRCodeSVG
                     value={ruQrValue}
-                    size={84}
+                    size={76}
                     bgColor="#FFFFFF"
                     fgColor="#000000"
                     level="M"
@@ -261,21 +261,23 @@ export const WalletScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* Mini QR Code CPF em moldura branca */}
+            {/* Mini QR Code CPF em moldura branca (Quiet Zone p-4 + fundo #FFFFFF) */}
             <div className="shrink-0 flex flex-col items-center gap-1">
-              <div className="p-2.5 bg-white border-2 border-black rounded-xl shadow-neo-xs flex items-center justify-center w-[104px] h-[104px]">
+              <div className="p-4 bg-white border-2 border-ink rounded-xl shadow-neo-xs flex items-center justify-center">
                 {bceQrValue ? (
                   <QRCodeSVG
                     value={bceQrValue}
-                    size={84}
+                    size={76}
                     bgColor="#FFFFFF"
                     fgColor="#000000"
                     level="M"
                   />
                 ) : (
-                  <p className="text-xs font-extrabold text-neutral-500 text-center px-1">
-                    Sincronize na barra lateral para ler o CPF
-                  </p>
+                  <div className="w-[76px] h-[76px] flex items-center justify-center">
+                    <p className="text-[10px] leading-tight font-extrabold text-ink text-center">
+                      Sincronize para ler o CPF
+                    </p>
+                  </div>
                 )}
               </div>
               <span className="text-xs font-black font-mono text-neutral-500">

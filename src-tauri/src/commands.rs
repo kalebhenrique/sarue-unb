@@ -954,6 +954,43 @@ pub async fn is_background_run_enabled(app: AppHandle) -> Result<bool, String> {
 
 #[command]
 #[specta::specta]
+pub async fn get_sync_only_on_wifi(app: AppHandle) -> Result<bool, String> {
+    Ok(crate::settings::is_sync_only_on_wifi(&app))
+}
+
+#[command]
+#[specta::specta]
+pub async fn set_sync_only_on_wifi(app: AppHandle, enabled: bool) -> Result<(), String> {
+    crate::settings::save_sync_only_on_wifi(&app, enabled)?;
+    log::info!("Preferência sync_only_on_wifi atualizada para: {}", enabled);
+    Ok(())
+}
+
+#[command]
+#[specta::specta]
+pub async fn get_network_status(
+    app: AppHandle,
+) -> Result<tauri_plugin_network_status::NetworkStatus, String> {
+    tokio::task::spawn_blocking(move || {
+        use tauri_plugin_network_status::NetworkStatusExt;
+        app.network_status()
+            .get_network_status()
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| format!("Falha ao consultar status da rede: {}", e))?
+}
+
+#[command]
+#[specta::specta]
+pub async fn is_auto_sync_allowed(app: AppHandle) -> Result<bool, String> {
+    tokio::task::spawn_blocking(move || crate::can_run_auto_sync(&app))
+        .await
+        .map_err(|e| format!("Falha ao verificar permissão de sync automático: {}", e))
+}
+
+#[command]
+#[specta::specta]
 pub async fn set_tray_sync_state(app: AppHandle, syncing: bool) -> Result<(), String> {
     #[cfg(desktop)]
     {
@@ -1007,6 +1044,15 @@ pub async fn cancel_prepare_for_update(app: AppHandle) -> Result<(), String> {
     }
     log::info!("Atualização cancelada ou com erro: fechamento de janela restaurado.");
     Ok(())
+}
+
+#[command]
+#[specta::specta]
+pub async fn set_max_brightness(app: AppHandle, enable: bool) -> Result<(), String> {
+    use tauri_plugin_brightness::BrightnessExt;
+    app.brightness()
+        .set_max_brightness(enable)
+        .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

@@ -5,6 +5,7 @@ pub mod moodle;
 pub mod ru;
 pub mod schedule_solver;
 pub mod scraper;
+pub mod settings;
 pub mod sigaa;
 #[cfg(desktop)]
 pub mod tray;
@@ -14,6 +15,33 @@ use tauri_specta::{collect_commands, Builder};
 
 pub struct BackgroundRunState(pub std::sync::atomic::AtomicBool);
 pub struct IsQuitting(pub std::sync::atomic::AtomicBool);
+
+/// Verifica se a sincronização automática em segundo plano pode rodar de acordo
+/// com a preferência `sync_only_on_wifi` e o status atual da rede.
+/// No desktop, sempre retorna `true` para não bloquear o sync automático.
+/// A sincronização manual ignora esta trava e roda normalmente.
+pub fn can_run_auto_sync(app: &tauri::AppHandle) -> bool {
+    if !cfg!(mobile) {
+        return true;
+    }
+
+    let sync_only_on_wifi = settings::is_sync_only_on_wifi(app);
+    if !sync_only_on_wifi {
+        return true;
+    }
+
+    use tauri_plugin_network_status::NetworkStatusExt;
+    match app.network_status().get_network_status() {
+        Ok(status) => settings::should_allow_auto_sync(true, sync_only_on_wifi, &status),
+        Err(err) => {
+            log::warn!(
+                "[can_run_auto_sync] Falha ao consultar status da rede no mobile: {}",
+                err
+            );
+            false
+        }
+    }
+}
 
 /// Fonte única da superfície IPC: os commands registrados aqui geram os
 /// bindings TypeScript em `src/lib/bindings.ts` (via `cargo test export_bindings`).
@@ -42,12 +70,17 @@ pub fn builder() -> Builder<tauri::Wry> {
         commands::fetch_professor_evaluations_csv,
         commands::set_background_run,
         commands::is_background_run_enabled,
+        commands::get_sync_only_on_wifi,
+        commands::set_sync_only_on_wifi,
+        commands::get_network_status,
+        commands::is_auto_sync_allowed,
         commands::set_tray_sync_state,
         commands::show_main_window,
         commands::prepare_for_update,
         commands::cancel_prepare_for_update,
         commands::fetch_ru_menu,
         commands::fetch_student_wallet,
+        commands::set_max_brightness,
     ])
 }
 
@@ -102,6 +135,9 @@ pub fn run() {
     let mut app_builder = tauri::Builder::default()
         .manage(BackgroundRunState(std::sync::atomic::AtomicBool::new(true)))
         .manage(IsQuitting(std::sync::atomic::AtomicBool::new(false)))
+        .manage(settings::SyncOnlyOnWifiState(
+            std::sync::atomic::AtomicBool::new(settings::default_sync_only_on_wifi()),
+        ))
         .plugin(
             tauri_plugin_sql::Builder::default()
                 .add_migrations("sqlite:sarue_unb.db", get_migrations())
@@ -109,7 +145,9 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_notification::init());
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_brightness::init())
+        .plugin(tauri_plugin_network_status::init());
 
     #[cfg(desktop)]
     {
@@ -163,6 +201,11 @@ pub fn run() {
             app.handle()
                 .plugin(tauri_plugin_stronghold::Builder::with_argon2(&salt_path).build())?;
 
+            let initial_sync_only_on_wifi = settings::load_sync_only_on_wifi(app.handle());
+            app.state::<settings::SyncOnlyOnWifiState>()
+                .0
+                .store(initial_sync_only_on_wifi, std::sync::atomic::Ordering::Relaxed);
+
             #[cfg(desktop)]
             {
                 app.handle()
@@ -189,10 +232,23 @@ pub fn run() {
                         interval.tick().await;
                         if let Some(state) = app_handle.try_state::<BackgroundRunState>() {
                             if state.0.load(std::sync::atomic::Ordering::Relaxed) {
-                                log::info!(
-                                    "Temporizador de 6h: disparando sincronização em segundo plano"
-                                );
-                                let _ = app_handle.emit("request-sync", ());
+                                let handle_for_check = app_handle.clone();
+                                let allowed = tokio::task::spawn_blocking(move || {
+                                    crate::can_run_auto_sync(&handle_for_check)
+                                })
+                                .await
+                                .unwrap_or(false);
+
+                                if allowed {
+                                    log::info!(
+                                        "Temporizador de 6h: disparando sincronização em segundo plano"
+                                    );
+                                    let _ = app_handle.emit("request-auto-sync", ());
+                                } else {
+                                    log::info!(
+                                        "Temporizador de 6h: sincronização automática adiada por restrição de rede (somente Wi-Fi)."
+                                    );
+                                }
                             }
                         }
                     }

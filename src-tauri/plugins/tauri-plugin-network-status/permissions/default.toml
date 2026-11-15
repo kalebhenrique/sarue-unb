@@ -1,0 +1,5 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = "Permite consultar o status da conexão de rede atual."
+permissions = ["allow-get-network-status"]

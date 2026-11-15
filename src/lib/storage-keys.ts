@@ -14,6 +14,7 @@ export const STORAGE_KEYS = {
   SOUND_EFFECTS: 'sarue_sound_effects_enabled',
   AUTOSTART: 'sarue_autostart_enabled',
   BACKGROUND_RUN: 'sarue_background_run_enabled',
+  SYNC_ONLY_ON_WIFI: 'sarue_sync_only_on_wifi',
   GRADE_YEAR: 'unb_grade_year',
   GRADE_PERIOD: 'unb_grade_period',
   FLOWCHART_OPEN_SEMESTERS: 'unb_flowchart_open_semesters',

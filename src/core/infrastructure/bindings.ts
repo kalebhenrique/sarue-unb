@@ -36,12 +36,17 @@ export const commands = {
 	fetchProfessorEvaluationsCsv: (forceRefresh: boolean) => typedError<string, string>(__TAURI_INVOKE("fetch_professor_evaluations_csv", { forceRefresh })),
 	setBackgroundRun: (enabled: boolean) => typedError<null, string>(__TAURI_INVOKE("set_background_run", { enabled })),
 	isBackgroundRunEnabled: () => typedError<boolean, string>(__TAURI_INVOKE("is_background_run_enabled")),
+	getSyncOnlyOnWifi: () => typedError<boolean, string>(__TAURI_INVOKE("get_sync_only_on_wifi")),
+	setSyncOnlyOnWifi: (enabled: boolean) => typedError<null, string>(__TAURI_INVOKE("set_sync_only_on_wifi", { enabled })),
+	getNetworkStatus: () => typedError<NetworkStatus, string>(__TAURI_INVOKE("get_network_status")),
+	isAutoSyncAllowed: () => typedError<boolean, string>(__TAURI_INVOKE("is_auto_sync_allowed")),
 	setTraySyncState: (syncing: boolean) => typedError<null, string>(__TAURI_INVOKE("set_tray_sync_state", { syncing })),
 	showMainWindow: () => typedError<null, string>(__TAURI_INVOKE("show_main_window")),
 	prepareForUpdate: () => typedError<null, string>(__TAURI_INVOKE("prepare_for_update")),
 	cancelPrepareForUpdate: () => typedError<null, string>(__TAURI_INVOKE("cancel_prepare_for_update")),
 	fetchRuMenu: (campus: string) => typedError<RuDailyMenu[], string>(__TAURI_INVOKE("fetch_ru_menu", { campus })),
 	fetchStudentWallet: (matricula: string, senha: string) => typedError<StudentWalletSyncPayload, string>(__TAURI_INVOKE("fetch_student_wallet", { matricula, senha })),
+	setMaxBrightness: (enable: boolean) => typedError<null, string>(__TAURI_INVOKE("set_max_brightness", { enable })),
 };
 
 /* Types */
@@ -55,6 +60,8 @@ export type Aprender3Creds = {
 	cpf: string,
 	password: string,
 };
+
+export type ConnectionType = "wifi" | "cellular" | "ethernet" | "offline" | "other";
 
 export type Course = {
 	id: string,
@@ -131,6 +138,11 @@ export type FeedItem = {
 };
 
 export type FeedItemType = "post" | "assignment";
+
+export type NetworkStatus = {
+	connectionType: ConnectionType,
+	isMetered: boolean,
+};
 
 export type PlatformType = "sigaa" | "aprender3" | "teams";
 

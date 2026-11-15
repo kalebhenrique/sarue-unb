@@ -8,6 +8,7 @@ import {
   formatValidityDisplay,
   type StudentWalletState,
 } from '@/hooks/useStudentWallet';
+import { useMaxBrightness } from '@/hooks/useMaxBrightness';
 
 export type WalletCardId = 'ru' | 'bce';
 
@@ -30,6 +31,8 @@ export const StudentCardModal: React.FC<StudentCardModalProps> = ({
   onClose,
 }) => {
   const shouldReduceMotion = useReducedMotion();
+
+  useMaxBrightness(Boolean(card));
 
   useEffect(() => {
     if (!card) return;
@@ -113,7 +116,7 @@ export const StudentCardModal: React.FC<StudentCardModalProps> = ({
               <div className="flex-1 px-5 py-6 flex flex-col items-center justify-between gap-5 min-h-0 overflow-y-auto">
                 {/* Bloco QR Code Centralizado de Alto Contraste para Leitor Óptico */}
                 <div className="shrink-0 flex flex-col items-center justify-center gap-2 pt-1">
-                  <div className="p-4 bg-white border-2 border-black rounded-2xl shadow-neo-sm flex items-center justify-center">
+                  <div className="p-4 bg-white border-2 border-ink rounded-2xl shadow-neo-sm flex items-center justify-center">
                     {card === 'ru' ? (
                       <QRCodeSVG
                         value={ruQrValue}
@@ -132,7 +135,7 @@ export const StudentCardModal: React.FC<StudentCardModalProps> = ({
                       />
                     ) : (
                       <div className="w-52 h-52 flex items-center justify-center text-center p-4">
-                        <p className="text-xs font-black text-black">
+                        <p className="text-xs font-black text-ink">
                           CPF não encontrado. Sincronize pela barra principal.
                         </p>
                       </div>

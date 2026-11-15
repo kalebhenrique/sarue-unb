@@ -17,6 +17,8 @@
     "sql:allow-select",
     "sql:allow-load",
     "sql:allow-close",
-    "opener:default"
+    "opener:default",
+    "network-status:default",
+    "brightness:default"
   ]
 }

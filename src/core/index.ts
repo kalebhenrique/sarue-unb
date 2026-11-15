@@ -61,4 +61,5 @@ export * from './container';
 // Seeds
 export * from './seeds/academic-profile.seed';
 export * from './infrastructure/ru-wallet.service';
+export * from './infrastructure/network-sync-settings.service';
 

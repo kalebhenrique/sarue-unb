@@ -40,6 +40,7 @@ import {
 import { useAppUpdater } from "../hooks/useAppUpdater";
 import { useAutostart } from "../hooks/useAutostart";
 import { useBackgroundRun } from "../hooks/useBackgroundRun";
+import { useSyncOnlyOnWifi } from "../hooks/useSyncOnlyOnWifi";
 import { AppUpdaterCard } from "@/components/settings/AppUpdaterCard";
 import { PatchNotesView } from "@/components/settings/PatchNotesView";
 import { ContributorsDialog } from "@/components/settings/ContributorsDialog";
@@ -84,6 +85,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     toggle: toggleBackgroundRun,
     isLoading: isBackgroundRunLoading,
   } = useBackgroundRun();
+  const {
+    isEnabled: isSyncOnlyOnWifiEnabled,
+    toggle: toggleSyncOnlyOnWifi,
+    isLoading: isSyncOnlyOnWifiLoading,
+  } = useSyncOnlyOnWifi();
   const { reduceAnimations, setReduceAnimations, uiZoom, setUiZoom } =
     useAccessibility();
   const { themeMode, setThemeMode } = useTheme();
@@ -227,6 +233,28 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         {/* Preferências do aplicativo */}
         <SettingsSection icon={SlidersHorizontal} label="Preferências">
           <div className="space-y-4">
+            {/* Sincronização automática apenas no Wi-Fi (mobile) */}
+            {isMobileDevice() && (
+              <div className="flex items-center justify-between gap-4 py-1">
+                <div className="max-w-md">
+                  <span className="text-xs font-black text-black block">
+                    Sincronizar apenas no Wi-Fi
+                  </span>
+                  <p className="text-xs font-semibold text-neutral-600 leading-snug mt-0.5">
+                    Pausa a atualização automática em segundo plano quando estiver
+                    usando dados móveis (4G/5G) ou roteador.
+                  </p>
+                </div>
+                <Switch
+                  checked={isSyncOnlyOnWifiEnabled}
+                  disabled={isSyncOnlyOnWifiLoading}
+                  onCheckedChange={toggleSyncOnlyOnWifi}
+                  aria-label="Sincronizar apenas no Wi-Fi"
+                  className="shrink-0"
+                />
+              </div>
+            )}
+
             {/* Inicialização com o Sistema */}
             {!isMobileDevice() && (
               <div className="flex items-center justify-between gap-4 py-1">
