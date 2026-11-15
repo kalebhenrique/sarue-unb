@@ -111,6 +111,7 @@ export function parseAcademicProfileJson(json: string): StudentAcademicProfile |
             }))
         : undefined,
       studentName: asOptionalString(p.studentName),
+      cpf: asOptionalString(p.cpf),
       courseName: asString(p.courseName, 'CURSO NÃO IDENTIFICADO'),
       degree: asOptionalString(p.degree),
       shift: asOptionalString(p.shift),

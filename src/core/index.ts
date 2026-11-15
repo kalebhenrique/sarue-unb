@@ -16,6 +16,7 @@ export * from './domain/utils/absence-calculator';
 export * from './domain/utils/grade-formula-calculator';
 export * from './domain/utils/semester';
 export * from './domain/utils/profanity-filter';
+export * from './domain/utils/ru-menu-formatter';
 
 // Interfaces / Ports
 export * from './domain/interfaces/credentials-repo.interface';
@@ -59,4 +60,5 @@ export * from './container';
 
 // Seeds
 export * from './seeds/academic-profile.seed';
+export * from './infrastructure/ru-wallet.service';
 

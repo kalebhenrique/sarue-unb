@@ -107,6 +107,8 @@ pub struct VaultStatus {
 pub struct StudentProfile {
     pub matricula: String,
     pub name: Option<String>,
+    #[serde(default)]
+    pub cpf: Option<String>,
     pub course: String,
     #[serde(default)]
     pub shift: Option<String>,
@@ -129,4 +131,41 @@ pub struct AcademicHistoryPayload {
     pub profile: StudentProfile,
     pub pdf_base64: Option<String>,
     pub pdf_text: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RuMenuSection {
+    pub key: String,
+    pub label: String,
+    pub items: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RuDailyMenu {
+    pub date: String,
+    pub breakfast: Vec<RuMenuSection>,
+    pub lunch: Vec<RuMenuSection>,
+    pub dinner: Vec<RuMenuSection>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RuStatementEntry {
+    pub occurred_at: String,
+    pub description: String,
+    pub amount: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct StudentWalletSyncPayload {
+    pub ru_token: Option<String>,
+    pub ru_valid_until: Option<String>,
+    pub ru_card_pdf_base64: Option<String>,
+    pub ru_balance: Option<f64>,
+    pub ru_group: Option<u32>,
+    pub ru_entries: Vec<RuStatementEntry>,
+    pub cpf: Option<String>,
 }

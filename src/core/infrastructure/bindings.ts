@@ -40,6 +40,8 @@ export const commands = {
 	showMainWindow: () => typedError<null, string>(__TAURI_INVOKE("show_main_window")),
 	prepareForUpdate: () => typedError<null, string>(__TAURI_INVOKE("prepare_for_update")),
 	cancelPrepareForUpdate: () => typedError<null, string>(__TAURI_INVOKE("cancel_prepare_for_update")),
+	fetchRuMenu: (campus: string) => typedError<RuDailyMenu[], string>(__TAURI_INVOKE("fetch_ru_menu", { campus })),
+	fetchStudentWallet: (matricula: string, senha: string) => typedError<StudentWalletSyncPayload, string>(__TAURI_INVOKE("fetch_student_wallet", { matricula, senha })),
 };
 
 /* Types */
@@ -132,6 +134,25 @@ export type FeedItemType = "post" | "assignment";
 
 export type PlatformType = "sigaa" | "aprender3" | "teams";
 
+export type RuDailyMenu = {
+	date: string,
+	breakfast: RuMenuSection[],
+	lunch: RuMenuSection[],
+	dinner: RuMenuSection[],
+};
+
+export type RuMenuSection = {
+	key: string,
+	label: string,
+	items: string[],
+};
+
+export type RuStatementEntry = {
+	occurredAt: string,
+	description: string,
+	amount: number | null,
+};
+
 export type ScheduleOption = {
 	id: string,
 	classes: ScrapedClass[],
@@ -192,6 +213,7 @@ export type SigaaCreds = {
 export type StudentProfile = {
 	matricula: string,
 	name: string | null,
+	cpf?: string | null,
 	course: string,
 	shift?: string | null,
 	level: string,
@@ -205,6 +227,16 @@ export type StudentProfile = {
 	totalCurriculumHours: number | null,
 	pendingComplementaryHours: number | null,
 	completedPercentage: number | null,
+};
+
+export type StudentWalletSyncPayload = {
+	ruToken: string | null,
+	ruValidUntil: string | null,
+	ruCardPdfBase64: string | null,
+	ruBalance: number | null,
+	ruGroup: number | null,
+	ruEntries: RuStatementEntry[],
+	cpf: string | null,
 };
 
 export type SyncResult = {

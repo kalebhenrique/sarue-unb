@@ -8,6 +8,7 @@ export interface SigaaHistoryRawResponse {
   pdfText?: string;
   matricula: string;
   nome?: string;
+  cpf?: string;
   curso: string;
   /** Token de turno do SIGAA no campo Curso (ex.: "MT", "N", "DIURNO"). */
   turno?: string;

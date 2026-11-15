@@ -228,6 +228,7 @@ export class ManageAcademicProfileUseCase {
       defaultProfile: {
         matricula: rawRes.matricula,
         studentName: rawRes.nome,
+        cpf: rawRes.cpf,
         courseName: rawRes.curso,
         level: rawRes.nivel,
         admissionYear: rawRes.entrada,
@@ -283,6 +284,9 @@ export class ManageAcademicProfileUseCase {
       parseResult.profile.manualCompletedCodes = currentProfile.manualCompletedCodes || [];
       parseResult.profile.manualUncompletedCodes = currentProfile.manualUncompletedCodes || [];
       parseResult.profile.customCurriculum = currentProfile.customCurriculum;
+      if (!parseResult.profile.cpf && currentProfile.cpf) {
+        parseResult.profile.cpf = currentProfile.cpf;
+      }
 
       // Preserva histórico anterior caso o PDF venha sem disciplinas
       if (

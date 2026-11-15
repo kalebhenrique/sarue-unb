@@ -15,6 +15,9 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 pdf-extract = "0.7"
+fax = "0.2"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+rqrr = "0.8"
 tauri = { version = "2", features = ["image-png"] }
 tauri-plugin-opener = "2"
 tauri-plugin-stronghold = "2"

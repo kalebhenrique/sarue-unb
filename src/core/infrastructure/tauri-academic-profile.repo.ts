@@ -149,6 +149,7 @@ export class TauriAcademicProfileRepository implements IAcademicProfileRepositor
           pdfText: d.pdfText ?? undefined,
           matricula: p.matricula,
           nome: p.name ?? undefined,
+          cpf: p.cpf ?? undefined,
           curso: p.course,
           turno: p.shift ?? undefined,
           nivel: p.level,

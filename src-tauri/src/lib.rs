@@ -2,6 +2,7 @@ pub mod commands;
 pub mod grade_scraper;
 pub mod models;
 pub mod moodle;
+pub mod ru;
 pub mod schedule_solver;
 pub mod scraper;
 pub mod sigaa;
@@ -45,6 +46,8 @@ pub fn builder() -> Builder<tauri::Wry> {
         commands::show_main_window,
         commands::prepare_for_update,
         commands::cancel_prepare_for_update,
+        commands::fetch_ru_menu,
+        commands::fetch_student_wallet,
     ])
 }
 
@@ -78,6 +81,18 @@ pub fn run() {
                 version: 3,
                 description: "create_user_calendar_events",
                 sql: include_str!("../migrations/03_user_calendar_events.sql"),
+                kind: tauri_plugin_sql::MigrationKind::Up,
+            },
+            tauri_plugin_sql::Migration {
+                version: 4,
+                description: "create_ru_and_wallet",
+                sql: include_str!("../migrations/04_ru_and_wallet.sql"),
+                kind: tauri_plugin_sql::MigrationKind::Up,
+            },
+            tauri_plugin_sql::Migration {
+                version: 5,
+                description: "fix_ru_and_wallet_schema",
+                sql: include_str!("../migrations/05_fix_ru_and_wallet_schema.sql"),
                 kind: tauri_plugin_sql::MigrationKind::Up,
             },
         ]

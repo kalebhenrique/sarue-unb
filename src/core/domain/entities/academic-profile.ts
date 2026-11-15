@@ -22,6 +22,8 @@ export interface TrancadaEvent {
 
 export interface StudentAcademicProfile {
   matricula: string;
+  /** CPF do aluno (11 dígitos numéricos), extraído do histórico escolar ou Aprender 3. */
+  cpf?: string;
   /** Eventos de trancamento acumulados do curso (fator de trancamento do IRA). */
   trancadaEvents?: TrancadaEvent[];
   studentName?: string;

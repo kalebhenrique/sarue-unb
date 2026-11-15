@@ -320,6 +320,24 @@ Currículo: 1741/1
       expect(ene0067?.situation).toBe('MATR');
       expect(ene0067?.name).toBe('SINAIS E SISTEMAS EM TEMPO CONTÍNUO');
     });
+
+    it('deve extrair o CPF como 11 dígitos limpos do texto do histórico escolar para o QR Code da BCE', async () => {
+      const historicoComCpf = `
+Histórico Escolar
+Dados Pessoais
+Nome: ESTUDANTE TESTE UNB
+CPF: 123.456.789-01 Nacionalidade: Brasileira
+Matrícula: 241000001
+Curso: ENGENHARIA DE COMPUTAÇÃO
+Currículo: 1741/1
+`;
+      const result = await parseUseCase.execute({
+        rawText: historicoComCpf,
+        curriculaCatalog: [MOCK_CURRICULUM],
+      });
+
+      expect(result.profile.cpf).toBe('12345678901');
+    });
   });
 
   describe('GetFlowchartUseCase', () => {

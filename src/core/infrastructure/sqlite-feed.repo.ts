@@ -67,6 +67,8 @@ export async function getDatabase(): Promise<Database | null> {
         const { SQLITE_DB_NAME } = await import('./db-config');
         const db = await Database.load(SQLITE_DB_NAME);
 
+        try { await db.execute('PRAGMA busy_timeout = 5000;'); } catch {}
+
         // Garante compatibilidade transparente com bases locais legadas pré-migrações
         try { await db.execute('ALTER TABLE courses ADD COLUMN url TEXT;'); } catch {}
         try { await db.execute('ALTER TABLE courses ADD COLUMN turma TEXT;'); } catch {}
@@ -74,6 +76,36 @@ export async function getDatabase(): Promise<Database | null> {
         try { await db.execute('ALTER TABLE courses ADD COLUMN max_absences INTEGER;'); } catch {}
         try { await db.execute('ALTER TABLE feed_items ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0;'); } catch {}
         try { await db.execute('ALTER TABLE feed_items ADD COLUMN external_url TEXT;'); } catch {}
+        try {
+          const ruCols = await db.select<{ name: string }[]>(
+            'PRAGMA table_info(ru_menus);'
+          );
+          if (ruCols.length > 0 && !ruCols.some((c) => c.name === 'payload')) {
+            await db.execute('DROP TABLE IF EXISTS ru_menus;');
+          }
+          await db.execute(`CREATE TABLE IF NOT EXISTS ru_menus (
+            campus TEXT NOT NULL,
+            date TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (campus, date)
+          );`);
+
+          const walletCols = await db.select<{ name: string }[]>(
+            'PRAGMA table_info(student_wallet);'
+          );
+          if (
+            walletCols.length > 0 &&
+            !walletCols.some((c) => c.name === 'payload')
+          ) {
+            await db.execute('DROP TABLE IF EXISTS student_wallet;');
+          }
+          await db.execute(`CREATE TABLE IF NOT EXISTS student_wallet (
+            id TEXT PRIMARY KEY,
+            payload TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );`);
+        } catch {}
 
         // Remove dados legados do MoodleMat (plataforma descontinuada)
         try {

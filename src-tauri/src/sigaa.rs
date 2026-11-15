@@ -1,5 +1,6 @@
 use crate::models::{
-    AcademicHistoryPayload, Course, FeedItem, FeedItemType, PlatformType, StudentProfile,
+    AcademicHistoryPayload, Course, FeedItem, FeedItemType, PlatformType, RuStatementEntry,
+    StudentProfile, StudentWalletSyncPayload,
 };
 use chrono::Datelike;
 use regex::Regex;
@@ -1768,6 +1769,7 @@ impl SigaaClient {
         StudentProfile {
             matricula,
             name: nome,
+            cpf: None,
             course: curso,
             shift: turno,
             level: nivel,
@@ -1791,7 +1793,7 @@ impl SigaaClient {
         senha: &str,
     ) -> Result<AcademicHistoryPayload, String> {
         let (active_client, page_html, _) = self.get_authenticated_portal(matricula, senha).await?;
-        let profile = Self::parse_discente_profile(&page_html, matricula);
+        let mut profile = Self::parse_discente_profile(&page_html, matricula);
 
         let vs_re = Regex::new(r#"id="javax\.faces\.ViewState"[^>]*value="([^"]+)""#)
             .map_err(|e| e.to_string())?;
@@ -1867,6 +1869,10 @@ impl SigaaClient {
                     .ok()
                 });
 
+        profile.cpf = pdf_text
+            .as_deref()
+            .and_then(Self::extract_cpf_from_historico_text);
+
         Ok(AcademicHistoryPayload {
             profile,
             // Base64 só como fallback quando a extração falhou: com texto
@@ -1878,6 +1884,518 @@ impl SigaaClient {
                 Some(base64_encode(&bytes_for_b64))
             },
             pdf_text,
+        })
+    }
+
+    pub fn extract_cpf_from_historico_text(text: &str) -> Option<String> {
+        let header = text
+            .split("Componentes Curriculares")
+            .next()
+            .unwrap_or(text);
+        if let Ok(labeled_re) = Regex::new(r"(?i)CPF\s*:?\s*(\d{3}\.?\d{3}\.?\d{3}-?\d{2})") {
+            if let Some(cap) = labeled_re.captures(header) {
+                let digits: String = cap[1].chars().filter(|c| c.is_ascii_digit()).collect();
+                if digits.len() == 11 {
+                    return Some(digits);
+                }
+            }
+        }
+        if let Ok(formatted_re) = Regex::new(r"\b(\d{3}\.\d{3}\.\d{3}-\d{2})\b") {
+            if let Some(cap) = formatted_re.captures(header) {
+                let digits: String = cap[1].chars().filter(|c| c.is_ascii_digit()).collect();
+                if digits.len() == 11 {
+                    return Some(digits);
+                }
+            }
+        }
+        None
+    }
+
+    pub fn parse_ru_statement_html(
+        html: &str,
+    ) -> Option<(f64, Option<u32>, Vec<RuStatementEntry>)> {
+        let doc = scraper::Html::parse_document(html);
+        let h4_sel = scraper::Selector::parse("h4").ok()?;
+        let has_statement = doc.select(&h4_sel).any(|el| {
+            el.text()
+                .collect::<Vec<_>>()
+                .join(" ")
+                .contains("Extrato no Restaurante Universitário")
+        });
+        if !has_statement {
+            return None;
+        }
+
+        // Find the table right after "Extrato no Restaurante Universitário"
+        let idx = html.find("Extrato no Restaurante Universitário")?;
+        let after = &html[idx..];
+        let table_start = after.find("<table")?;
+        let table_end = after[table_start..].find("</table>")? + table_start + 8;
+        let table_html = &after[table_start..table_end];
+        let table_doc = scraper::Html::parse_fragment(table_html);
+        let tr_sel = scraper::Selector::parse("tr").ok()?;
+        let td_sel = scraper::Selector::parse("td").ok()?;
+        let group_re = Regex::new(r"(?i)\bgrupo\s*([1234])\b").ok()?;
+
+        let mut entries = Vec::new();
+        for tr in table_doc.select(&tr_sel) {
+            let cells: Vec<String> = tr
+                .select(&td_sel)
+                .map(|td| {
+                    td.text()
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                        .split_whitespace()
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                })
+                .collect();
+            if cells.len() != 3 {
+                continue;
+            }
+            let raw_dt = &cells[0];
+            let desc = &cells[1];
+            let raw_amount = cells[2]
+                .replace("R$", "")
+                .chars()
+                .filter(|c| !c.is_whitespace())
+                .collect::<String>()
+                .replace('.', "")
+                .replace(',', ".");
+            let Ok(amount) = raw_amount.parse::<f64>() else {
+                continue;
+            };
+            entries.push(RuStatementEntry {
+                occurred_at: raw_dt.clone(),
+                description: desc.clone(),
+                amount,
+            });
+        }
+
+        // Sort entries descending by occurred_at (dd/mm/yyyy HH:MM) to find latest balance & group
+        let parse_dt_key = |s: &str| -> (i32, u32, u32, u32, u32) {
+            // "20/09/2026 12:23"
+            let parts: Vec<&str> = s.split_whitespace().collect();
+            let dmy: Vec<u32> = parts
+                .first()
+                .map(|d| d.split('/').filter_map(|p| p.parse().ok()).collect())
+                .unwrap_or_default();
+            let hm: Vec<u32> = parts
+                .get(1)
+                .map(|t| t.split(':').filter_map(|p| p.parse().ok()).collect())
+                .unwrap_or_default();
+            if dmy.len() == 3 {
+                (
+                    dmy[2] as i32,
+                    dmy[1],
+                    dmy[0],
+                    *hm.first().unwrap_or(&0),
+                    *hm.get(1).unwrap_or(&0),
+                )
+            } else {
+                (0, 0, 0, 0, 0)
+            }
+        };
+
+        let mut sorted = entries.clone();
+        sorted.sort_by_key(|b| std::cmp::Reverse(parse_dt_key(&b.occurred_at)));
+
+        let balance = sorted.iter().find_map(|e| {
+            let k = e
+                .description
+                .trim()
+                .trim_end_matches(':')
+                .trim()
+                .to_lowercase();
+            if k == "saldo" || k == "saldo atual" {
+                Some(e.amount)
+            } else {
+                None
+            }
+        })?;
+
+        let group = sorted.iter().find_map(|e| {
+            group_re
+                .captures(&e.description)
+                .and_then(|c| c[1].parse::<u32>().ok())
+        });
+
+        Some((balance, group, entries))
+    }
+
+    pub fn parse_student_card_pdf(pdf_bytes: &[u8]) -> Result<(String, String), String> {
+        let pdf_start = pdf_bytes
+            .windows(5)
+            .position(|w| w == b"%PDF-")
+            .ok_or_else(|| "PDF da carteirinha estudantil inválido.".to_string())?;
+        let clean_bytes = &pdf_bytes[pdf_start..];
+
+        let mut doc = pdf_extract::Document::load_mem(clean_bytes)
+            .map_err(|e| format!("Falha ao abrir PDF da carteirinha: {}", e))?;
+
+        // 1. Decode QR code from embedded /Subtype /Image streams
+        let mut qr_token: Option<String> = None;
+        for object in doc.objects.values() {
+            let Ok(stream) = object.as_stream() else {
+                continue;
+            };
+            let is_image = stream
+                .dict
+                .get(b"Subtype")
+                .ok()
+                .and_then(|o| o.as_name().ok())
+                .map(|n| n == b"Image")
+                .unwrap_or(false);
+            if !is_image {
+                continue;
+            }
+
+            let filter_name = stream
+                .dict
+                .get(b"Filter")
+                .ok()
+                .and_then(|o| {
+                    o.as_name().ok().or_else(|| {
+                        o.as_array()
+                            .ok()
+                            .and_then(|arr| arr.first())
+                            .and_then(|first| first.as_name().ok())
+                    })
+                })
+                .unwrap_or(b"");
+
+            let mut candidate_lumas: Vec<image::GrayImage> = Vec::new();
+            if filter_name == b"DCTDecode" {
+                if let Ok(dyn_img) = image::load_from_memory(&stream.content) {
+                    candidate_lumas.push(dyn_img.to_luma8());
+                }
+            } else if filter_name == b"CCITTFaxDecode" {
+                let w = stream
+                    .dict
+                    .get(b"Width")
+                    .ok()
+                    .and_then(|o| o.as_i64().ok())
+                    .unwrap_or(0) as u32;
+                let h = stream
+                    .dict
+                    .get(b"Height")
+                    .ok()
+                    .and_then(|o| o.as_i64().ok())
+                    .unwrap_or(0) as u32;
+                if w > 0 && h > 0 {
+                    let mut pixels_normal = Vec::with_capacity((w * h) as usize);
+                    let mut pixels_inverted = Vec::with_capacity((w * h) as usize);
+                    let _ = fax::decoder::decode_g4(
+                        stream.content.iter().copied(),
+                        w as u16,
+                        Some(h as u16),
+                        |transitions| {
+                            for c in fax::decoder::pels(transitions, w as u16) {
+                                match c {
+                                    fax::Color::White => {
+                                        pixels_normal.push(255u8);
+                                        pixels_inverted.push(0u8);
+                                    }
+                                    fax::Color::Black => {
+                                        pixels_normal.push(0u8);
+                                        pixels_inverted.push(255u8);
+                                    }
+                                }
+                            }
+                        },
+                    );
+                    let actual_h = (pixels_normal.len() as u32) / w;
+                    if actual_h > 0 {
+                        let len = (w * actual_h) as usize;
+                        pixels_normal.truncate(len);
+                        pixels_inverted.truncate(len);
+                        if let Some(img) = image::GrayImage::from_raw(w, actual_h, pixels_normal) {
+                            candidate_lumas.push(img);
+                        }
+                        if let Some(img) = image::GrayImage::from_raw(w, actual_h, pixels_inverted)
+                        {
+                            candidate_lumas.push(img);
+                        }
+                    }
+                }
+            } else {
+                let raw = stream
+                    .decompressed_content()
+                    .unwrap_or_else(|_| stream.content.clone());
+                if let Ok(dyn_img) = image::load_from_memory(&raw) {
+                    candidate_lumas.push(dyn_img.to_luma8());
+                } else {
+                    let w = stream
+                        .dict
+                        .get(b"Width")
+                        .ok()
+                        .and_then(|o| o.as_i64().ok())
+                        .unwrap_or(0) as u32;
+                    let h = stream
+                        .dict
+                        .get(b"Height")
+                        .ok()
+                        .and_then(|o| o.as_i64().ok())
+                        .unwrap_or(0) as u32;
+                    let bpc = stream
+                        .dict
+                        .get(b"BitsPerComponent")
+                        .ok()
+                        .and_then(|o| o.as_i64().ok())
+                        .unwrap_or(8);
+                    if w > 0 && h > 0 {
+                        let expected_gray = (w * h) as usize;
+                        let expected_rgb = (w * h * 3) as usize;
+                        let expected_rgba = (w * h * 4) as usize;
+                        if bpc == 8 && raw.len() == expected_gray {
+                            if let Some(img) = image::GrayImage::from_raw(w, h, raw) {
+                                candidate_lumas.push(img);
+                            }
+                        } else if bpc == 8 && raw.len() == expected_rgb {
+                            if let Some(rgb) = image::RgbImage::from_raw(w, h, raw) {
+                                candidate_lumas
+                                    .push(image::DynamicImage::ImageRgb8(rgb).to_luma8());
+                            }
+                        } else if bpc == 8 && raw.len() == expected_rgba {
+                            if let Some(rgba) = image::RgbaImage::from_raw(w, h, raw) {
+                                candidate_lumas
+                                    .push(image::DynamicImage::ImageRgba8(rgba).to_luma8());
+                            }
+                        } else if bpc == 1 {
+                            let row_bytes = (w as usize).div_ceil(8);
+                            if raw.len() >= row_bytes * (h as usize) {
+                                let mut pixels = Vec::with_capacity((w * h) as usize);
+                                for y in 0..(h as usize) {
+                                    for x in 0..(w as usize) {
+                                        let byte = raw[y * row_bytes + (x / 8)];
+                                        let bit = (byte >> (7 - (x % 8))) & 1;
+                                        pixels.push(if bit == 1 { 255u8 } else { 0u8 });
+                                    }
+                                }
+                                if let Some(img) = image::GrayImage::from_raw(w, h, pixels) {
+                                    candidate_lumas.push(img);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            for mut luma in candidate_lumas {
+                if luma.width() < 240 || luma.height() < 240 {
+                    let scale = (240 / luma.width().max(1)).clamp(4, 12);
+                    luma = image::imageops::resize(
+                        &luma,
+                        luma.width() * scale,
+                        luma.height() * scale,
+                        image::imageops::FilterType::Nearest,
+                    );
+                }
+                // Add white quiet zone border so QR codes cropped tight to the finder patterns decode reliably
+                let pad = 32u32;
+                let mut padded = image::GrayImage::from_pixel(
+                    luma.width() + pad * 2,
+                    luma.height() + pad * 2,
+                    image::Luma([255u8]),
+                );
+                for y in 0..luma.height() {
+                    for x in 0..luma.width() {
+                        padded.put_pixel(x + pad, y + pad, *luma.get_pixel(x, y));
+                    }
+                }
+                let mut prep = rqrr::PreparedImage::prepare(padded);
+                for grid in prep.detect_grids() {
+                    if let Ok((_meta, content)) = grid.decode() {
+                        if !content.trim().is_empty() {
+                            qr_token = Some(content.trim().to_string());
+                            break;
+                        }
+                    }
+                }
+                if qr_token.is_some() {
+                    break;
+                }
+            }
+            if qr_token.is_some() {
+                break;
+            }
+        }
+
+        let token = qr_token
+            .ok_or_else(|| "QR code não encontrado na carteirinha estudantil.".to_string())?;
+
+        // 2. Strip Image `Do` ops before running `pdf_extract::output_doc` to extract validity text
+        let page_ids: Vec<_> = doc.get_pages().into_values().collect();
+        for page_id in page_ids {
+            if let Ok(cb) = doc.get_page_content(page_id) {
+                if let Ok(mut content) = pdf_extract::content::Content::decode(&cb) {
+                    content.operations.retain(|op| op.operator != "Do");
+                    if let Ok(enc) = content.encode() {
+                        let _ = doc.change_page_content(page_id, enc);
+                    }
+                }
+            }
+        }
+
+        let mut text = String::new();
+        {
+            let mut out = pdf_extract::PlainTextOutput::new(&mut text);
+            pdf_extract::output_doc(&doc, &mut out)
+                .map_err(|e| format!("Falha ao ler texto da carteirinha: {}", e))?;
+        }
+
+        let val_re = Regex::new(r"(?i)VALIDADE\s+([^\s\d]+)\s+(\d{4})").unwrap();
+        let cap = val_re
+            .captures(&text)
+            .ok_or_else(|| "Validade não encontrada na carteirinha estudantil.".to_string())?;
+
+        let raw_month = cap[1]
+            .to_lowercase()
+            .replace('ç', "c")
+            .replace(['á', 'â', 'ã'], "a")
+            .replace(['é', 'ê'], "e")
+            .replace('í', "i")
+            .replace(['ó', 'ô', 'õ'], "o")
+            .replace('ú', "u");
+        let month_num = match raw_month.as_str() {
+            "janeiro" => 1,
+            "fevereiro" => 2,
+            "marco" => 3,
+            "abril" => 4,
+            "maio" => 5,
+            "junho" => 6,
+            "julho" => 7,
+            "agosto" => 8,
+            "setembro" => 9,
+            "outubro" => 10,
+            "novembro" => 11,
+            "dezembro" => 12,
+            other => {
+                return Err(format!(
+                    "Mês `{}` desconhecido na carteirinha estudantil.",
+                    other
+                ))
+            }
+        };
+        let year_num: i32 = cap[2].parse().unwrap_or(2026);
+        let valid_until = format!("{:04}-{:02}-01", year_num, month_num);
+
+        Ok((token, valid_until))
+    }
+
+    pub async fn fetch_student_wallet(
+        &self,
+        matricula: &str,
+        senha: &str,
+    ) -> Result<StudentWalletSyncPayload, String> {
+        let (active_client, mut page_html, _) =
+            self.get_authenticated_portal(matricula, senha).await?;
+
+        let vs_re = Regex::new(r#"id="javax\.faces\.ViewState"[^>]*value="([^"]+)""#).unwrap();
+        let id_re = Regex::new(r#"<input type="hidden" name="id" value="([^"]+)""#).unwrap();
+
+        // 1. Extrato do RU (se ainda não aberto na página, envia postback de formExibirExtrato)
+        let mut statement = Self::parse_ru_statement_html(&page_html);
+        if statement.is_none() && page_html.contains("formExibirExtrato") {
+            let vs = vs_re
+                .captures(&page_html)
+                .map(|c| c[1].to_string())
+                .unwrap_or_else(|| "j_id1".into());
+            let mut form_data = HashMap::new();
+            form_data.insert("formExibirExtrato", "formExibirExtrato");
+            form_data.insert("formExibirExtrato:botao", "formExibirExtrato:botao");
+            form_data.insert("javax.faces.ViewState", &vs);
+
+            if let Ok(res_ext) = active_client
+                .post(DISCENTE_URL)
+                .header(REFERER, DISCENTE_URL)
+                .form(&form_data)
+                .send()
+                .await
+            {
+                if let Ok(ext_html) = res_ext.text().await {
+                    statement = Self::parse_ru_statement_html(&ext_html);
+                    if ext_html.contains("menu:form_menu_discente") {
+                        page_html = ext_html;
+                    }
+                }
+            }
+        }
+
+        // 2. Carteirinha estudantil (PDF + QR Code)
+        let vs = vs_re
+            .captures(&page_html)
+            .map(|c| c[1].to_string())
+            .unwrap_or_else(|| "j_id1".into());
+        let id_val = id_re
+            .captures(&page_html)
+            .map(|c| c[1].to_string())
+            .unwrap_or_default();
+
+        let mut card_form = HashMap::new();
+        card_form.insert("menu:form_menu_discente", "menu:form_menu_discente");
+        card_form.insert("id", &id_val);
+        card_form.insert(
+            "jscook_action",
+            "menu_form_menu_discente_discente_menu:A]#{ portalDiscente.emitiCarteiraEstudantilUnb }",
+        );
+        card_form.insert("javax.faces.ViewState", &vs);
+
+        let mut ru_token = None;
+        let mut ru_valid_until = None;
+        let mut ru_card_pdf_base64 = None;
+
+        if let Ok(res_card) = active_client
+            .post(DISCENTE_URL)
+            .header(REFERER, DISCENTE_URL)
+            .form(&card_form)
+            .send()
+            .await
+        {
+            if let Ok(bytes) = res_card.bytes().await {
+                if let Some(pdf_start) = bytes.windows(5).take(256).position(|w| w == b"%PDF-") {
+                    let clean_slice = &bytes[pdf_start..];
+                    ru_card_pdf_base64 = Some(base64_encode(clean_slice));
+                    let bytes_vec = clean_slice.to_vec();
+                    if let Ok(Ok((tok, val))) = tokio::task::spawn_blocking(move || {
+                        Self::parse_student_card_pdf(&bytes_vec)
+                    })
+                    .await
+                    {
+                        ru_token = Some(tok);
+                        ru_valid_until = Some(val);
+                    }
+                } else {
+                    let body_str = String::from_utf8_lossy(&bytes);
+                    if body_str.to_lowercase().contains("possui foto") {
+                        return Err(
+                            "Você ainda não possui foto cadastrada no perfil do SIGAA. Atualize sua foto no portal discente para emitir a carteirinha do RU."
+                                .into(),
+                        );
+                    }
+                }
+            }
+        }
+
+        // Invalidate cached ViewState after POST
+        {
+            let mut lock = sigaa_session_cache().lock().await;
+            *lock = None;
+        }
+
+        let (ru_balance, ru_group, ru_entries) = match statement {
+            Some((b, g, e)) => (Some(b), g, e),
+            None => (None, None, Vec::new()),
+        };
+
+        Ok(StudentWalletSyncPayload {
+            ru_token,
+            ru_valid_until,
+            ru_card_pdf_base64,
+            ru_balance,
+            ru_group,
+            ru_entries,
+            cpf: None,
         })
     }
 

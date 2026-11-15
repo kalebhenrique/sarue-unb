@@ -173,6 +173,10 @@ export class ParseHistoricoUseCase {
 
     // Currículo / Matriz Ativa
     const headerPortion = fullText.split(/Componentes Curriculares/i)[0] || fullText.slice(0, 3000);
+    const cpfLabeledMatch = headerPortion.match(/CPF\s*:?\s*(\d{3}\.?\d{3}\.?\d{3}-?\d{2})/i);
+    const cpfFormattedMatch = headerPortion.match(/\b(\d{3}\.\d{3}\.\d{3}-\d{2})\b/);
+    const rawCpfDigits = (cpfLabeledMatch?.[1] || cpfFormattedMatch?.[1] || '').replace(/\D/g, '');
+    const cpf = rawCpfDigits.length === 11 ? rawCpfDigits : input.defaultProfile?.cpf;
     const curriculoMatch = headerPortion.match(/\b(\d{3,5}\/\d+)\b/)
       || fullText.match(/Curr[íi]culo:\s*([\d/]+)/i)
       || fullText.match(/Estrutura\s*Curricular:\s*([\d/]+)/i);
@@ -527,6 +531,7 @@ export class ParseHistoricoUseCase {
 
     const profile: StudentAcademicProfile = {
       matricula,
+      cpf,
       studentName,
       courseName,
       degree: input.defaultProfile?.degree || 'Bacharelado',
