@@ -387,7 +387,7 @@ export const CoursesScreen: React.FC = () => {
           {[1, 2, 3, 4].map((i) => (
             <Card
               key={i}
-              className="bg-paper rounded-lg p-5 shadow-(--neo-card-shadow) flex flex-col justify-between space-y-4"
+              className="bg-paper rounded-lg p-5 shadow-neo-sm md:shadow-(--neo-card-shadow) flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -450,15 +450,8 @@ export const CoursesScreen: React.FC = () => {
         {/* Título Padronizado da Página com Nome da Disciplina e Ação de Voltar */}
         <PageHeader
           icon={GraduationCap}
-          title={
-            <>
-              {selectedDiscipline.name}{" "}
-              <span className="text-sm font-bold text-neutral-500">
-                ({disciplineAllItems.length}{" "}
-                {disciplineAllItems.length === 1 ? "resultado" : "resultados"})
-              </span>
-            </>
-          }
+          title={selectedDiscipline.name}
+          subtitle={`(${disciplineAllItems.length} ${disciplineAllItems.length === 1 ? "resultado" : "resultados"})`}
           actions={
             <Button
               type="button"
@@ -731,7 +724,7 @@ export const CoursesScreen: React.FC = () => {
                     setSelectedDiscipline(discipline);
                   }
                 }}
-                className="cursor-pointer bg-paper rounded-lg p-5 shadow-(--neo-card-shadow) hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_var(--neo-shadow)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out flex flex-col justify-between group"
+                className="cursor-pointer bg-paper rounded-lg p-5 shadow-neo-sm md:shadow-neo hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs md:hover:translate-x-[2px] md:hover:translate-y-[2px] md:hover:shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none md:active:translate-x-[4px] md:active:translate-y-[4px] transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out flex flex-col justify-between group"
               >
                 <div>
                   {/* Topo do card com plataformas integradas alinhadas à esquerda */}
@@ -910,7 +903,7 @@ export const CoursesScreen: React.FC = () => {
                     });
                   }
                 }}
-                className="cursor-pointer bg-paper rounded-lg p-5 shadow-(--neo-card-shadow) hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_var(--neo-shadow)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out flex flex-col justify-between group"
+                className="cursor-pointer bg-paper rounded-lg p-5 shadow-neo-sm md:shadow-neo hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs md:hover:translate-x-[2px] md:hover:translate-y-[2px] md:hover:shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none md:active:translate-x-[4px] md:active:translate-y-[4px] transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-center gap-1.5 mb-2.5">

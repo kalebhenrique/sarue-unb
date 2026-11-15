@@ -26,7 +26,7 @@ export const MyCourseSkeleton: React.FC = () => {
       </div>
 
       {/* Banner de Identificação do Discente */}
-      <div className="bg-paper border-2 border-ink rounded-lg p-5 mb-6 shadow-neo">
+      <div className="bg-paper border-2 border-ink rounded-lg p-5 mb-6 shadow-neo-sm md:shadow-neo">
         <div className="flex items-center gap-2">
           <Skeleton className="h-5 w-64" />
           <Skeleton className="h-5 w-28 rounded-md" />
@@ -38,7 +38,7 @@ export const MyCourseSkeleton: React.FC = () => {
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
-            className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo"
+            className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo-sm md:shadow-neo"
           >
             <div className="flex items-center justify-between mb-2">
               <Skeleton className="h-3 w-24" />
@@ -52,7 +52,7 @@ export const MyCourseSkeleton: React.FC = () => {
       </div>
 
       {/* Painel "Cursando agora" */}
-      <div className="bg-pastel-blue border-2 border-ink rounded-lg p-4 mb-6 shadow-neo">
+      <div className="bg-pastel-blue border-2 border-ink rounded-lg p-4 mb-6 shadow-neo-sm md:shadow-neo">
         <div className="flex items-center gap-2 mb-3">
           <Skeleton className="h-3.5 w-28" />
         </div>
@@ -64,7 +64,7 @@ export const MyCourseSkeleton: React.FC = () => {
       </div>
 
       {/* Lista de disciplinas: card único com busca no cabeçalho e semestres internos */}
-      <section className="bg-paper border-2 border-ink rounded-lg shadow-neo overflow-hidden">
+      <section className="bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center gap-3 p-4 border-b-2 border-ink">
           <Skeleton className="h-9 flex-1 lg:max-w-md rounded-lg" />
           <div className="flex flex-wrap items-center gap-1.5 lg:ml-auto">

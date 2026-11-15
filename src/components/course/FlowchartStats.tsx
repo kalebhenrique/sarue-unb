@@ -33,7 +33,7 @@ export const FlowchartStats: React.FC<FlowchartStatsProps> = ({ metrics, onOpenI
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo flex flex-col justify-between">
+      <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo-sm md:shadow-neo flex flex-col justify-between">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-black uppercase tracking-wider text-neutral-600">
             {metrics.isAlternativeCurriculum
@@ -91,7 +91,7 @@ export const FlowchartStats: React.FC<FlowchartStatsProps> = ({ metrics, onOpenI
         </p>
       </div>
 
-      <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo flex flex-col justify-between">
+      <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo-sm md:shadow-neo flex flex-col justify-between">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-black uppercase tracking-wider text-neutral-600">
             CH Obrigatória
@@ -117,7 +117,7 @@ export const FlowchartStats: React.FC<FlowchartStatsProps> = ({ metrics, onOpenI
         </p>
       </div>
 
-      <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo flex flex-col justify-between">
+      <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo-sm md:shadow-neo flex flex-col justify-between">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-black uppercase tracking-wider text-neutral-600">
             CH Total do Curso
@@ -141,7 +141,7 @@ export const FlowchartStats: React.FC<FlowchartStatsProps> = ({ metrics, onOpenI
         </p>
       </div>
 
-      <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo flex flex-col justify-between">
+      <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo-sm md:shadow-neo flex flex-col justify-between">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-black uppercase tracking-wider text-neutral-600">
             Índices Acadêmicos

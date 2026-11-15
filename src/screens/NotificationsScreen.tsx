@@ -168,15 +168,11 @@ export const NotificationsScreen: React.FC = () => {
     <PageContainer>
       <PageHeader
         icon={Bell}
-        title={
-          <>
-            Notificações{' '}
-            {entries.length > 0 ? (
-              <span className="text-sm font-bold text-neutral-600">
-                ({entries.length} pendência{entries.length > 1 ? 's' : ''})
-              </span>
-            ) : null}
-          </>
+        title="Notificações"
+        subtitle={
+          entries.length > 0
+            ? `(${entries.length} pendência${entries.length > 1 ? "s" : ""})`
+            : null
         }
       />
 

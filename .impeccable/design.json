@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-09T04:19:54.045Z",
+  "generatedAt": "2026-11-15T00:15:00Z",
   "title": "Design System: Saruê UnB",
   "extensions": {
     "colorMeta": {
@@ -561,6 +561,16 @@
         "purpose": "Exclusiva da Zona de Perigo em Settings; no escuro #450A0A sobre placa #7F1D1D."
       },
       {
+        "name": "fab-elevation",
+        "value": "1px 1px 0px 0px var(--neo-shadow, #000), 0 4px 12px rgba(0, 0, 0, 0.2)",
+        "purpose": "Exceção exclusiva de elementos fixos flutuantes (FloatingActionButton): sombra dura compacta com blur sutil de elevação sobre scroll."
+      },
+      {
+        "name": "fab-elevation-dark",
+        "value": "1px 1px 0px 0px var(--neo-shadow, #000), 0 6px 16px rgba(0, 0, 0, 0.42)",
+        "purpose": "Versão escura da elevação de FABs fixos sobre o tapete de corte."
+      },
+      {
         "name": "pressed",
         "value": "none",
         "purpose": "Estado active: translate do offset completo — a superfície toca o papel."
@@ -701,6 +711,14 @@
       "css": ".ds-number { display: flex; align-items: stretch; width: 100%; height: 36px; background: var(--color-paper, #fff); border: 2px solid var(--color-ink, #000); border-radius: 12px; overflow: hidden; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; } .ds-number:focus-within { box-shadow: 0 0 0 2px var(--color-neo-blue, #2563eb); } .ds-number-input { width: 100%; min-width: 0; background: transparent; border: 0; text-align: center; font: 700 14px/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: #000; } .ds-number-input:focus { outline: none; } .ds-number-input::placeholder { color: var(--color-neutral-500, #737373); } .ds-number-controls { display: flex; flex-direction: column; width: 24px; border-left: 2px solid var(--color-ink, #000); background: var(--color-neutral-100, #f5f5f5); } .ds-number-btn { flex: 1; display: flex; align-items: center; justify-content: center; background: transparent; border: 0; color: #000; cursor: pointer; } .ds-number-btn:hover { background: var(--color-neutral-200, #e5e5e5); }"
     },
     {
+      "name": "Floating Action Button (FAB)",
+      "kind": "button",
+      "refersTo": "fab-primary",
+      "description": "Atalho flutuante fixo 56×56px em Azul Caneta Ação com borda 2px e elevação híbrida sutil.",
+      "html": "<button type=\"button\" class=\"ds-fab\" aria-label=\"Abrir Carteirinha Estudantil\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M16 10h2\"/><path d=\"M16 14h2\"/><path d=\"M6.17 15a3 3 0 0 1 5.66 0\"/><circle cx=\"9\" cy=\"11\" r=\"2\"/><rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"2\"/></svg></button>",
+      "css": ".ds-fab { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; padding: 0; background: var(--color-neo-blue, #2563eb); color: #fff; border: 2px solid var(--color-ink, #000); border-radius: 16px; cursor: pointer; user-select: none; box-shadow: 1px 1px 0px 0px var(--neo-shadow, #000), 0 4px 12px rgba(0, 0, 0, 0.2); transform: translate(0, 0); transition: transform 150ms ease-out, box-shadow 150ms ease-out, background-color 150ms ease-out; } .ds-fab:hover { background: var(--color-neo-blueHover, #1d4ed8); transform: translate(1px, 1px); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22); } .ds-fab:active { transform: translate(2px, 2px); box-shadow: none; } .ds-fab:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--color-paper, #fff), 0 0 0 4px var(--color-neo-blue, #2563eb); }"
+    },
+    {
       "name": "Calendar Event Block",
       "kind": "custom",
       "refersTo": "badge-sticker",
@@ -771,7 +789,7 @@
       },
       {
         "name": "A Regra da Sombra Dura",
-        "body": "Sombra é deslocamento sólido preto, nunca blur, nunca rgba difusa, nunca cor. Se precisar de menos profundidade, diminua o deslocamento — não amacie. Única exceção: a Zona de Perigo usa a sombra na própria cor do risco.",
+        "body": "Sombra é deslocamento sólido preto, nunca blur, nunca rgba difusa, nunca cor. Se precisar de menos profundidade, diminua o deslocamento — não amacie. Duas exceções declaradas: a Zona de Perigo usa a sombra na própria cor do risco (#DC2626), e elementos fixos flutuantes (FloatingActionButton) combinam sombra dura compacta (1px 1px 0 0 #000) com blur ambiental sutil (0 4px 12px rgba(0,0,0,0.2) no claro / 0 6px 16px rgba(0,0,0,0.42) no escuro) exclusivamente para leitura de camada fixa sobre scroll.",
         "section": "elevation"
       },
       {
@@ -813,6 +831,26 @@
         "name": "A Regra da Etiqueta da Família",
         "body": "Todo evento do Calendário veste exatamente uma das três famílias — Acadêmico UnB (azul #468AFB), Tarefa do Feed (amarela #EAB308), Meu Evento (verde #16A34A) — e a mesma tinta aparece no bloco do mês, no check do filtro e na Badge do card. Quarta família ou tinta trocada é drift.",
         "section": "components"
+      },
+      {
+        "name": "A Regra da Barra de Topo",
+        "body": "O titulo de pagina no mobile e o mesmo PageHeader das outras paginas: texto solto sobre o papel (nunca card, nunca sticky), fonte text-xl (text-2xl a partir de md). O componente resolve o mobile sozinho: esconde o proprio icone abaixo de md (nunca passar isMobile para isso) e a contagem/horario do titulo vive na prop subtitle (text-sm Tinta Suave) — nenhuma tela costura span manual dentro do title. Barra sticky com Voltar absoluto so existe em drill-down. Contagem absoluta em linha propria sob o titulo; acao primaria em barra fixa na base acima da tapbar.",
+        "section": "layout"
+      },
+      {
+        "name": "A Regra dos 48 Dedos",
+        "body": "Todo elemento interativo no mobile tem >=48x48px ou hit-area estendida. Unica exceção: chips de grade fechada (7 dias) com 48px de altura. Segmented lg (48px), Select trigger h-12, itens do sheet 48px.",
+        "section": "layout"
+      },
+      {
+        "name": "A Regra do Cartão que Gira",
+        "body": "A Carteirinha em tela cheia (StudentCardModal, compartilhado por WalletScreen e pelo FAB do RU) entra girando 90 graus (spring 260/24) — única exceção ao 150ms ease-out; sob prefers-reduced-motion vira fade+scale. O modal é papel: border-2, raio 8px, sem sombra; fecha por clique no véu ou Esc (sem botão X fixo sobre o cartão).",
+        "section": "components"
+      },
+      {
+        "name": "A Regra da Sombra Mobile",
+        "body": "Cards vestem neo-sm (2px) no mobile e neo (4px) a partir de md — em 360px o offset de 4px rouba espaço de conteúdo. A regra vive no componente: Card, Alert, EmptyState e ErrorBoundary nascem shadow-neo-sm md:shadow-(--neo-card-shadow); sombras costuradas a mao em telas usam o par shadow-neo-sm md:shadow-neo (banido shadow-neo fixo). Acao 2px, micro 1px; a fisica acompanha a escala do adesivo.",
+        "section": "elevation"
       }
     ],
     "dos": [
@@ -833,10 +871,11 @@
       "Do vestir evento do Calendário com exatamente uma família (A Regra da Etiqueta da Família): Acadêmico azul #468AFB, Tarefa do Feed amarela #EAB308, Meu Evento verde #16A34A — o mesmo trio pastel + borda viva + tinta da Grade Horária, repetido no bloco do mês, no check do filtro e na Badge do card.",
       "Do dar som mecânico só com opt-in, nunca na navegação nem em elemento desabilitado (A Regra do Clique Mecânico).",
       "Do usar #2563EB/#DC2626 como fundo sob texto branco; #468AFB/#FF6B6B ficam para marca/bordas.",
-      "Do manter o canto inferior direito organizado: adesivo de feedback a 16px da base, pilha de toasts acima dele (68px) — nenhum flutuante cobre o outro."
+      "Do manter o canto inferior direito organizado: adesivo de feedback a 16px da base, pilha de toasts acima dele (68px) e, quando houver FloatingActionButton, posicioná-lo acima da tapbar no mobile e à esquerda do FeedbackWidget (md:right-[4.5rem]) no desktop — nenhum flutuante cobre o outro.",
+      "Do respeitar piso de toque 48dp e piso de fonte text-xs no mobile; Select abre como BottomSheet."
     ],
     "donts": [
-      "Don't usar sombra com blur, box-shadow difusa, rgba ambiente ou elevação estilo Material — sombra dura ou nenhuma.",
+      "Don't usar sombra com blur, box-shadow difusa, rgba ambiente ou elevação estilo Material em cards, botões comuns ou painéis — sombra dura ou nenhuma, com exceção exclusiva da elevação sutil de FloatingActionButton fixo sobre o conteúdo.",
       "Don't usar glassmorphism, gradientes ou superfícies translúcidas — o mundo é opaco; a única translucidez permitida é o véu do backdrop do Dialog (bg-ink/10 + blur de 2px), que escurece o fundo sem criar vidro.",
       "Don't usar verde para seleção ou azul para conclusão — as tintas não trocam de significado (A Regra da Cor por Significado).",
       "Don't inventar status ou cor nova para disciplina no Fluxograma — o vocabulário de 5 estados é fechado e compartilhado por mapa, lista e minimapa.",
@@ -852,7 +891,9 @@
       "Don't tingir sombra de cor fora da Zona de Perigo — a sombra #DC2626 é exclusiva dela (A Regra da Sombra Dura).",
       "Don't colocar texto pequeno branco sobre Azul Caneta (#468AFB) ou Vermelho Correção (#FF6B6B) — são marca/borda/acento; fundo interativo sob texto branco é Azul Caneta Ação (#2563EB) ou Vermelho Correção Forte (#DC2626).",
       "Don't vestir conteúdo de botão (raio grande + sombra leve) ou botão de conteúdo (raio reto + sombra funda) — e hover nunca levanta o adesivo: sombra só cresce se o elemento for card clicável seguindo a escala 4px.",
-      "Don't usar font-mono fora de códigos de disciplina e metadados de máquina — o código é carimbo, o nome é escrita à mão (A Regra do Código em Máquina)."
+      "Don't usar font-mono fora de códigos de disciplina e metadados de máquina — o código é carimbo, o nome é escrita à mão (A Regra do Código em Máquina).",
+      "Don't criar elemento mobile <48px sem hit-area estendida, texto <12px, ou dropdown ancorado no mobile.",
+      "Don't deixar card com sombra de 4px abaixo de md ou tapbar com rotulos de texto que apertem os alvos de 48px."
     ]
   }
 }

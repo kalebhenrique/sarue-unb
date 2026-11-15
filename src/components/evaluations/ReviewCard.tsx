@@ -92,7 +92,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   ].filter((p): p is { label: string; value: string } => p !== null);
 
   return (
-    <Card className="bg-paper rounded-lg p-6 shadow-neo space-y-4">
+    <Card className="bg-paper rounded-lg p-6 shadow-neo-sm md:shadow-neo space-y-4">
       {/* Cabeçalho: Recomendação, SIGAA e Campus */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div className="space-y-1.5 min-w-0 flex-1">

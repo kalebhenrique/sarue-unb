@@ -406,17 +406,11 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
     <PageContainer>
       <PageHeader
         icon={MessageSquareQuote}
-        title={
-          <>
-            Avaliação de Professores{" "}
-            {unfilteredSummaries.length > 0 && (
-              <span className="text-sm font-bold text-neutral-500">
-                ({unfilteredSummaries.length}{" "}
-                {unfilteredSummaries.length === 1 ? "professor" : "professores"}
-                )
-              </span>
-            )}
-          </>
+        title="Avaliação de Professores"
+        subtitle={
+          unfilteredSummaries.length > 0
+            ? `(${unfilteredSummaries.length} ${unfilteredSummaries.length === 1 ? "professor" : "professores"})`
+            : null
         }
       />
 

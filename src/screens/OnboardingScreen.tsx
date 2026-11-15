@@ -336,7 +336,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                     <img
                       src="/sarue-logo.png"
                       alt="Saruê UnB"
-                      className="w-20 h-20 md:w-24 md:h-24 object-cover border-2 border-ink rounded-2xl shadow-(--neo-card-shadow) select-none pointer-events-none"
+                      className="w-20 h-20 md:w-24 md:h-24 object-cover border-2 border-ink rounded-2xl shadow-neo-sm md:shadow-(--neo-card-shadow) select-none pointer-events-none"
                     />
                   </motion.div>
                   <h1 className="text-4xl md:text-5xl font-black text-black tracking-tight">
@@ -387,7 +387,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                     <motion.div
                       key={c.title}
                       variants={itemVariants}
-                      className={`${c.bg} ${c.bar ?? ""} border-2 border-ink rounded-lg shadow-(--neo-card-shadow) p-5 dark:bg-paper`}
+                      className={`${c.bg} ${c.bar ?? ""} border-2 border-ink rounded-lg shadow-neo-sm md:shadow-(--neo-card-shadow) p-5 dark:bg-paper`}
                     >
                       <div className={`w-10 h-10 bg-paper ${c.sticker ?? ""} border-2 border-ink rounded-lg shadow-[2px_2px_0px_0px_var(--neo-shadow)] flex items-center justify-center mb-3`}>
                         {c.icon}
@@ -430,7 +430,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                     <motion.div
                       key={c.title}
                       variants={itemVariants}
-                      className={`${c.bg} ${c.bar ?? ""} border-2 border-ink rounded-lg shadow-(--neo-card-shadow) p-5 dark:bg-paper`}
+                      className={`${c.bg} ${c.bar ?? ""} border-2 border-ink rounded-lg shadow-neo-sm md:shadow-(--neo-card-shadow) p-5 dark:bg-paper`}
                     >
                       <div className={`w-10 h-10 bg-paper ${c.sticker ?? ""} border-2 border-ink rounded-lg shadow-[2px_2px_0px_0px_var(--neo-shadow)] flex items-center justify-center mb-3`}>
                         {c.icon}

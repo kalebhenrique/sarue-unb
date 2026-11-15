@@ -27,7 +27,7 @@ export const CurrentlyEnrolledPanel: React.FC<CurrentlyEnrolledPanelProps> =
 
     return (
       <div
-        className="bg-pastel-blue border-2 border-ink rounded-lg p-4 shadow-neo mb-6"
+        className="bg-pastel-blue border-2 border-ink rounded-lg p-4 shadow-neo-sm md:shadow-neo mb-6"
         aria-live="polite"
       >
         <div className="flex items-baseline gap-2 mb-3">

@@ -67,7 +67,7 @@ export const IraSemesterCard: React.FC<IraSemesterCardProps> = ({
       className={
         isFuture && !hasDisciplines
           ? 'flex flex-col bg-neutral-50 border-2 border-dashed border-black/15 rounded-lg'
-          : 'flex flex-col bg-paper border-2 border-ink rounded-lg shadow-neo'
+          : 'flex flex-col bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo'
       }
     >
       <div className={`px-3 py-2.5 border-b-2 border-ink ${SEMESTER_STYLES[semester.kind]} rounded-t-[6px]`}>

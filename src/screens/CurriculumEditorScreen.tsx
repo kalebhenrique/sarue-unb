@@ -766,7 +766,7 @@ export const CurriculumEditorScreen: React.FC<CurriculumEditorScreenProps> = ({
       />
 
       {/* Linha de contexto: curso, situação e estado do rascunho */}
-      <div className="bg-pastel-blue border-2 border-ink rounded-lg px-4 py-2.5 shadow-neo flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      <div className="bg-pastel-blue border-2 border-ink rounded-lg px-4 py-2.5 shadow-neo-sm md:shadow-neo flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <span className="text-sm font-black text-black">
           {draft?.courseName}
         </span>

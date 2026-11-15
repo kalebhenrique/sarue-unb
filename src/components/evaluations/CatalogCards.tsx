@@ -13,7 +13,7 @@ import { hasConsensusSeal } from './types';
 import { ConsensusSeal } from './ConsensusSeal';
 
 /** Card clicável do catálogo (@DESIGN.md "Card clicável"): sombra token
- * shadow-neo, física de afundar na escala 4px e semântica de botão. */
+ * shadow-neo-sm md:shadow-neo, física de afundar na escala 4px e semântica de botão. */
 export const ClickableCard: React.FC<{
   onClick: () => void;
   'aria-label': string;
@@ -32,7 +32,7 @@ export const ClickableCard: React.FC<{
       }
     }}
     className={cn(
-      'cursor-pointer bg-paper rounded-lg shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-neo-sm active:translate-x-[4px] active:translate-y-[4px] active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out group',
+      'cursor-pointer bg-paper rounded-lg shadow-neo-sm md:shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-neo-sm active:translate-x-[4px] active:translate-y-[4px] active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out group',
       className
     )}
   >

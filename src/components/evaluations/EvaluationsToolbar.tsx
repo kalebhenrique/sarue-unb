@@ -60,7 +60,7 @@ export const EvaluationsToolbar: React.FC<EvaluationsToolbarProps> = ({
   totalCount,
 }) => {
   return (
-    <div className="bg-paper border-2 border-ink rounded-lg p-4 shadow-neo space-y-4">
+    <div className="bg-paper border-2 border-ink rounded-lg p-4 shadow-neo-sm md:shadow-neo space-y-4">
       {/* Linha 1: Campo de Busca + Segmented Control (Professores | Disciplinas) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1 min-w-0">

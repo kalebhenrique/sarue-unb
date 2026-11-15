@@ -150,16 +150,8 @@ export const DashboardScreen: React.FC = () => {
       {/* Título Padronizado da Página com contagem de resultados em destaque menor */}
       <PageHeader
         icon={Home}
-        title={
-          <>
-            Início{" "}
-            {hasLoadedOnce ? (
-              <span className="text-sm font-bold text-neutral-500">
-                ({resultLabel})
-              </span>
-            ) : null}
-          </>
-        }
+        title="Início"
+        subtitle={hasLoadedOnce ? `(${resultLabel})` : null}
       />
 
       {/* Barra de Filtros e Busca (card próprio; expande para baixo no modo Selecionar) */}

@@ -29,7 +29,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <div
-      className={`bg-paper border-2 border-ink rounded-xl p-8 text-center shadow-neo ${className}`}
+      className={`bg-paper border-2 border-ink rounded-xl p-8 text-center shadow-neo-sm md:shadow-neo ${className}`}
     >
       {showMascot ? (
         <div className="relative mx-auto mb-4 flex items-center justify-center">

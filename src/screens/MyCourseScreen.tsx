@@ -271,7 +271,7 @@ export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }
               />
             )}
 
-            <div className="bg-paper border-2 border-ink rounded-lg p-5 mb-6 shadow-neo">
+            <div className="bg-paper border-2 border-ink rounded-lg p-5 mb-6 shadow-neo-sm md:shadow-neo">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center flex-wrap gap-2">
                   <span className="text-lg font-black text-black tracking-tight">
@@ -312,7 +312,7 @@ export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }
 
           {flowchartData && (
             <section
-              className="bg-paper border-2 border-ink rounded-lg shadow-neo"
+              className="bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo"
               aria-label={
                 viewMode === "list"
                   ? "Fluxograma de disciplinas por semestre"
@@ -501,7 +501,7 @@ export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }
           )}
 
           {(flowchartData?.electiveCompletedDisciplines?.length || 0) > 0 && (
-            <div className="mt-8 bg-paper border-2 border-ink rounded-xl p-5 shadow-neo">
+            <div className="mt-8 bg-paper border-2 border-ink rounded-xl p-5 shadow-neo-sm md:shadow-neo">
               <div className="flex items-center gap-2 mb-3">
                 <BookOpen className="w-4 h-4 text-black stroke-[2.5]" />
                 <h3 className="font-black text-sm text-black">

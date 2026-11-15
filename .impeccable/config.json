@@ -26,6 +26,15 @@
         ],
         "createdAt": "2026-10-25T14:43:18.610Z",
         "reason": "False positive confirmado: linha 554 é regex de parsing do HTML do SIGAA em parseDocentesTable (scraper extrai URL de foto do docente), não é <img> renderizado em UI"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "src/components/ui/bottom-sheet.tsx"
+        ],
+        "createdAt": "2026-11-14T12:55:41.679Z",
+        "reason": "Intentional: neo-brutalist design system usa border-2 border-ink com rounded corners em todo o app (buttons, select trigger, cards). Combinação border-t-2 + rounded-t-2xl copiada verbatim do sheet já shipped no Sidebar.tsx, não introduzida nesta sessão."
       }
     ]
   }

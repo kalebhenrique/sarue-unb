@@ -19,7 +19,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={cn(
-          'border-2 border-ink rounded-lg shadow-(--neo-card-shadow) p-6',
+          'border-2 border-ink rounded-lg shadow-neo-sm md:shadow-(--neo-card-shadow) p-6',
           variantStyles[variant],
           className
         )}

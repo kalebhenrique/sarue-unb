@@ -53,7 +53,7 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
           {options.find((option) => option.value === value)?.label ?? value}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent align={align} className="max-w-[calc(100vw-2rem)]">
+      <SelectContent align={align} className="md:max-w-[calc(100vw-2rem)]">
         {options.map((option) => (
           <SelectItem key={option.value} value={option.value}>
             {option.label}

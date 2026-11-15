@@ -208,6 +208,12 @@ components:
     rounded: "{rounded.md}"
     height: "32px"
     padding: "0 14px"
+  fab-primary:
+    backgroundColor: "{colors.pen-blue}"
+    textColor: "#ffffff"
+    rounded: "{rounded.lg}"
+    height: "56px"
+    width: "56px"
   button-feedback-trigger:
     backgroundColor: "#ffffff"
     textColor: "#000000"
@@ -441,6 +447,25 @@ App desktop (janela Tauri), desktop-first. Estrutura permanente: sidebar branca 
 
 Densidade: cards com padding interno de 24px (ferramentas de trabalho usam 16px), gaps de 8–16px entre controles, listas com cards empilhados. Grids internos usam gap de 6px (grade horária) a 10px (tabs). Catálogos de duas colunas (md:grid-cols-2, gap-4) para cards de professor/disciplina e métricas em quatro colunas no desktop (sm:2, lg:4). O canvas do Fluxograma tem 560px de altura fixa, com controles no canto superior direito, chip de reenquadrar no topo central e minimapa no canto inferior direito. Breakpoints Tailwind padrão existem para janelas estreitas (sm 640px, md 768px, lg 1024px), mas o alvo é janela de desktop; nada de layout de mobile. Painéis que se adaptam ao próprio espaço (Cofre em Settings) usam container query (`@container`): inputs de credencial ficam em duas colunas a partir de 580px de painel e empilham abaixo disso — o container manda, não a janela. Colunas de resultado fixam no scroll com `sticky top-6` sobre grid `items-start` (agenda do dia no Calendário, coluna da Grade Horária no Monte Grade).
 
+### Mobile (web empacotado, < 768px)
+A versão mobile é o mesmo mural com a física intacta e o esqueleto recalibrado para o polegar. Nada de "site encolhido": telas densas ganham leitura de 1 coluna e os controles sobem ao piso de toque.
+
+**Esqueleto de página — A Regra da Barra de Topo.** O título de página no mobile é o **mesmo PageHeader das outras páginas**: texto solto sobre o papel (nunca dentro de card, nunca sticky), **sem ícone** e com fonte menor (`text-xl`, subindo para `text-2xl` a partir de `md`). O componente resolve isso sozinho: o PageHeader **esconde o ícone abaixo de `md`** (a tela nunca passa `isMobile` para isso) e a contagem/horário que acompanha o título vive na prop **`subtitle`** (renderizada em `text-sm` Tinta Suave ao lado do título) — nenhuma tela costura `<span>` manual dentro do `title`. Ações da página ficam à direita do header, como em qualquer tela. Só em **drill-down** existe barra de topo sticky (papel, `border-b-2 border-ink`) com botão **Voltar absoluto à esquerda** (adesivo de 48px, física de afundar — substitui o "Voltar" in-flow) e o título truncado ao lado. A contagem absoluta ("42 resultados") desce para **linha própria sob o título** (11px/700 Tinta Suave). A **ação primária da página** mora numa barra fixa na base, acima da tapbar: botão largura cheia de 48px de altura com respiro de `env(safe-area-inset-bottom)`. O conteúdo rola em 1 coluna.
+
+**Piso de toque — A Regra dos 48 Dedos.** Todo elemento interativo no mobile tem **≥48×48px** (padrão Google/Material) ou hit-area estendida com padding invisível. Exceção única documentada: chips que dividem a mesma grade fechada (dias da semana, 7 colunas) garantem **48px de altura** e ocupam a célula inteira da grade sem gap menor que 4px — a largura que a grade der. Segmented Control no mobile usa a variante **lg (48px)**; Select trigger sobe para `h-12` (48px) e os itens do sheet para 48px.
+
+**Piso de fonte.** Nada abaixo de `text-xs` (12px) no mobile: os rótulos de 11px do desktop sobem para 12px e badges mínimas têm 11px — 10px segue banido (A Regra do Marcador Grosso / rampa tipográfica).
+
+**Sombra mobile.** Cards vestem **neo-sm (2px)** no mobile e **neo (4px)** a partir de `md` — em 360px o offset de 4px rouba espaço de conteúdo. A regra vive **no componente**: `Card`, `Alert`, `EmptyState` e `ErrorBoundary` já nascem `shadow-neo-sm md:shadow-(--neo-card-shadow)`; sombras costuradas à mão em telas usam o par **`shadow-neo-sm md:shadow-neo`** (banido `shadow-neo` fixo). Ação segue 2px e micro 1px; a física acompanha a escala do adesivo (card de sombra 2px: hover +1px/sombra 1px, active afunda tudo). A affordance raio/sombra continua lendo: conteúdo é 8px, ação 12–16px.
+
+**Tapbar (Bottom Tab Bar).** Cinco destinos fixos (Início, Disciplinas, RU, Notificações, Mais) em papel com `border-t-2 border-ink` e `env(safe-area-inset-bottom)` no respiro. **Icon-only**: ícones de 24px (stroke 2.5), sem rótulo de texto — o nome vive no `aria-label` de cada botão. O ativo veste o **thumb-adesivo Azul Caneta** (pill `rounded-xl` que desliza via `transform` em 150ms ease-out — mesma gramática do Segmented Control); inativos pretos. Alvos ≥48px. **Mais** usa o ícone **AlignJustify** (justify) e abre o BottomSheet de navegação; enquanto um sync está rodando, o ícone Mais dá lugar ao **RefreshCw girando** (pulso ~2s no início do sync) — `aria-expanded`, `aria-controls` e `aria-label` nunca mudam (os ícones são `aria-hidden`).
+
+**Bottom Sheet.** O popup de papel que sobe do chão: `bg-paper`, `border-t-2 border-ink`, `rounded-t-2xl`, alça de arrasto central, drag-to-dismiss (60px de arrasto ou 300px/s), backdrop véu de tinta (`bg-ink/10` + blur 2px). Todo **Select no mobile abre como BottomSheet** (mesma API do desktop; o Positioner vira `display:contents` e o sheet assume borda, arredondamento e altura `max-h-[min(60dvh,calc(100dvh-8rem))]`) — nunca dropdown ancorado em 360px. Entrada/saída em 220ms `cubic-bezier(0.22,1,0.36,1)`; `prefers-reduced-motion` pula o drag.
+
+**Toast no mobile.** A pilha de toasts vive no **topo** sob a safe-area (`top-[calc(1rem+env(safe-area-inset-top))]`), entra de cima e sai por swipe para cima/direita; o desktop mantém o canto inferior direito acima do adesivo de feedback. Mesma folha de papel, sem sombra.
+
+**A Regra do Cartão que Gira.** A Carteirinha Estudantil em tela cheia (`StudentCardModal`, compartilhado por `WalletScreen` e pelo FAB do RU) entra **girando 90°** (scale 0.72, `spring` 260/24) — o momento assinatura mobile e a única exceção sancionada ao 150ms ease-out: spring JS autorizado aqui, e só aqui, porque o cartão é objeto físico girando na mão, não holograma. Sob `prefers-reduced-motion` o giro vira fade + scale. O modal em si continua papel: border-2, raio 8px, **sem sombra**, véu de tinta no backdrop — e fecha por clique no véu ou `Esc` (sem botão X fixo sobre o cartão).
+
 A contagem de resultados vive em dois lugares, nunca numa linha solta acima do card: a contagem **absoluta** vai no título da página como sufixo do PageHeader ("Início (42 resultados)"); a contagem **filtrada** ("N de M resultados") abre o card do feed numa barra interna (Papel Quadriculado, borda inferior preta a 10%, Micro bold, py-2) e só aparece quando há filtro ativo. Na toolbar do catálogo de Avaliações, a contagem filtrada é variante de rodapé: divisor superior black/10 e texto bold, sem faixa de papel — o card é a própria toolbar.
 
 ## Elevation & Depth
@@ -452,12 +477,13 @@ Profundidade é **física e estrutural**: sombras são deslocamentos sólidos de
 - **Micro-adesivo** (`1px 1px 0 0 #000`, token `neo-xs`): o que pesa menos que um adesivo de ação em repouso — checkbox, blocos de ícone pastel, pills de resultado inline, barra de progresso, micro-ações flutuantes de ferramenta, badge de didática, pill de discrepância do IRA; também é a sombra do estágio hover da escala 2px.
 - **Adesivo de card** (`4px 4px 0 0 #000`, token `neo`): cards, alerts, painéis, toolbars e popups de conteúdo; nó do Fluxograma em repouso; minimapa.
 - **Sombra tingida de perigo** (`4px 4px 0 0 #DC2626`): exclusiva do Card da Zona de Perigo em Settings — a única sombra colorida do sistema; no escuro vira `#450A0A` sobre placa `#7F1D1D`.
+- **Adesivo flutuante fixo (FAB)** (`1px 1px 0 0 #000, 0 4px 12px rgba(0,0,0,0.2)` no claro; `1px 1px 0 0 #000, 0 6px 16px rgba(0,0,0,0.42)` no escuro): exclusiva de `FloatingActionButton` fixo na viewport — sombra dura compacta somada a halo ambiental sutil para destacar que o botão flutua fixo acima do conteúdo rolável.
 - **Quase-afundado** (`1px 1px 0 0 #000`): estado hover — o elemento translada em snap inteiro o quanto a sombra encolheu (ação 2px: +1px e sombra 1px; card clicável 4px: +2px e sombra 2px).
 - **Pressionado** (`shadow-none` + translate do offset completo): estado active de qualquer elemento interativo — a superfície toca o papel.
 - **Divisores internos**: bordas de 2px pretas entre seções da sidebar; linhas internas de card em black/10–15% — sempre com o token `black` (`--color-black`, que remapa pra giz no escuro), nunca `ink/N`: tinta é preto fixo e some sobre a placa noturna.
 
 ### Named Rules
-**A Regra da Sombra Dura.** Sombra é deslocamento sólido preto, nunca blur, nunca rgba difusa, nunca cor. Se precisar de menos profundidade, diminua o deslocamento — não amacie. Única exceção declarada: a Zona de Perigo usa a sombra na própria cor do risco (#DC2626) — perigo tinge a própria física, e nenhum outro elemento.
+**A Regra da Sombra Dura.** Sombra é deslocamento sólido preto, nunca blur, nunca rgba difusa, nunca cor. Se precisar de menos profundidade, diminua o deslocamento — não amacie. Duas exceções declaradas: a Zona de Perigo usa a sombra na própria cor do risco (#DC2626), e elementos fixos flutuantes (`FloatingActionButton`) combinam sombra dura compacta (`1px 1px 0 0 #000`) com blur ambiental sutil (`0 4px 12px rgba(0,0,0,0.2)` no claro / `0 6px 16px rgba(0,0,0,0.42)` no escuro) exclusivamente para leitura de camada fixa sobre scroll.
 
 **A Regra do Afundar.** Todo elemento interativo em repouso com sombra dura afunda em dois tempos: no hover, com snap inteiro (ação de sombra 2px: translate +1px na direção da sombra, sombra reduzida a 1px — fica a 1px do papel; card clicável de sombra 4px: +2px e sombra 2px); no active, tudo (translate +offset completo, shadow-none — a superfície toca o papel). Ghost sem sombra mantém micro-afundar de 1px no active. Elemento que levanta no hover (translate negativo ou sombra crescendo) é bug físico.
 
@@ -496,8 +522,15 @@ A distinção se lê de longe: o que tem sombra 2px e raio 16px afunda quando cl
 
 **A Regra do Clique Mecânico.** O som é feedback de objeto, não enfeite: opt-in, desligado por padrão (Switch "Efeito sonoro de botão" em Settings), sample de switch mecânico via Web Audio com pitch jitter de ±3% e ganho a 25% para nunca soar robótico, disparado por um listener global. A encadernação é muda: navegação da sidebar e logo-bloco levam `data-no-sound="true"`. Elemento desabilitado não faz barulho.
 
+### Floating Action Button (`FloatingActionButton`)
+Botão flutuante fixo reutilizável para atalhos primários de tela (ex.: abertura direta da Carteirinha no Cardápio RU), em formato quadrado arredondado inspirado em adesivo de ação tátil.
+
+- **Shape & Tokens:** 56×56px (ou `h-14 px-5` quando recebe `label` estendido), raio **16px (`rounded-2xl`)**, borda preta **2px**. Variante padrão `primary` (**Azul Caneta Ação**, texto branco, hover **Azul Caneta Pressionado**); suporta ainda `accent`, `yellow` e `outline`. Ícone Lucide 24px `stroke-[2.5]`.
+- **Elevação & Física:** exceção declarada à Regra da Sombra Dura — combina sombra dura compacta (`1px 1px 0 0 #000`) com blur ambiental sutil (`0 4px 12px rgba(0,0,0,0.2)` no claro / `0 6px 16px rgba(0,0,0,0.42)` no escuro). Hover afunda `+1px/+1px` mantendo só o halo reduzido (`0 2px 8px` / `0 3px 10px`); active afunda `+2px/+2px` com `shadow-none`.
+- **Posicionamento & Camadas (`z-30`):** fica abaixo de backdrops (`z-40`) e modais/toasts (`z-50`) para não vazar sobre sheets abertos. No mobile flutua acima da tapbar (`bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4`); no desktop desloca para `md:bottom-4 md:right-[4.5rem]` ao lado do `FeedbackWidget`, sem sobrepor o widget nem a pilha de toasts (`bottom-[68px]`). Telas que o renderizam ampliam o `padding-bottom` do conteúdo para que o último item role livre acima do botão.
+
 ### Feedback (FeedbackWidget)
-Adesivo flutuante permanente no canto inferior direito do conteúdo — o único FAB do app. Envia feedback/bug como issue no repositório via endpoint do site; o app nunca vê credencial do GitHub.
+Adesivo flutuante permanente de feedback no canto inferior direito do conteúdo no desktop (`hidden md:flex`). Envia feedback/bug como issue no repositório via endpoint do site; o app nunca vê credencial do GitHub.
 
 - **Gatilho:** 40×40px, raio 12px, borda preta 2px, branco (`bg-paper`, placa #263044 no escuro), sombra de ação 2px com física completa de afundar; ícone Megaphone 20px stroke 2.5; tooltip "Enviar feedback"; `fixed right-4 bottom-4`. No Meu Curso, sobe dinamicamente quando o minimapa do Fluxograma se aproxima do canto — nunca se sobrepõe a ele.
 - **Popup:** 360px de largura, folha de **Papel Quadriculado** (A Regra do Popup de Papel), borda 2px, raio 8px, sem sombra, rolável com altura máxima; ancorado acima do gatilho. Entra com escala 95% + fade em 150ms.
@@ -513,6 +546,12 @@ Modal de confirmação e formulário — folha de papel, não adesivo.
 - **Popup:** fundo **Papel Quadriculado** (`bg-canvas`), borda preta 2px, raio 8px, **sem sombra**, padding 24px, largura máxima sm:max-w-lg, centrado. Animação de entrada/saída: fade + zoom 95% em 200ms.
 - **Anatomia:** título 1.125rem/800 tracking apertado; descrição 0.75rem/600 neutral-600; rodapé com ações à direita (`flex-row` invertido em coluna em janela estreita). Botão fechar: adesivo de ação de ícone (borda 2px, raio 12px, sombra 2px, física completa) no canto superior direito, X 16px stroke 2.5.
 - **Diálogos internos de alerta** (confirmações dentro de confirmação) usam o adesivo micro 2px em cartão branco — variante compacta.
+
+### BottomSheet
+Folha móvel ancorada na base usada em viewports mobile (`< md`) para seletores e calendários sem aperto horizontal (ex.: `Select` mobile e seletor semanal de dias no Cardápio RU).
+
+- **Estrutura:** renderizada via Portal sobre backdrop escurecido (`bg-ink/10 backdrop-blur-xs`, `z-40`), topo com cantos arredondados e borda preta de 2px, handle horizontal centralizado para gesto `drag-to-dismiss` (fecha ao arrastar ≥ 60px ou com velocidade ≥ 300px/s). Não usa botão `X` redundante de fechar; fecha por arraste, clique no véu ou seleção de item.
+- **Respeito ao viewport:** animada de forma a evitar barra de rolagem fantasma ou shift de layout durante a subida.
 
 ### Toolbar do Feed
 Barra de busca e filtros do feed (Início e drill-down da disciplina), sempre em card próprio — nunca solta no papel.
@@ -710,6 +749,11 @@ Seletor com busca para listas longas (departamentos, cursos da UnB) — Popover 
 - **Painel de resultado:** card p-5 **colado no topo** (`sticky top-6 z-10`) — o IRA acompanha a rolagem; o número calculado é região `aria-live="polite"` (o leitor de tela anuncia a cada edição); IRA em **vírgula decimal** pt-BR, espelhando o SIGAA; rótulos uppercase 11px/800; IRA calculado em **Stat** 3rem/800 com "escala 0–5" ao lado; IRA oficial do SIGAA em 1.5rem/800 neutral-600; pill de discrepância ≥ 0.05 (**Amarelo Pastel**, borda 2px, pill, Micro-adesivo 1px, título explicativo); contadores à direita (número preto extrabold + rótulo bold); restauração em dois cliques: outline sm "Restaurar histórico real" vira destructive sm "Confirmar restauração" (4s); faixa de estado em **Amarelo Pastel** (simulação ativa ou margem de erro) com ícone Info stroke 2.5. A tela só mostra skeleton (MyCourseSkeleton) quando o cenário está frio no primeiro bootstrap; reentrada na mesma sessão usa cache e troca o conteúdo no lugar, sem flash de vazio.
 - **Card de semestre:** raio 8px, borda 2px, sombra 4px; cabeçalho pastel por tipo — histórico **Azul Pastel**, sem período **Amarelo Pastel**, atual **Verde Pastel**, futuro neutral-50 — com rótulo 12px/800, IRA do semestre em 11px/800 tabular-nums (vírgula) e pill de período (branca, borda 2px, 11px/800); no semestre futuro, **remoção no cabeçalho** (Trash2 fantasma, hover **Vermelho Pastel** — o mesmo gesto da linha de disciplina) e teto de **8 semestres futuros** no tile; **linhas com identidade no histórico e no "não identificado"**: código + nome em texto corrido "CÓDIGO - Nome" (11px/700, truncado com title — A Regra do Código em Máquina); semestre atual e futuro seguem anônimos (a linha nova é o que o aluno está criando); linhas em `divide-y black/10` com célula de créditos (w-14) nos **primitivos NumberField do kit** (h-7, spinners suprimidos, decimais pt-BR, teto de 30) e Select de menção (h-7, valor em font-black); remover = ícone fantasma **Vermelho Correção Forte** com hover **Vermelho Pastel** (a linguagem de excluir do app — mesma dos lixeiros do Calendário, da Grade e do Editor de Currículo; ring de foco padrão); rodapé com ghost "Adicionar disciplina" 11px/800; o tile "Adicionar semestre futuro" é a cavidade tracejada (`border-dashed black/15`) com **ring de foco padrão e micro-afundar no active** (ghost).
 
+### Cardápio RU (`RuScreen`) e Carteirinha Estudantil (`WalletScreen` / `StudentCardModal`)
+- **Cardápio RU:** `PageHeader` exibe o horário da refeição ativa no `subtitle` (ex.: `(11h - 14h30)`). O painel unificado de filtros combina `Select` do campus + botão de data com ícone `Calendar` que abre o seletor semanal em **única linha de 7 dias** (`grid-cols-7`) com navegação anterior/próxima semana dentro de `BottomSheet` (mobile) ou `Dialog` (desktop). A marcação de **"Hoje"** fixa o fuso de Brasília (`America/Sao_Paulo`) mesmo após as 20h (quando a seleção inicial avança para o Desjejum do dia seguinte); selecionado veste **Azul Caneta Ação** e hoje veste **Amarelo Marca-Texto**. Abaixo, `SegmentedControl lg` (48px) alterna `Desjejum | Almoço | Jantar`.
+- **Refeições e Bento Grid:** os pratos principais (Padrão, Ovolacto, Vegano) vivem em um único card dividido por borda de 2px (no claro a linha inteira veste a cor da dieta; no escuro `bg-paper` com fita lateral colorida). O restante da composição usa **Bento Grid de 2 colunas** (`min-w-0` nos cards, títulos uppercase sem corte horizontal e listas simples com marcador `•`, mantendo sub-badge amarela apenas para molhos de salada). Um `FloatingActionButton` azul fixo no canto inferior direito abre o `StudentCardModal` do RU.
+- **Carteirinha (`WalletScreen` + `StudentCardModal`):** cartões horizontais em pré-visualização (UnB oficial / QR RU com faixa **Azul Caneta Ação** e Cartão BCE com faixa **Verde Institucional**) sobre papel (`bg-paper`) com física `neo-sm`/`neo`. Ao tocar, ambos abrem via Portal no `StudentCardModal` vertical compartilhado seguindo **A Regra do Cartão que Gira**.
+
 ### Signature: Grade Horária (ScheduleTimetable)
 O componente mais identitário: cabeçalho institucional com o logo-bloco do Saruê (36px, borda 2px, raio 12px, sombra de ação 2px) + "Universidade de Brasília" em uppercase font-black **Azul Caneta Ação**; tabela de 7 colunas (Seg–Sáb) × 15 linhas de horário (turnos M/T/N), cabeçalhos de dia como mini-adesivos (Cinza Papel, borda preta 2px, sem sombra), células de aula em uma de 6 cores de disciplina — par fundo-pastel + borda viva da família (#468AFB, #16A34A, #EAB308, #A855F7, #F97316, #0EA5E9) + texto tinta da família (`text-ink-disc-*`). Célula vazia é cavidade tracejada (`border-dashed` black/15 sobre Cinza Papel); conflito é borda **Vermelho Correção Forte** + **Vermelho Pastel** com texto **Vermelho Erro** e sombra micro, com Alert `destructive` persistente acima da grade listando os conflitos e ação "Gerar combinações". Sempre compacto: linhas de horário sem nenhuma aula ficam escondidas (grade vazia mostra a semana inteira). Legenda em texto corrido "CÓDIGO - Nome (T01)", sem mono. Container rolável é região focável por teclado; células de aula e conflito são focáveis com `aria-label` (mesmo conteúdo do `title`). Exporta como PNG seguindo o tema.
 
@@ -748,10 +792,14 @@ Segunda superfície assinatura: o curso como **mural de adesivos sobre papel** �
 - **Do** vestir evento do Calendário com exatamente uma família (A Regra da Etiqueta da Família): Acadêmico azul #468AFB, Tarefa do Feed amarela #EAB308, Meu Evento verde #16A34A — o mesmo trio pastel + borda viva + tinta da Grade Horária, repetido no bloco do mês, no check do filtro e na Badge do card.
 - **Do** dar som mecânico só com opt-in, nunca na navegação nem em elemento desabilitado (A Regra do Clique Mecânico).
 - **Do** usar #2563EB/#DC2626 como fundo sob texto branco; #468AFB/#FF6B6B ficam para marca/bordas.
-- **Do** manter o canto inferior direito organizado: adesivo de feedback a 16px da base, pilha de toasts acima dele (68px) — nenhum flutuante cobre o outro.
+- **Do** manter o canto inferior direito organizado: adesivo de feedback a 16px da base, pilha de toasts acima dele (68px) e, quando houver `FloatingActionButton`, posicioná-lo acima da tapbar no mobile e à esquerda do `FeedbackWidget` (`md:right-[4.5rem]`) no desktop — nenhum flutuante cobre o outro.
+- **Do** respeitar o piso de toque mobile de 48×48px (ou hit-area estendida) e o piso de fonte de `text-xs` (A Regra dos 48 Dedos); Select abre como BottomSheet e o Segmented usa a variante lg (48px).
+- **Do** usar barra de topo sticky com Voltar absoluto à esquerda nos drill-downs mobile e barra de ação primária fixa na base, acima da tapbar (A Regra da Barra de Topo).
+- **Do** vestir cards com sombra 2px (`neo-sm`) no mobile e 4px (`neo`) a partir de `md`, com a física acompanhando a escala — e o giro de 90° da Carteirinha com gate de `prefers-reduced-motion` (A Regra do Cartão que Gira).
+- **Do** manter a tapbar organizada: 5 destinos, thumb-adesivo deslizante, labels 12px, RefreshCw girando no Mais durante sync sem mudar a semântica de aria.
 
 ### Don't:
-- **Don't** usar sombra com blur, box-shadow difusa, rgba ambiente ou elevação estilo Material — sombra dura ou nenhuma.
+- **Don't** usar sombra com blur, box-shadow difusa, rgba ambiente ou elevação estilo Material em cards, botões comuns ou painéis — sombra dura ou nenhuma, com exceção exclusiva da elevação sutil de `FloatingActionButton` fixo sobre o conteúdo.
 - **Don't** usar glassmorphism, gradientes ou superfícies translúcidas — o mundo é opaco; a única translucidez permitida é o véu do backdrop do Dialog (`bg-ink/10` + blur de 2px), que escurece o fundo sem criar vidro.
 - **Don't** usar verde para seleção ou azul para conclusão — as tintas não trocam de significado (A Regra da Cor por Significado).
 - **Don't** inventar status ou cor nova para disciplina no Fluxograma — o vocabulário de 5 estados é fechado e compartilhado por mapa, lista e minimapa.
@@ -768,3 +816,6 @@ Segunda superfície assinatura: o curso como **mural de adesivos sobre papel** �
 - **Don't** colocar texto pequeno branco sobre **Azul Caneta** (#468AFB) ou **Vermelho Correção** (#FF6B6B) — são marca/borda/acento; fundo interativo sob texto branco é **Azul Caneta Ação** (#2563EB) ou **Vermelho Correção Forte** (#DC2626).
 - **Don't** vestir conteúdo de botão (raio grande + sombra leve) ou botão de conteúdo (raio reto + sombra funda) — e hover nunca levanta o adesivo: sombra só cresce se o elemento for card clicável seguindo a escala 4px.
 - **Don't** usar font-mono fora de códigos de disciplina e metadados de máquina — o código é carimbo, o nome é escrita à mão (A Regra do Código em Máquina).
+- **Don't** criar elemento interativo mobile abaixo de 48×48px sem hit-area estendida, texto abaixo de 12px, ou dropdown ancorado no mobile — Select é BottomSheet (A Regra dos 48 Dedos).
+- **Don't** deixar card com sombra de 4px abaixo de `md` — em 360px ela é espaço de conteúdo (cards vestem 2px no mobile) — ou tapbar com rótulos de texto que apertem os alvos de 48px.
+- **Don't** botão Voltar in-flow no mobile ou fechar de modal `fixed` na tela onde a pilha de toasts de topo vive — Voltar é absoluto na barra de topo; fechar vive dentro do papel (A Regra da Barra de Topo, A Regra do Cartão que Gira).

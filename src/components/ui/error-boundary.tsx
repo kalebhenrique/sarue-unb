@@ -62,7 +62,7 @@ export class ErrorBoundary extends Component<
           role="alert"
           className="flex-1 flex items-center justify-center p-6 min-h-[300px]"
         >
-          <div className="max-w-md w-full bg-paper border-2 border-ink rounded-xl p-8 text-center shadow-neo">
+          <div className="max-w-md w-full bg-paper border-2 border-ink rounded-xl p-8 text-center shadow-neo-sm md:shadow-neo">
             <div className="relative mx-auto mb-4 flex items-center justify-center">
               <img
                 src="/sarue-doubt.png"

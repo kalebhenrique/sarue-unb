@@ -52,7 +52,7 @@ export const IraResultPanel: React.FC<IraResultPanelProps> = ({
   const hasDiscrepancy = deltaAbs != null && deltaAbs >= 0.05;
 
   return (
-    <div className="sticky top-6 z-10 bg-paper border-2 border-ink rounded-lg shadow-neo p-5">
+    <div className="sticky top-6 z-10 bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo p-5">
       <div className="flex flex-col lg:flex-row lg:items-center gap-5">
         {/* IRA calculado — região viva: muda a cada edição, o leitor de tela anuncia */}
         <div aria-live="polite">

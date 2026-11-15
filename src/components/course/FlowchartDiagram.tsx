@@ -575,7 +575,7 @@ class DiagramErrorBoundary extends React.Component<
     if (this.state.failed) {
       return (
         <div className="h-[560px] w-full flex items-center justify-center p-8">
-          <div className="bg-pastel-red border-2 border-ink rounded-lg shadow-neo p-5 max-w-sm text-center">
+          <div className="bg-pastel-red border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo p-5 max-w-sm text-center">
             <p className="text-xs font-black text-black mb-1">
               Não foi possível desenhar o mapa
             </p>

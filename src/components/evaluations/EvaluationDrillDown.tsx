@@ -96,7 +96,7 @@ export const EvaluationDrillDown: React.FC<EvaluationDrillDownProps> = ({
       />
 
       {/* Resumo do Professor */}
-      <Card className="bg-paper rounded-lg p-6 shadow-neo space-y-4">
+      <Card className="bg-paper rounded-lg p-6 shadow-neo-sm md:shadow-neo space-y-4">
         <div className="flex flex-wrap items-center gap-1.5">
           {summary.campuses.map((c) => (
             <Badge key={c} variant="outline" size="sm">

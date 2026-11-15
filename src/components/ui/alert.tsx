@@ -47,7 +47,7 @@ export const Alert: React.FC<AlertProps> = ({
   return (
     <div
       className={cn(
-        'flex items-start gap-3.5 p-4 border-2 border-ink rounded-lg shadow-(--neo-card-shadow)',
+        'flex items-start gap-3.5 p-4 border-2 border-ink rounded-lg shadow-neo-sm md:shadow-(--neo-card-shadow)',
         variantStyles[variant],
         className
       )}
