@@ -12,10 +12,14 @@ import { notifyMyCourseListeners, resolveCourseIdForProfile } from "../hooks/use
 import { notifyFeedListeners } from "../hooks/useFeed";
 import { toast } from "@/components/ui";
 import {
+  checkDueRuMenuNotification,
   checkIsAutoSyncAllowed,
   fetchAndCacheRuMenus,
   fetchAndCacheStudentWallet,
+  getNotificationSettings,
   getSavedRuCampus,
+  loadNotificationSettings,
+  syncRuMenuNotifications,
   type CurriculumStructure,
 } from "@/core";
 import { checkForUpdates } from "../hooks/useAppUpdater";
@@ -385,7 +389,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
       // Aguarda os canais rápidos executando em paralelo (sem competir com o webview do Teams)
       const ruMenuPromise = (async () => {
         try {
-          await fetchAndCacheRuMenus(getSavedRuCampus());
+          const campus = getSavedRuCampus();
+          await fetchAndCacheRuMenus(campus);
+          await syncRuMenuNotifications({ campus });
         } catch (err) {
           console.warn("[SyncContext] Falha ao sincronizar cardápio do RU:", err);
         }
@@ -515,6 +521,12 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
           type: "danger",
           timeout: 5000,
         });
+        if (options?.isAutoSync && getNotificationSettings().backgroundSync) {
+          void repos.osNotifier.notify({
+            title: "Falha na sincronização em segundo plano",
+            body: "Não foi possível conectar às plataformas acadêmicas.",
+          });
+        }
       } else if (totalErrors > 0 && totalSuccess > 0) {
         toast.add({
           title: "Sincronização com avisos",
@@ -522,6 +534,12 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
           type: "warning",
           timeout: 5000,
         });
+        if (options?.isAutoSync && getNotificationSettings().backgroundSync) {
+          void repos.osNotifier.notify({
+            title: "Sincronização em segundo plano com avisos",
+            body: "Algumas plataformas não puderam ser sincronizadas.",
+          });
+        }
       } else if (totalSuccess > 0 || totalConfigured === 0) {
         toast.add({
           title: "Sincronização concluída",
@@ -529,6 +547,12 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
           type: "success",
           timeout: 4000,
         });
+        if (options?.isAutoSync && getNotificationSettings().backgroundSync) {
+          void repos.osNotifier.notify({
+            title: "Sincronização em segundo plano concluída",
+            body: "Seus avisos, prazos e cardápio do RU foram atualizados.",
+          });
+        }
       }
 
       // 5. Sincronização do Teams (100% não-bloqueante em segundo plano após liberar a UI)
@@ -602,7 +626,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
     }
-  }, [repos.gradeRepo, updateStep, useCases]);
+  }, [repos.gradeRepo, repos.osNotifier, updateStep, useCases]);
 
   syncAllRef.current = syncAll;
 
@@ -645,12 +669,19 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     const bootTimer = setTimeout(checkPeriodicSync, 5000);
     const intervalId = setInterval(checkPeriodicSync, 10 * 60 * 1000);
 
+    // Carrega preferências de notificação e mantém a agenda de alertas do RU atualizada
+    void loadNotificationSettings().then(() => syncRuMenuNotifications());
+    const ruNotifIntervalId = setInterval(() => {
+      void checkDueRuMenuNotification();
+    }, 60 * 1000);
+
     return () => {
       disposed = true;
       if (unlistenManual) unlistenManual();
       if (unlistenAuto) unlistenAuto();
       clearTimeout(bootTimer);
       clearInterval(intervalId);
+      clearInterval(ruNotifIntervalId);
     };
   }, []);
 

@@ -39,7 +39,10 @@ export class FeedbackError extends Error {
 
 /** Sistema operacional a partir do user agent (sem plugin nativo). */
 export function detectOs(): string {
+  if (typeof navigator === "undefined") return "Desconhecido";
   const ua = navigator.userAgent;
+  if (/Android/i.test(ua)) return "Android";
+  if (/iPhone|iPad|iPod/i.test(ua)) return "iOS";
   if (/Mac/i.test(ua)) return "macOS";
   if (/Win/i.test(ua)) return "Windows";
   if (/Linux/i.test(ua)) return "Linux";

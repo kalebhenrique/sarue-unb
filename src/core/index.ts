@@ -9,6 +9,7 @@ export * from './domain/entities/academic-calendar';
 export * from './domain/entities/deadline-notification';
 export * from './domain/entities/professor-evaluation';
 export * from './domain/entities/user-calendar-event';
+export * from './domain/entities/notification-settings';
 // Domain Utils
 export * from './domain/utils/grade-acronym';
 export * from './domain/utils/course-shift';
@@ -17,6 +18,7 @@ export * from './domain/utils/grade-formula-calculator';
 export * from './domain/utils/semester';
 export * from './domain/utils/profanity-filter';
 export * from './domain/utils/ru-menu-formatter';
+export * from './domain/utils/ru-menu-notification';
 
 // Interfaces / Ports
 export * from './domain/interfaces/credentials-repo.interface';
@@ -62,4 +64,6 @@ export * from './container';
 export * from './seeds/academic-profile.seed';
 export * from './infrastructure/ru-wallet.service';
 export * from './infrastructure/network-sync-settings.service';
+export * from './infrastructure/notification-settings.service';
+export * from './infrastructure/ru-notification.service';
 

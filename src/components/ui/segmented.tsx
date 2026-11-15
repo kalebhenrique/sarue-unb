@@ -80,7 +80,7 @@ export function SegmentedControl<T extends string>({
             aria-pressed={isActive}
             title={option.title}
             className={cn(
-              "relative cursor-pointer flex items-center justify-center gap-1.5 px-3 rounded-lg font-black transition-colors duration-150 active:translate-y-px focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2",
+              "relative cursor-pointer min-w-0 flex items-center justify-center gap-1.5 px-2 sm:px-3 rounded-lg font-black transition-colors duration-150 active:translate-y-px focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2",
               segmentHeight,
               segmentText,
               isActive ? "text-white" : "text-black hover:bg-neutral-100",

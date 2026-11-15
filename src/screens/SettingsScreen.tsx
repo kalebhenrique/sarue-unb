@@ -3,6 +3,7 @@ import {
   Card,
   Button,
   Switch,
+  Checkbox,
   PageContainer,
   PageHeader,
   Dialog,
@@ -36,11 +37,25 @@ import {
   Sun,
   Moon,
   Monitor,
+  Bell,
+  Coffee,
+  Utensils,
+  Soup,
 } from "lucide-react";
 import { useAppUpdater } from "../hooks/useAppUpdater";
 import { useAutostart } from "../hooks/useAutostart";
 import { useBackgroundRun } from "../hooks/useBackgroundRun";
 import { useSyncOnlyOnWifi } from "../hooks/useSyncOnlyOnWifi";
+import { useNotificationSettings } from "../hooks/useNotificationSettings";
+import {
+  MEAL_METADATA,
+  RU_MEAL_NOTIFICATION_TIMES,
+  RU_MEAL_ORDER,
+  WEEKDAY_OPTIONS,
+  getSavedRuCampus,
+  syncRuMenuNotifications,
+  type RuMealType,
+} from "@/core";
 import { AppUpdaterCard } from "@/components/settings/AppUpdaterCard";
 import { PatchNotesView } from "@/components/settings/PatchNotesView";
 import { ContributorsDialog } from "@/components/settings/ContributorsDialog";
@@ -90,6 +105,14 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     toggle: toggleSyncOnlyOnWifi,
     isLoading: isSyncOnlyOnWifiLoading,
   } = useSyncOnlyOnWifi();
+  const {
+    settings: notificationSettings,
+    toggleBackgroundSync: toggleBackgroundSyncNotifications,
+    toggleRuMenu: toggleRuMenuNotifications,
+    toggleRuWeekday,
+    toggleRuMeal,
+  } = useNotificationSettings();
+  const ruCampus = getSavedRuCampus();
   const { reduceAnimations, setReduceAnimations, uiZoom, setUiZoom } =
     useAccessibility();
   const { themeMode, setThemeMode } = useTheme();
@@ -185,6 +208,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           STORAGE_KEYS.GRADE_PERIOD,
           STORAGE_KEYS.FLOWCHART_OPEN_SEMESTERS,
           STORAGE_KEYS.ONBOARDING_EXPLORED,
+          STORAGE_KEYS.NOTIFICATION_SETTINGS,
+          STORAGE_KEYS.RU_NOTIFIED_MEALS,
+          STORAGE_KEYS.RU_SCHEDULED_NOTIF_IDS,
           "unb_aggregator_academic_profile_v1",
           "unb_aggregator_ira_scenario_v1",
           "unb_grade_deptId",
@@ -201,6 +227,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           }
         }
         keysToRemove.forEach((k) => localStorage.removeItem(k));
+        void syncRuMenuNotifications();
       } catch {}
       // 7. Fecha o diálogo e redireciona imediatamente para o onboarding
       setIsConfirmDialogOpen(false);
@@ -325,7 +352,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             </div>
 
             {/* Tema da interface: claro, escuro ou sistema */}
-            <div className="flex items-center justify-between gap-4 py-1">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 py-1">
               <div className="max-w-md">
                 <span className="text-xs font-black text-black block">
                   Tema da interface
@@ -339,7 +366,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 ariaLabel="Tema da interface"
                 value={themeMode}
                 onValueChange={setThemeMode}
-                className="w-64 shrink-0"
+                className="w-full sm:w-64 sm:shrink-0"
                 options={[
                   {
                     value: "light",
@@ -377,6 +404,148 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           </div>
         </SettingsSection>
 
+        {/* Notificações: sincronização em segundo plano e cardápio do RU */}
+        <SettingsSection icon={Bell} label="Notificações">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4 py-1">
+              <div className="max-w-md min-w-0">
+                <span className="text-xs font-black text-black block">
+                  Sincronização em segundo plano
+                </span>
+                <p className="text-xs font-semibold text-neutral-600 leading-snug mt-0.5">
+                  Notifica quando a atualização automática em segundo plano for
+                  concluída.
+                </p>
+              </div>
+              <Switch
+                checked={notificationSettings.backgroundSync}
+                onCheckedChange={toggleBackgroundSyncNotifications}
+                aria-label="Notificar sincronização em segundo plano"
+                className="shrink-0"
+              />
+            </div>
+
+            <div className="space-y-3 py-1">
+              <div className="flex items-center justify-between gap-4">
+                <div className="max-w-md min-w-0">
+                  <span className="text-xs font-black text-black block">
+                    Cardápio do dia (RU)
+                  </span>
+                  <p className="text-xs font-semibold text-neutral-600 leading-snug mt-0.5">
+                    Envia o cardápio do campus {ruCampus} antes das refeições
+                    escolhidas nos dias ativos.
+                  </p>
+                </div>
+                <Switch
+                  checked={notificationSettings.ruMenu.enabled}
+                  onCheckedChange={toggleRuMenuNotifications}
+                  aria-label="Notificações do cardápio do RU"
+                  className="shrink-0"
+                />
+              </div>
+
+              {notificationSettings.ruMenu.enabled && (
+                <div className="rounded-xl border-2 border-ink bg-canvas p-3.5 space-y-3.5">
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wide text-neutral-600 block mb-2">
+                      Dias da semana
+                    </span>
+                    <div
+                      className="flex flex-wrap gap-1.5"
+                      role="group"
+                      aria-label="Dias da semana para notificações do RU"
+                    >
+                      {WEEKDAY_OPTIONS.map((day) => {
+                        const isSelected =
+                          notificationSettings.ruMenu.weekdays.includes(
+                            day.value,
+                          );
+                        return (
+                          <button
+                            key={day.value}
+                            type="button"
+                            aria-pressed={isSelected}
+                            aria-label={day.label}
+                            onClick={() => void toggleRuWeekday(day.value)}
+                            className={
+                              isSelected
+                                ? "cursor-pointer min-w-[2.6rem] h-8 px-2.5 rounded-lg border-2 border-ink bg-neo-blue text-white text-xs font-black shadow-[1px_1px_0px_0px_var(--neo-shadow)] transition-colors duration-150 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-1"
+                                : "cursor-pointer min-w-[2.6rem] h-8 px-2.5 rounded-lg border-2 border-ink bg-paper text-black text-xs font-bold hover:bg-neutral-100 transition-colors duration-150 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-1"
+                            }
+                          >
+                            {day.shortLabel}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wide text-neutral-600 block mb-2">
+                      Refeições
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {RU_MEAL_ORDER.map((meal: RuMealType) => {
+                        const checked =
+                          notificationSettings.ruMenu.meals[meal];
+                        const meta = MEAL_METADATA[meal];
+                        const schedule = RU_MEAL_NOTIFICATION_TIMES[meal];
+                        const MealIcon =
+                          meal === "breakfast"
+                            ? Coffee
+                            : meal === "lunch"
+                              ? Utensils
+                              : Soup;
+                        return (
+                          <label
+                            key={meal}
+                            className={
+                              checked
+                                ? "cursor-pointer flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl border-2 border-ink bg-pastel-blue dark:bg-paper transition-colors duration-150"
+                                : "cursor-pointer flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl border-2 border-ink bg-paper hover:bg-neutral-100 transition-colors duration-150"
+                            }
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <MealIcon
+                                className="w-4 h-4 stroke-[2.5] text-blue-ink shrink-0"
+                                aria-hidden="true"
+                              />
+                              <div className="min-w-0">
+                                <span className="text-xs font-black text-black block truncate">
+                                  {meta.title}
+                                </span>
+                                <span className="text-[11px] font-semibold text-neutral-600 block">
+                                  {schedule.label}
+                                </span>
+                              </div>
+                            </div>
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => void toggleRuMeal(meal)}
+                              aria-label={`Notificar ${meta.title}`}
+                              className="data-checked:bg-neo-blue data-checked:text-white"
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {(notificationSettings.ruMenu.weekdays.length === 0 ||
+                    (!notificationSettings.ruMenu.meals.breakfast &&
+                      !notificationSettings.ruMenu.meals.lunch &&
+                      !notificationSettings.ruMenu.meals.dinner)) && (
+                    <p className="text-[11px] font-bold text-ink-error">
+                      Selecione ao menos um dia e uma refeição para receber os
+                      alertas do cardápio.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </SettingsSection>
+
         {/* Acessibilidade: reduzir animações + zoom da interface */}
         <SettingsSection icon={PersonStanding} label="Acessibilidade">
           <div className="space-y-4">
@@ -398,49 +567,53 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               />
             </div>
 
-            <div className="flex items-center justify-between gap-4 py-1">
-              <div className="max-w-md">
-                <span className="text-xs font-black text-black block">
-                  Zoom da interface
-                </span>
-                <p className="text-xs font-semibold text-neutral-600 leading-snug mt-0.5">
-                  Aumenta ou diminui o tamanho de toda a interface, de 90% a
-                  120%.
-                </p>
-              </div>
-              <div className="flex items-center gap-3 w-56 shrink-0">
-                <div className="relative flex-1 pt-5">
-                  <Slider
-                    aria-label="Zoom da interface"
-                    min={UI_ZOOM_MIN_PERCENT}
-                    max={UI_ZOOM_MAX_PERCENT}
-                    step={UI_ZOOM_STEP_PERCENT}
-                    value={[zoomPercent]}
-                    onValueChange={(value) => {
-                      // Durante o arraste, só o visual do slider acompanha.
-                      setZoomPercent(Array.isArray(value) ? value[0] : value);
-                    }}
-                    onValueCommitted={(value) => {
-                      const percent = Array.isArray(value) ? value[0] : value;
-                      const next =
-                        typeof percent === "number" ? percent / 100 : NaN;
-                      if (Number.isFinite(next) && next !== uiZoom) {
-                        setUiZoom(next as UiZoom);
-                      }
-                    }}
-                    className="w-full"
-                  />
-                  {/* Marcador do 100%: 1/3 do curso (90–120%), apontando pro trilho */}
-                  <Triangle
-                    aria-hidden="true"
-                    className="pointer-events-none absolute top-0 left-[calc(33.333%-3px)] w-3 h-3 rotate-180 fill-current text-neutral-400"
-                  />
+            {!isMobileDevice() && (
+              <div className="flex items-center justify-between gap-4 py-1">
+                <div className="max-w-md">
+                  <span className="text-xs font-black text-black block">
+                    Zoom da interface
+                  </span>
+                  <p className="text-xs font-semibold text-neutral-600 leading-snug mt-0.5">
+                    Aumenta ou diminui o tamanho de toda a interface, de 90% a
+                    120%.
+                  </p>
                 </div>
-                <span className="text-xs font-black text-black w-10 text-right tabular-nums">
-                  {zoomPercent}%
-                </span>
+                <div className="flex items-center gap-3 w-56 shrink-0">
+                  <div className="relative flex-1 pt-5">
+                    <Slider
+                      aria-label="Zoom da interface"
+                      min={UI_ZOOM_MIN_PERCENT}
+                      max={UI_ZOOM_MAX_PERCENT}
+                      step={UI_ZOOM_STEP_PERCENT}
+                      value={[zoomPercent]}
+                      onValueChange={(value) => {
+                        // Durante o arraste, só o visual do slider acompanha.
+                        setZoomPercent(Array.isArray(value) ? value[0] : value);
+                      }}
+                      onValueCommitted={(value) => {
+                        const percent = Array.isArray(value)
+                          ? value[0]
+                          : value;
+                        const next =
+                          typeof percent === "number" ? percent / 100 : NaN;
+                        if (Number.isFinite(next) && next !== uiZoom) {
+                          setUiZoom(next as UiZoom);
+                        }
+                      }}
+                      className="w-full"
+                    />
+                    {/* Marcador do 100%: 1/3 do curso (90–120%), apontando pro trilho */}
+                    <Triangle
+                      aria-hidden="true"
+                      className="pointer-events-none absolute top-0 left-[calc(33.333%-3px)] w-3 h-3 rotate-180 fill-current text-neutral-400"
+                    />
+                  </div>
+                  <span className="text-xs font-black text-black w-10 text-right tabular-nums">
+                    {zoomPercent}%
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </SettingsSection>
 
@@ -478,7 +651,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                   if (hasAnyAccount) setIsConfirmDialogOpen(true);
                   else void handleConfirmWipe();
                 }}
-                className="shrink-0"
+                className="w-full sm:w-auto shrink-0"
               >
                 {hasAnyAccount ? (
                   <Trash2 className="w-4 h-4 stroke-[2.5]" />
@@ -498,6 +671,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         {/* Sobre: versão, patch notes, licença e redes, sem rótulo de seção */}
         <section>
           <div className="flex flex-col items-center text-center pt-2">
+            {isMobileDevice() && (
+              <div className="mb-6">
+                <FeedbackWidget screen="Configurações" variant="inline" />
+              </div>
+            )}
+
             <img
               src="/sarue-sleep.png"
               alt="Mascote Saruê dormindo"
@@ -536,9 +715,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               <span>Contribuidores</span>
             </Button>
 
-            <div className="mt-4">
-              <FeedbackWidget screen="Configurações" variant="inline" />
-            </div>
+            {!isMobileDevice() && (
+              <div className="mt-4">
+                <FeedbackWidget screen="Configurações" variant="inline" />
+              </div>
+            )}
 
             <span className="text-xs font-bold text-neutral-600 mt-4">
               © {new Date().getFullYear()} Kaleb Henrique

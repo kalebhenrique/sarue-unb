@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   CAMPUS_STORAGE_KEY,
+  getNotificationSettings,
   getSavedRuCampus,
   getBrasiliaTodayIso,
   loadCachedRuMenus,
   fetchAndCacheRuMenus,
   subscribeToRuWalletUpdates,
+  syncRuMenuNotifications,
   type RuCampus,
   type RawRuDailyMenu,
 } from '@/core';
@@ -22,6 +24,9 @@ export function useRuMenu() {
     try {
       window.localStorage.setItem(CAMPUS_STORAGE_KEY, next);
     } catch {}
+    if (getNotificationSettings().ruMenu.enabled) {
+      void syncRuMenuNotifications({ campus: next, fetchIfMissing: true });
+    }
   }, []);
 
   const loadForCampus = useCallback(async (targetCampus: RuCampus) => {

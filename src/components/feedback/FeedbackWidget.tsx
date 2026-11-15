@@ -1,4 +1,5 @@
 import * as React from "react";
+import { createPortal } from "react-dom";
 import {
   Bug,
   CircleCheck,
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SegmentedControl } from "@/components/ui/segmented";
@@ -17,6 +19,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import {
   FeedbackError,
   detectOs,
@@ -25,6 +28,7 @@ import {
   type FeedbackDeviceData,
   type FeedbackKind,
 } from "@/lib/feedback";
+import { isMobileDevice } from "@/lib/platform";
 import { cn, openExternalUrl } from "@/lib/utils";
 
 const MINIMAP_TITLE = "Minimapa — clique para navegar";
@@ -47,6 +51,8 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
   variant = "floating",
 }) => {
   const [open, setOpen] = React.useState(false);
+  const isNarrowViewport = useMediaQuery("(max-width: 767px)");
+  const useMobileSheet = isNarrowViewport || isMobileDevice();
 
   // Rascunho vive no widget (sempre montado): fechar o popup não perde texto.
   // Primeira opção por padrão: o popup abre com "Feedback" escolhido.
@@ -140,6 +146,197 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
     }
   };
 
+  const floatingTriggerProps = {
+    type: "button" as const,
+    "aria-label": "Enviar feedback",
+    style: liftBottom !== null ? { bottom: liftBottom } : undefined,
+    className: cn(
+      "cursor-pointer fixed bottom-4 right-4 z-40 hidden md:flex h-10 w-10 items-center justify-center select-none",
+      "rounded-xl border-2 border-ink bg-paper dark:bg-btn-raise text-black",
+      "shadow-[2px_2px_0px_0px_var(--neo-shadow)]",
+      "hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-neutral-100 hover:shadow-[1px_1px_0px_0px_var(--neo-shadow)]",
+      "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+      "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2",
+      "disabled:opacity-50",
+      "transition-[bottom,transform,box-shadow,background-color] duration-150 ease-out",
+    ),
+  };
+
+  const feedbackContent =
+    status === "success" && issue ? (
+      /* Estado de sucesso: feedback virou issue */
+      <div className="flex flex-col items-center gap-3 p-6 text-center">
+        <span className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-ink bg-pastel-green shadow-[1px_1px_0px_0px_var(--neo-shadow)]">
+          <CircleCheck className="h-6 w-6 stroke-[2.5] text-ink-success" />
+        </span>
+        <p className="text-sm font-extrabold tracking-tight">
+          Feedback enviado!
+        </p>
+        <p className="max-w-[260px] text-xs font-semibold text-neutral-600">
+          Obrigado! Sua mensagem virou a issue nº {issue.issueNumber} no
+          repositório do projeto.
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void openExternalUrl(issue.issueUrl)}
+        >
+          Ver issue no GitHub
+          <ExternalLink className="h-3.5 w-3.5 stroke-[2.5]" />
+        </Button>
+      </div>
+    ) : (
+      <div className="flex flex-col gap-4 p-4">
+        {/* Cabeçalho */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-extrabold tracking-tight">
+            Enviar feedback
+          </h2>
+          <button
+            type="button"
+            aria-label="Fechar feedback"
+            onClick={() => handleOpenChange(false)}
+            className="cursor-pointer flex h-7 w-7 items-center justify-center rounded-lg text-black transition-colors duration-150 hover:bg-black/5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2"
+          >
+            <X className="h-4 w-4 stroke-[2.5]" />
+          </button>
+        </div>
+
+        {/* Tipo: escolha obrigatória, sem default */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-bold text-neutral-800">O que é?</span>
+          <SegmentedControl
+            options={[
+              {
+                value: "feedback",
+                label: (
+                  <>
+                    <Lightbulb className="h-3.5 w-3.5 stroke-[2.5]" />
+                    Feedback
+                  </>
+                ),
+              },
+              {
+                value: "bug",
+                label: (
+                  <>
+                    <Bug className="h-3.5 w-3.5 stroke-[2.5]" />
+                    Bug
+                  </>
+                ),
+              },
+            ]}
+            value={kind}
+            onValueChange={setKind}
+            ariaLabel="Tipo de feedback"
+            className="w-full"
+          />
+        </div>
+
+        {/* Descrição (obrigatória) */}
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="feedback-description"
+            className="text-xs font-bold text-neutral-800"
+          >
+            Descrição
+          </label>
+          <textarea
+            id="feedback-description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            rows={4}
+            maxLength={4000}
+            placeholder="O que aconteceu? O que você esperava?"
+            className="w-full resize-y bg-paper px-3.5 py-2.5 text-sm font-medium text-black placeholder:text-neutral-500 border-2 border-ink rounded-xl focus:outline-hidden focus:ring-2 focus:ring-neo-blue transition-[box-shadow,border-color] disabled:opacity-50"
+          />
+        </div>
+
+        {/* Dados do dispositivo (opt-in, campos declarados) */}
+        <FeedbackOption
+          checked={includeDeviceData}
+          onToggle={setIncludeDeviceData}
+          label="Incluir dados do dispositivo"
+          title="Sistema operacional, versão do app e tela atual — nada além disso."
+        >
+          <span className="text-[11px] font-semibold text-neutral-500">
+            {detectOs()} · versão do app · tela atual — nada além disso
+          </span>
+        </FeedbackOption>
+
+        {/* Erro de envio */}
+        {status === "error" && errorMessage ? (
+          <p role="alert" className="text-xs font-bold text-ink-error">
+            {errorMessage}
+          </p>
+        ) : null}
+
+        {/* Envio */}
+        <Button
+          variant="primary"
+          onClick={() => void handleSend()}
+          disabled={!canSend}
+          isLoading={status === "sending"}
+          className="w-full"
+        >
+          Enviar feedback
+        </Button>
+      </div>
+    );
+
+  if (useMobileSheet) {
+    return (
+      <>
+        {variant === "inline" ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            onClick={() => handleOpenChange(true)}
+          >
+            <Megaphone className="h-4 w-4 stroke-[2.5]" />
+            <span>Enviar feedback ou reportar bug</span>
+          </Button>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  {...floatingTriggerProps}
+                  onClick={() => handleOpenChange(true)}
+                >
+                  <Megaphone className="h-5 w-5 stroke-[2.5]" />
+                </button>
+              }
+            />
+            <TooltipContent>Enviar feedback</TooltipContent>
+          </Tooltip>
+        )}
+
+        {typeof document !== "undefined"
+          ? createPortal(
+              <BottomSheet
+                open={open}
+                onClose={() => handleOpenChange(false)}
+                backdrop
+                dragOnlyOnHandle
+                backdropClassName="z-50"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Formulário de feedback"
+                className="fixed inset-x-0 bottom-0 z-50 w-full"
+              >
+                <div className="max-h-[calc(85dvh-2rem)] overflow-y-auto overflow-x-hidden pb-[env(safe-area-inset-bottom)]">
+                  {feedbackContent}
+                </div>
+              </BottomSheet>,
+              document.body,
+            )
+          : null}
+      </>
+    );
+  }
+
   return (
     <>
       {/* Adesivo de ação flutuante (gatilho) */}
@@ -157,23 +354,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
           <Tooltip>
             <TooltipTrigger
               render={
-                <PopoverPrimitive.Trigger
-                  type="button"
-                  aria-label="Enviar feedback"
-                  style={
-                    liftBottom !== null ? { bottom: liftBottom } : undefined
-                  }
-                  className={cn(
-                    "cursor-pointer fixed bottom-4 right-4 z-40 hidden md:flex h-10 w-10 items-center justify-center select-none",
-                    "rounded-xl border-2 border-ink bg-paper dark:bg-btn-raise text-black",
-                    "shadow-[2px_2px_0px_0px_var(--neo-shadow)]",
-                    "hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-neutral-100 hover:shadow-[1px_1px_0px_0px_var(--neo-shadow)]",
-                    "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
-                    "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2",
-                    "disabled:opacity-50",
-                    "transition-[bottom,transform,box-shadow,background-color] duration-150 ease-out",
-                  )}
-                >
+                <PopoverPrimitive.Trigger {...floatingTriggerProps}>
                   <Megaphone className="h-5 w-5 stroke-[2.5]" />
                 </PopoverPrimitive.Trigger>
               }
@@ -193,132 +374,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
               aria-label="Formulário de feedback"
               className="w-[min(360px,calc(100vw-2rem))] max-h-[min(600px,calc(100vh-96px))] overflow-y-auto rounded-lg border-2 border-ink bg-canvas text-black outline-none origin-[var(--transform-origin)] transition-[opacity,transform] duration-150 ease-out data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0"
             >
-              {status === "success" && issue ? (
-                /* Estado de sucesso: feedback virou issue */
-                <div className="flex flex-col items-center gap-3 p-6 text-center">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-ink bg-pastel-green shadow-[1px_1px_0px_0px_var(--neo-shadow)]">
-                    <CircleCheck className="h-6 w-6 stroke-[2.5] text-ink-success" />
-                  </span>
-                  <p className="text-sm font-extrabold tracking-tight">
-                    Feedback enviado!
-                  </p>
-                  <p className="max-w-[260px] text-xs font-semibold text-neutral-600">
-                    Obrigado! Sua mensagem virou a issue nº {issue.issueNumber}{" "}
-                    no repositório do projeto.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void openExternalUrl(issue.issueUrl)}
-                  >
-                    Ver issue no GitHub
-                    <ExternalLink className="h-3.5 w-3.5 stroke-[2.5]" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-4 p-4">
-                  {/* Cabeçalho */}
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-extrabold tracking-tight">
-                      Enviar feedback
-                    </h2>
-                    <button
-                      type="button"
-                      aria-label="Fechar feedback"
-                      onClick={() => handleOpenChange(false)}
-                      className="cursor-pointer flex h-7 w-7 items-center justify-center rounded-lg text-black transition-colors duration-150 hover:bg-black/5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2"
-                    >
-                      <X className="h-4 w-4 stroke-[2.5]" />
-                    </button>
-                  </div>
-
-                  {/* Tipo: escolha obrigatória, sem default */}
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-xs font-bold text-neutral-800">
-                      O que é?
-                    </span>
-                    <SegmentedControl
-                      options={[
-                        {
-                          value: "feedback",
-                          label: (
-                            <>
-                              <Lightbulb className="h-3.5 w-3.5 stroke-[2.5]" />
-                              Feedback
-                            </>
-                          ),
-                        },
-                        {
-                          value: "bug",
-                          label: (
-                            <>
-                              <Bug className="h-3.5 w-3.5 stroke-[2.5]" />
-                              Bug
-                            </>
-                          ),
-                        },
-                      ]}
-                      value={kind}
-                      onValueChange={setKind}
-                      ariaLabel="Tipo de feedback"
-                      className="w-full"
-                    />
-                  </div>
-
-                  {/* Descrição (obrigatória) */}
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      htmlFor="feedback-description"
-                      className="text-xs font-bold text-neutral-800"
-                    >
-                      Descrição
-                    </label>
-                    <textarea
-                      id="feedback-description"
-                      value={description}
-                      onChange={(event) => setDescription(event.target.value)}
-                      rows={4}
-                      maxLength={4000}
-                      placeholder="O que aconteceu? O que você esperava?"
-                      className="w-full resize-y bg-paper px-3.5 py-2.5 text-sm font-medium text-black placeholder:text-neutral-500 border-2 border-ink rounded-xl focus:outline-hidden focus:ring-2 focus:ring-neo-blue transition-[box-shadow,border-color] disabled:opacity-50"
-                    />
-                  </div>
-
-                  {/* Dados do dispositivo (opt-in, campos declarados) */}
-                  <FeedbackOption
-                    checked={includeDeviceData}
-                    onToggle={setIncludeDeviceData}
-                    label="Incluir dados do dispositivo"
-                    title="Sistema operacional, versão do app e tela atual — nada além disso."
-                  >
-                    <span className="text-[11px] font-semibold text-neutral-500">
-                      {detectOs()} · versão do app · tela atual — nada além
-                      disso
-                    </span>
-                  </FeedbackOption>
-
-                  {/* Erro de envio */}
-                  {status === "error" && errorMessage ? (
-                    <p
-                      role="alert"
-                      className="text-xs font-bold text-ink-error"
-                    >
-                      {errorMessage}
-                    </p>
-                  ) : null}
-
-                  {/* Envio */}
-                  <Button
-                    variant="primary"
-                    onClick={() => void handleSend()}
-                    disabled={!canSend}
-                    isLoading={status === "sending"}
-                    className="w-full"
-                  >
-                    Enviar feedback
-                  </Button>
-                </div>
-              )}
+              {feedbackContent}
             </PopoverPrimitive.Popup>
           </PopoverPrimitive.Positioner>
         </PopoverPrimitive.Portal>
