@@ -8,6 +8,8 @@ import { MyCourseScreen } from './screens/MyCourseScreen';
 import { ProfessorEvaluationsScreen } from './screens/ProfessorEvaluationsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
+import { RuScreen } from './screens/RuScreen';
+import { WalletScreen } from './screens/WalletScreen';
 import { Sidebar, type NavTab } from './components/Sidebar';
 import { AppBootSkeleton } from './components/boot/AppBootSkeleton';
 import { TooltipProvider, Toaster, ErrorBoundary } from '@/components/ui';
@@ -31,6 +33,8 @@ type AppStep = 'onboarding' | 'main';
 const SCREEN_LABELS: Record<NavTab, string> = {
   home: 'Início',
   courses: 'Disciplinas',
+  ru: 'Cardápio RU',
+  wallet: 'Carteirinha',
   grade: 'Montar Grade',
   calendar: 'Calendário',
   evaluations: 'Avaliações',
@@ -178,6 +182,8 @@ const AppShell: React.FC = () => {
           <ErrorBoundary key={currentTab} onReset={() => setCurrentTab('home')}>
             {currentTab === 'home' && <DashboardScreen />}
             {currentTab === 'courses' && <CoursesScreen />}
+            {currentTab === 'ru' && <RuScreen />}
+            {currentTab === 'wallet' && <WalletScreen />}
             {currentTab === 'grade' && <GradeBuilderScreen />}
             {currentTab === 'calendar' && <CalendarScreen />}
             {currentTab === 'my-course' && <MyCourseScreen onOpenSettings={() => setCurrentTab('settings')} />}

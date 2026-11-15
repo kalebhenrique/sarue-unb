@@ -11,7 +11,12 @@ import { useContainer } from "./ContainerContext";
 import { notifyMyCourseListeners, resolveCourseIdForProfile } from "../hooks/useMyCourse";
 import { notifyFeedListeners } from "../hooks/useFeed";
 import { toast } from "@/components/ui";
-import type { CurriculumStructure } from "@/core";
+import {
+  fetchAndCacheRuMenus,
+  fetchAndCacheStudentWallet,
+  getSavedRuCampus,
+  type CurriculumStructure,
+} from "@/core";
 import { checkForUpdates } from "../hooks/useAppUpdater";
 
 export type SyncStepId =
@@ -363,10 +368,18 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // Aguarda os canais rápidos executando em paralelo (sem competir com o webview do Teams)
-      await Promise.all([sigaaPromise, aprenderPromise]);
+      const ruMenuPromise = (async () => {
+        try {
+          await fetchAndCacheRuMenus(getSavedRuCampus());
+        } catch (err) {
+          console.warn("[SyncContext] Falha ao sincronizar cardápio do RU:", err);
+        }
+      })();
+
+      await Promise.all([sigaaPromise, aprenderPromise, ruMenuPromise]);
       if (isCancelled()) return;
 
-      // 4. Sincronização de Meu Curso (depende das credenciais do SIGAA)
+      // 4. Sincronização de Meu Curso + Carteirinha Estudantil / Extrato RU (depende das credenciais do SIGAA)
       if (!hasSigaa) {
         updateStep("myCourse", {
           status: "skipped",
@@ -380,7 +393,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
       } else {
         updateStep("myCourse", {
           status: "syncing",
-          message: "Baixando histórico escolar oficial e calculando fluxo...",
+          message: "Baixando histórico escolar, carteirinha oficial e calculando fluxo...",
         });
 
         try {
@@ -391,6 +404,20 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
           notifyMyCourseListeners();
 
           const student = result.profile;
+          try {
+            await fetchAndCacheStudentWallet(
+              sigaaCreds!.matricula,
+              sigaaCreds!.senha,
+              student.cpf,
+            );
+          } catch (walletErr) {
+            console.warn(
+              "[SyncContext] Falha ao sincronizar carteirinha/extrato do RU:",
+              walletErr,
+            );
+          }
+          if (isCancelled()) return;
+
           const iraStr = student.ira
             ? `IRA ${student.ira.toFixed(2)}`
             : "Perfil discente ativo";
