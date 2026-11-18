@@ -81,6 +81,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         commands::fetch_ru_menu,
         commands::fetch_student_wallet,
         commands::set_max_brightness,
+        commands::share_image,
     ])
 }
 
@@ -147,6 +148,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_brightness::init())
+        .plugin(tauri_plugin_share::init())
         .plugin(tauri_plugin_network_status::init());
 
     #[cfg(desktop)]

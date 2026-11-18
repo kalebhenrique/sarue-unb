@@ -19,6 +19,7 @@
     "sql:allow-close",
     "opener:default",
     "network-status:default",
-    "brightness:default"
+    "brightness:default",
+    "share:default"
   ]
 }

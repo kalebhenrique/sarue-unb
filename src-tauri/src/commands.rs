@@ -1055,6 +1055,20 @@ pub async fn set_max_brightness(app: AppHandle, enable: bool) -> Result<(), Stri
         .map_err(|e| e.to_string())
 }
 
+#[command]
+#[specta::specta]
+pub async fn share_image(
+    app: AppHandle,
+    base64_png: String,
+    filename: String,
+    title: Option<String>,
+) -> Result<bool, String> {
+    use tauri_plugin_share::ShareExt;
+    app.share()
+        .share_image(base64_png, filename, title)
+        .map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

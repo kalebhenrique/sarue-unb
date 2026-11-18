@@ -1,0 +1,7 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = "Permite compartilhar imagens usando a folha nativa de compartilhamento."
+permissions = [
+  "allow-share-image",
+]

@@ -20,6 +20,7 @@ image = { version = "0.25", default-features = false, features = ["png", "jpeg"]
 rqrr = "0.8"
 tauri = { version = "2", features = ["image-png"] }
 tauri-plugin-brightness = { path = "plugins/tauri-plugin-brightness" }
+tauri-plugin-share = { path = "plugins/tauri-plugin-share" }
 tauri-plugin-opener = "2"
 tauri-plugin-stronghold = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
@@ -100,4 +101,11 @@ opt-level = 3
 
 [profile.dev.package.iota_stronghold]
 opt-level = 3
+
+# Workaround para bug do linker do macOS (ld-27106.1): sem DWARF (debug = false),
+# o ld não alinha o string pool (__LINKEDIT stroff) em 8 bytes após nindirectsyms ímpar
+# no proc-macro libsqlx_macros.dylib (mis-aligned LINKEDIT string pool).
+[profile.release.build-override]
+debug = true
+
 
