@@ -3,6 +3,18 @@ import type {
   OSNotificationPayload,
 } from '../domain/interfaces/os-notifier.interface';
 
+let onboardingNotificationsBlocked = false;
+
+/** Bloqueia ou libera notificações do SO e do app durante o onboarding. */
+export function setOnboardingNotificationsBlocked(blocked: boolean): void {
+  onboardingNotificationsBlocked = blocked;
+}
+
+/** Indica se notificações estão bloqueadas pelo fluxo de onboarding. */
+export function isOnboardingNotificationsBlocked(): boolean {
+  return onboardingNotificationsBlocked;
+}
+
 function isTauriEnvironment(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
@@ -74,7 +86,7 @@ export class TauriOSNotifier implements IOSNotifier {
   private lastBadgeCount: number | null | undefined = Symbol() as unknown as number;
 
   async ensurePermission(): Promise<boolean> {
-    if (!isTauriEnvironment()) return false;
+    if (!isTauriEnvironment() || onboardingNotificationsBlocked) return false;
     try {
       const { isPermissionGranted, requestPermission } = await import(
         '@tauri-apps/plugin-notification'
@@ -88,7 +100,7 @@ export class TauriOSNotifier implements IOSNotifier {
   }
 
   async notify(payload: OSNotificationPayload): Promise<void> {
-    if (!isTauriEnvironment()) return;
+    if (!isTauriEnvironment() || onboardingNotificationsBlocked) return;
     try {
       const { isPermissionGranted, sendNotification } = await import(
         '@tauri-apps/plugin-notification'

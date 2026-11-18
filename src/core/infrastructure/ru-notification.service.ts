@@ -21,6 +21,7 @@ import {
   getSavedRuCampus,
   loadCachedRuMenus,
 } from './ru-wallet.service';
+import { isOnboardingNotificationsBlocked } from './tauri-os-notifier';
 
 const RU_NOTIFICATION_CHANNEL_ID = 'ru-menu';
 
@@ -118,7 +119,7 @@ async function notifyDueRuMealsNow(
   menus: readonly RawRuDailyMenu[],
   campus: RuCampus,
 ): Promise<void> {
-  if (!isTauriRuntime()) return;
+  if (!isTauriRuntime() || isOnboardingNotificationsBlocked()) return;
   const settings = getNotificationSettings().ruMenu;
   if (!settings.enabled || settings.weekdays.length === 0) return;
 
@@ -174,6 +175,7 @@ export interface SyncRuNotificationOptions {
 export async function syncRuMenuNotifications(
   options: SyncRuNotificationOptions = {},
 ): Promise<void> {
+  if (isOnboardingNotificationsBlocked()) return;
   if (syncInProgress) {
     pendingResyncOptions = {
       campus: options.campus ?? pendingResyncOptions?.campus,
@@ -280,7 +282,7 @@ export async function syncRuMenuNotifications(
 
 /** Verifica rapidamente o cache local do campus atual e notifica refeição devida. */
 export async function checkDueRuMenuNotification(): Promise<void> {
-  if (!isTauriRuntime()) return;
+  if (!isTauriRuntime() || isOnboardingNotificationsBlocked()) return;
   const settings = getNotificationSettings().ruMenu;
   if (!settings.enabled || settings.weekdays.length === 0) return;
   const campus = getSavedRuCampus();

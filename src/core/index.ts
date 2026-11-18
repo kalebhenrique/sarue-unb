@@ -66,4 +66,8 @@ export * from './infrastructure/ru-wallet.service';
 export * from './infrastructure/network-sync-settings.service';
 export * from './infrastructure/notification-settings.service';
 export * from './infrastructure/ru-notification.service';
+export {
+  isOnboardingNotificationsBlocked,
+  setOnboardingNotificationsBlocked,
+} from './infrastructure/tauri-os-notifier';
 
