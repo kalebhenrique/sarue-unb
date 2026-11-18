@@ -270,3 +270,12 @@ input::-ms-reveal,
 input::-ms-clear {
   display: none;
 }
+
+@keyframes sarue-toast-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}

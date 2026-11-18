@@ -47,15 +47,22 @@ function useIsMobileViewport() {
   return isMobile
 }
 
-// No mobile (< md), os toasts ficam no topo para não competir com a tab bar
-// inferior; no desktop (md+), empilham no canto inferior direito acima do
-// adesivo de feedback (40px + 12px sobre o offset de 16px).
+function isAndroidDevice() {
+  return typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent)
+}
+
+// No mobile (< md), os toasts ficam próximos ao topo para não competir com a tab bar
+// inferior (no Android a MainActivity já aplica padding da status bar); no desktop (md+),
+// empilham no canto inferior direito acima do adesivo de feedback (40px + 12px sobre 16px).
 function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
+  const isAndroid = React.useMemo(() => isAndroidDevice(), [])
+
   return (
     <ToastPrimitive.Viewport
       data-slot="toast-viewport"
       className={cn(
-        "pointer-events-none fixed inset-x-4 top-[calc(1rem+env(safe-area-inset-top))] z-50 mx-auto w-auto max-w-sm outline-hidden md:top-auto md:right-4 md:bottom-[68px] md:left-auto md:mx-0 md:w-full",
+        "pointer-events-none fixed inset-x-3 z-50 mx-auto w-auto max-w-sm outline-hidden md:top-auto md:right-4 md:bottom-[68px] md:left-auto md:mx-0 md:w-full",
+        isAndroid ? "top-2" : "top-[calc(0.5rem+env(safe-area-inset-top))]",
         className,
       )}
       {...props}
@@ -77,7 +84,7 @@ function Toast({
       data-slot="toast"
       swipeDirection={resolvedSwipeDirection}
       className={cn(
-        "group/toast pointer-events-auto absolute top-0 right-0 z-[calc(1000-var(--toast-index))] w-full origin-top rounded-lg border-2 border-ink bg-canvas text-black will-change-transform outline-hidden select-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 md:top-auto md:bottom-0 md:origin-bottom",
+        "group/toast pointer-events-auto absolute top-0 right-0 z-[calc(1000-var(--toast-index))] w-full origin-top overflow-hidden rounded-lg border-2 border-ink bg-canvas text-black will-change-transform outline-hidden select-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 md:top-auto md:bottom-0 md:origin-bottom",
         "[--gap:0.75rem] [--height:var(--toast-frontmost-height,var(--toast-height))] [--offset-y:calc(var(--toast-offset-y)+calc(var(--toast-index)*var(--gap))+var(--toast-swipe-movement-y))] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))] md:[--offset-y:calc(var(--toast-offset-y)*-1+calc(var(--toast-index)*var(--gap)*-1)+var(--toast-swipe-movement-y))]",
         "h-(--height) [transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)+(var(--toast-index)*var(--peek))+(var(--shrink)*var(--height))))_scale(var(--scale))] [transition:transform_500ms_cubic-bezier(0.22,1,0.36,1),opacity_500ms,height_150ms] md:[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)-(var(--toast-index)*var(--peek))-(var(--shrink)*var(--height))))_scale(var(--scale))]",
         "after:absolute after:bottom-full after:left-0 after:h-[calc(var(--gap)+1px)] after:w-full after:content-[''] md:after:top-full md:after:bottom-auto",
@@ -108,7 +115,7 @@ function ToastContent({ className, ...props }: ToastPrimitive.Content.Props) {
     <ToastPrimitive.Content
       data-slot="toast-content"
       className={cn(
-        "flex h-full items-center gap-2.5 overflow-hidden px-3 py-2.5 transition-opacity duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] data-behind:opacity-0 data-expanded:opacity-100 md:gap-3 md:px-4 md:py-3",
+        "flex h-full items-center gap-2.5 overflow-hidden px-3 pt-2.5 pb-3 transition-opacity duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] data-behind:opacity-0 data-expanded:opacity-100 md:gap-3 md:px-4 md:pt-3 md:pb-3.5",
         className,
       )}
       {...props}
@@ -169,7 +176,7 @@ function ToastIcon({ type }: { type: string | undefined }) {
     icon = <TriangleAlertIcon aria-hidden="true" />
   }
 
-  if (type === "error") {
+  if (type === "error" || type === "danger") {
     icon = <OctagonXIcon className="text-black" aria-hidden="true" />
   }
 
@@ -191,25 +198,70 @@ function ToastIcon({ type }: { type: string | undefined }) {
   )
 }
 
+const TOAST_PROGRESS_COLORS: Record<string, string> = {
+  success: "bg-neo-green",
+  warning: "bg-neo-yellow",
+  error: "bg-neo-danger",
+  danger: "bg-neo-danger",
+  info: "bg-neo-blue",
+}
+
+function ToastProgressBar({
+  type,
+  duration,
+}: {
+  type: string | undefined
+  duration: number
+}) {
+  const barColor = (type && TOAST_PROGRESS_COLORS[type]) || "bg-neo-blue"
+
+  return (
+    <div
+      aria-hidden="true"
+      data-slot="toast-progress"
+      className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-black/10 dark:bg-white/10"
+    >
+      <div
+        className={cn(
+          "h-full w-full origin-left group-data-expanded/toast:[animation-play-state:paused]",
+          barColor,
+        )}
+        style={{
+          animation: `sarue-toast-progress ${duration}ms linear forwards`,
+        }}
+      />
+    </div>
+  )
+}
+
 function ToastList() {
   const { toasts, close } = ToastPrimitive.useToastManager()
 
-  return toasts.map((toastItem) => (
-    <Toast
-      key={toastItem.id}
-      toast={toastItem}
-      onClick={() => close(toastItem.id)}
-    >
-      <ToastContent>
-        <ToastIcon type={toastItem.type} />
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:gap-1">
-          <ToastTitle />
-          <ToastDescription />
-        </div>
-        <ToastAction />
-      </ToastContent>
-    </Toast>
-  ))
+  return toasts.map((toastItem) => {
+    const duration =
+      typeof toastItem.timeout === "number" ? toastItem.timeout : 5000
+    const showProgress = duration > 0 && toastItem.type !== "loading"
+
+    return (
+      <Toast
+        key={toastItem.id}
+        toast={toastItem}
+        onClick={() => close(toastItem.id)}
+      >
+        <ToastContent>
+          <ToastIcon type={toastItem.type} />
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:gap-1">
+            <ToastTitle />
+            <ToastDescription />
+          </div>
+          <ToastAction />
+        </ToastContent>
+        {showProgress ? (
+          <ToastProgressBar type={toastItem.type} duration={duration} />
+        ) : null}
+      </Toast>
+    )
+  })
 }
 
 function Toaster({
