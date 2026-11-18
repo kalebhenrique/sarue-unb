@@ -43,7 +43,7 @@ export const FlowchartStats: React.FC<FlowchartStatsProps> = ({ metrics, onOpenI
               : "Integralização SIGAA"}
           </span>
           <div
-            className={`w-8 h-8 rounded-lg border-2 border-ink flex items-center justify-center text-ink shadow-neo-xs ${
+            className={`w-8 h-8 rounded-lg border-2 border-ink flex items-center justify-center text-ink ${
               metrics.isAlternativeCurriculum
                 ? "bg-neo-yellow dark:bg-neo-yellow"
                 : "bg-pastel-green dark:bg-neo-green"
@@ -96,7 +96,7 @@ export const FlowchartStats: React.FC<FlowchartStatsProps> = ({ metrics, onOpenI
           <span className="text-[11px] md:text-xs font-black uppercase tracking-wider text-neutral-600">
             CH Obrigatória
           </span>
-          <div className="w-7 h-7 md:w-8 md:h-8 shrink-0 rounded-lg bg-pastel-blue border-2 border-ink flex items-center justify-center text-blue-ink dark:bg-sticker-blue dark:text-ink shadow-neo-xs">
+          <div className="w-7 h-7 md:w-8 md:h-8 shrink-0 rounded-lg bg-pastel-blue border-2 border-ink flex items-center justify-center text-blue-ink dark:bg-sticker-blue dark:text-ink">
             <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[2.5]" />
           </div>
         </div>
@@ -122,7 +122,7 @@ export const FlowchartStats: React.FC<FlowchartStatsProps> = ({ metrics, onOpenI
           <span className="text-[11px] md:text-xs font-black uppercase tracking-wider text-neutral-600">
             CH Total do Curso
           </span>
-          <div className="w-7 h-7 md:w-8 md:h-8 shrink-0 rounded-lg bg-pastel-yellow border-2 border-ink flex items-center justify-center text-ink dark:bg-neo-yellow shadow-neo-xs">
+          <div className="w-7 h-7 md:w-8 md:h-8 shrink-0 rounded-lg bg-pastel-yellow border-2 border-ink flex items-center justify-center text-ink dark:bg-neo-yellow">
             <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[2.5]" />
           </div>
         </div>
@@ -146,7 +146,7 @@ export const FlowchartStats: React.FC<FlowchartStatsProps> = ({ metrics, onOpenI
           <span className="text-xs font-black uppercase tracking-wider text-neutral-600">
             Índices Acadêmicos
           </span>
-          <div className="w-8 h-8 rounded-lg bg-pastel-purple border-2 border-ink flex items-center justify-center text-neo-purple dark:bg-neo-purple dark:text-ink shadow-neo-xs">
+          <div className="w-8 h-8 rounded-lg bg-pastel-purple border-2 border-ink flex items-center justify-center text-neo-purple dark:bg-neo-purple dark:text-ink">
             <BookOpen className="w-4 h-4 stroke-[2.5]" />
           </div>
         </div>

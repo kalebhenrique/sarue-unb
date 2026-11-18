@@ -172,7 +172,7 @@ const SemesterSelect: React.FC<{
       onChange(next);
     }}
   >
-    <SelectTrigger id={id}>
+    <SelectTrigger id={id} className="w-full min-w-0 box-border">
       <SelectValue>
         {SEMESTER_ITEMS.find((item) => item.value === value)?.label ??
           SEMESTER_ITEMS[0].label}
@@ -201,7 +201,7 @@ const NatureSelect: React.FC<{
       onChange(next as Nature);
     }}
   >
-    <SelectTrigger id={id}>
+    <SelectTrigger id={id} className="w-full min-w-0 box-border">
       <SelectValue>{NATURE_LABEL[value]}</SelectValue>
     </SelectTrigger>
     <SelectContent>
@@ -261,7 +261,7 @@ const CatalogDisciplineSelect: React.FC<{
     >
       <Popover.Trigger
         disabled={status !== "ready"}
-        className="flex h-10 w-full items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-black focus:outline-hidden focus:ring-2 focus:ring-neo-blue transition-[box-shadow,border-color] cursor-pointer select-none rounded-xl border-2 border-ink bg-paper disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex h-10 w-full min-w-0 box-border items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-black focus:outline-hidden focus:ring-2 focus:ring-neo-blue transition-[box-shadow,border-color] cursor-pointer select-none rounded-xl border-2 border-ink bg-paper disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className="truncate text-left">
           {value ??
@@ -285,7 +285,7 @@ const CatalogDisciplineSelect: React.FC<{
           sideOffset={6}
           className="isolate z-50"
         >
-          <Popover.Popup className="relative z-50 w-max min-w-[320px] max-w-[480px] rounded-lg border-2 border-ink bg-canvas text-black outline-hidden origin-(--transform-origin)">
+          <Popover.Popup className="relative z-50 w-[min(320px,calc(100vw-2rem))] sm:w-max sm:min-w-[320px] max-w-[calc(100vw-2rem)] sm:max-w-[480px] rounded-lg border-2 border-ink bg-canvas text-black outline-hidden origin-(--transform-origin)">
             {/* Busca interna */}
             <div className="p-2 border-b-2 border-ink/10">
               <div className="relative">
@@ -951,8 +951,11 @@ export const CurriculumEditorScreen: React.FC<CurriculumEditorScreenProps> = ({
       {/* Diálogo: Adicionar / Editar Disciplina */}
       {isFormOpen && (
         <Dialog open={isFormOpen} onOpenChange={(open) => !open && closeForm()}>
-          <DialogContent showCloseButton={true} className="sm:max-w-lg">
-            <DialogHeader>
+          <DialogContent
+            showCloseButton={true}
+            className="sm:max-w-lg min-w-0 box-border overflow-x-hidden"
+          >
+            <DialogHeader className="w-full min-w-0 box-border">
               <DialogTitle>
                 {editingSource ? "Editar Disciplina" : "Adicionar Disciplina"}
               </DialogTitle>
@@ -963,9 +966,12 @@ export const CurriculumEditorScreen: React.FC<CurriculumEditorScreenProps> = ({
               </DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleSaveForm} className="space-y-3 py-2">
+            <form
+              onSubmit={handleSaveForm}
+              className="w-full min-w-0 box-border space-y-3 py-2"
+            >
               {/* Preenchimento rápido: bloco separado do formulário */}
-              <div className="pb-4 mb-1 border-b-2 border-ink/10">
+              <div className="w-full min-w-0 box-border pb-4 mb-1 border-b-2 border-ink/10">
                 <FieldLabel>Preenchimento rápido — Catálogo da UnB</FieldLabel>
                 <CatalogDisciplineSelect
                   items={catalog}
@@ -986,36 +992,20 @@ export const CurriculumEditorScreen: React.FC<CurriculumEditorScreenProps> = ({
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-2 gap-3 w-full min-w-0 box-border">
+                <div className="w-full min-w-0 box-border">
                   <FieldLabel htmlFor="disc-code">Código *</FieldLabel>
                   <Input
                     id="disc-code"
                     value={form.code}
                     onChange={(e) => setFormFields({ code: e.target.value })}
                     placeholder="Ex: CIC0004"
-                    className="h-9 text-xs font-mono font-bold uppercase"
+                    className="w-full min-w-0 box-border h-9 text-xs font-mono font-bold uppercase"
                     required
                   />
                 </div>
 
-                <div>
-                  <FieldLabel htmlFor="disc-name">
-                    Nome da Disciplina *
-                  </FieldLabel>
-                  <Input
-                    id="disc-name"
-                    value={form.name}
-                    onChange={(e) => setFormFields({ name: e.target.value })}
-                    placeholder="Nome completo da disciplina"
-                    className="h-9 text-xs font-bold"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div>
+                <div className="w-full min-w-0 box-border">
                   <FieldLabel htmlFor="disc-hours">Carga Horária</FieldLabel>
                   <Input
                     id="disc-hours"
@@ -1023,11 +1013,27 @@ export const CurriculumEditorScreen: React.FC<CurriculumEditorScreenProps> = ({
                     value={form.hours}
                     onChange={(e) => setFormFields({ hours: e.target.value })}
                     placeholder="60"
-                    className="h-9 text-xs font-bold"
+                    className="w-full min-w-0 box-border h-9 text-xs font-bold"
                   />
                 </div>
+              </div>
 
-                <div>
+              <div className="w-full min-w-0 box-border">
+                <FieldLabel htmlFor="disc-name">
+                  Nome da Disciplina *
+                </FieldLabel>
+                <Input
+                  id="disc-name"
+                  value={form.name}
+                  onChange={(e) => setFormFields({ name: e.target.value })}
+                  placeholder="Nome completo da disciplina"
+                  className="w-full min-w-0 box-border h-9 text-xs font-bold"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 w-full min-w-0 box-border">
+                <div className="w-full min-w-0 box-border">
                   <FieldLabel htmlFor="disc-level">Semestre</FieldLabel>
                   <SemesterSelect
                     id="disc-level"
@@ -1036,7 +1042,7 @@ export const CurriculumEditorScreen: React.FC<CurriculumEditorScreenProps> = ({
                   />
                 </div>
 
-                <div>
+                <div className="w-full min-w-0 box-border">
                   <FieldLabel htmlFor="disc-nature">Natureza</FieldLabel>
                   <NatureSelect
                     id="disc-nature"
@@ -1046,7 +1052,7 @@ export const CurriculumEditorScreen: React.FC<CurriculumEditorScreenProps> = ({
                 </div>
               </div>
 
-              <div>
+              <div className="w-full min-w-0 box-border">
                 <FieldLabel htmlFor="disc-prereqs">
                   Pré-requisitos (opcional)
                 </FieldLabel>
@@ -1057,23 +1063,29 @@ export const CurriculumEditorScreen: React.FC<CurriculumEditorScreenProps> = ({
                     setFormFields({ prerequisites: e.target.value })
                   }
                   placeholder="Ex: CIC0004, MAT0025 ou CIC0004 E MAT0025"
-                  className="h-9 text-xs font-mono font-bold uppercase"
+                  className="w-full min-w-0 box-border h-9 text-xs font-mono font-bold uppercase"
                 />
                 <p className="mt-1 text-[11px] font-semibold text-neutral-500">
                   Ao escolher do catálogo, os pré-requisitos oficiais são preenchidos automaticamente.
                 </p>
               </div>
 
-              <DialogFooter className="pt-1">
+              <DialogFooter className="grid grid-cols-2 gap-2 pt-1 w-full min-w-0 box-border sm:flex sm:flex-row sm:justify-end">
                 <Button
                   variant="outline"
                   size="md"
                   type="button"
                   onClick={closeForm}
+                  className="w-full sm:w-auto"
                 >
                   Cancelar
                 </Button>
-                <Button variant="primary" size="md" type="submit">
+                <Button
+                  variant="primary"
+                  size="md"
+                  type="submit"
+                  className="w-full sm:w-auto"
+                >
                   {editingSource ? "Confirmar" : "Adicionar"}
                 </Button>
               </DialogFooter>

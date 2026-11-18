@@ -26,6 +26,7 @@ import {
   ErrorBoundary,
   Badge,
   Alert,
+  BottomSheet,
 } from "@/components/ui";
 import {
   GraduationCap,
@@ -40,6 +41,7 @@ import {
   Network,
   CircleDotDashed,
   MoreVertical,
+  X,
 } from "lucide-react";
 
 type FilterType =
@@ -74,6 +76,8 @@ export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const mobileSearchInputRef = React.useRef<HTMLInputElement>(null);
   const [isCurriculumDialogOpen, setIsCurriculumDialogOpen] = useState(false);
   const [view, setView] = useState<
     "overview" | "ira-calculator" | "curriculum-editor"
@@ -353,195 +357,298 @@ export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }
             searchQuery={searchQuery}
           />
 
-          {flowchartData && (
-            <section
-              className="bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo"
-              aria-label={
-                viewMode === "list"
-                  ? "Fluxograma de disciplinas por semestre"
-                  : "Mapa de cadeias de pré-requisitos"
-              }
-            >
-              <div className="p-4 border-b-2 border-ink space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="relative flex-1 min-w-0">
-                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none text-neutral-500 stroke-[2.5]" />
-                    <Input
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Buscar por código ou nome (ex: APC, Cálculo, CIC0004)..."
-                      aria-label="Buscar disciplina por código ou nome"
-                      className={`pl-10 h-9 text-xs w-full transition-[background-color] ${
-                        searchQuery.trim() ? "bg-pastel-blue" : "bg-paper"
-                      }`}
-                    />
-                  </div>
+          {flowchartData && (() => {
+            const totalMandatory =
+              flowchartData.metrics.totalMandatoryDisciplines || 0;
+            const completedMandatory =
+              flowchartData.metrics.completedMandatoryDisciplines || 0;
+            const statusFilterOptions: Array<{
+              value: FilterType;
+              label: string;
+              count: number;
+              icon?: React.ComponentType<{ className?: string }>;
+              title?: string;
+              activeVariant: "outline" | "accent" | "primary" | "yellow";
+              activeClass: string;
+              inactiveClass: string;
+            }> = [
+              {
+                value: "all",
+                label: "Todas",
+                count: totalMandatory,
+                activeVariant: "outline",
+                activeClass:
+                  "bg-ink-deep text-white hover:bg-filter-hover dark:bg-slate-50 dark:text-ink dark:hover:bg-slate-200",
+                inactiveClass: "hover:bg-paper",
+              },
+              {
+                value: "pending_mandatory",
+                label: "Faltam Cursar",
+                count: Math.max(0, totalMandatory - completedMandatory),
+                icon: BookOpen,
+                title: "Disciplinas obrigatórias que ainda faltam concluir",
+                activeVariant: "outline",
+                activeClass:
+                  "gap-1 bg-ink-deep text-white hover:bg-filter-hover dark:bg-slate-50 dark:text-ink dark:hover:bg-slate-200",
+                inactiveClass: "gap-1",
+              },
+              {
+                value: "completed",
+                label: "Concluídas",
+                count: completedMandatory,
+                icon: CheckCircle2,
+                activeVariant: "accent",
+                activeClass: "gap-1",
+                inactiveClass:
+                  "gap-1 bg-pastel-green text-black dark:text-neo-green hover:bg-pastel-green",
+              },
+              {
+                value: "in_progress",
+                label: "Cursando",
+                count: flowchartData.metrics.inProgressCount || 0,
+                icon: CircleDotDashed,
+                title: "Disciplinas que você está matriculado neste semestre",
+                activeVariant: "primary",
+                activeClass: "gap-1",
+                inactiveClass:
+                  "gap-1 bg-pastel-blue text-black dark:text-blue-ink hover:bg-pastel-blue",
+              },
+              {
+                value: "available",
+                label: "Disponíveis",
+                count: flowchartData.metrics.availableCount || 0,
+                icon: Unlock,
+                title:
+                  "Disciplinas liberadas para matrícula (pré-requisitos cumpridos)",
+                activeVariant: "yellow",
+                activeClass: "gap-1",
+                inactiveClass:
+                  "gap-1 bg-pastel-yellow text-black dark:text-neo-yellow hover:bg-neo-yellow/40",
+              },
+            ];
+            const hasActiveSheetFilter = activeFilter !== "all";
 
-                  <div
-                    role="group"
-                    aria-label="Modo de visualização do fluxograma"
-                    className="relative grid grid-cols-2 gap-0.5 p-0.5 bg-paper border-2 border-ink rounded-xl shrink-0 self-end sm:self-auto"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`pointer-events-none absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-3px)] rounded-lg bg-neo-blue transition-transform duration-150 ease-out ${
-                        viewMode === "map"
-                          ? "translate-x-[calc(100%+2px)]"
-                          : "translate-x-0"
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => switchViewMode("list")}
-                      aria-pressed={viewMode === "list"}
-                      title="Visualização em lista por semestre"
-                      className={`relative cursor-pointer flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-black transition-colors duration-150 active:translate-y-px focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 ${
-                        viewMode === "list"
-                          ? "text-white"
-                          : "text-black hover:bg-neutral-100"
-                      }`}
+            return (
+              <>
+                {/* Mobile: busca solta + botão de filtros abrindo BottomSheet (padrão Início) */}
+                <div className="md:hidden mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1 min-w-0">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 stroke-[2.5]" />
+                      <input
+                        ref={mobileSearchInputRef}
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Buscar por código ou nome..."
+                        aria-label="Buscar disciplina por código ou nome"
+                        className={`w-full h-10 pl-9 text-sm font-medium text-black border-2 border-ink rounded-xl focus:outline-hidden focus:ring-2 focus:ring-neo-blue transition-[background-color,border-color] placeholder:text-neutral-500 shadow-neo-sm ${
+                          searchQuery.trim()
+                            ? "bg-pastel-blue pr-9"
+                            : "bg-paper pr-3"
+                        }`}
+                      />
+                      {searchQuery.trim() ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchQuery("");
+                            mobileSearchInputRef.current?.focus();
+                          }}
+                          aria-label="Limpar busca"
+                          className="cursor-pointer absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-neutral-500 hover:text-black focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue"
+                        >
+                          <X className="w-4 h-4 stroke-[2.5]" />
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <HeaderIconButton
+                      aria-label="Filtrar disciplinas"
+                      hasActiveIndicator={hasActiveSheetFilter}
+                      active={filterSheetOpen || hasActiveSheetFilter}
+                      onClick={() => setFilterSheetOpen(true)}
                     >
-                      <List className="w-3.5 h-3.5 stroke-[2.5]" />
-                      Lista
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => switchViewMode("map")}
-                      aria-pressed={viewMode === "map"}
-                      title="Visualização em mapa de cadeias de pré-requisitos"
-                      className={`relative cursor-pointer flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-black transition-colors duration-150 active:translate-y-px focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 ${
-                        viewMode === "map"
-                          ? "text-white"
-                          : "text-black hover:bg-neutral-100"
-                      }`}
-                    >
-                      <Network className="w-3.5 h-3.5 stroke-[2.5]" />
-                      Mapa
-                    </button>
+                      <SlidersHorizontal className="w-4 h-4 stroke-[2.5]" />
+                    </HeaderIconButton>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 text-xs font-bold pt-0.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActiveFilter("all")}
-                    aria-pressed={activeFilter === "all"}
-                    className={
-                      activeFilter === "all"
-                        ? "bg-ink-deep text-white hover:bg-filter-hover dark:bg-slate-50 dark:text-ink dark:hover:bg-slate-200"
-                        : "hover:bg-paper"
-                    }
-                  >
-                    Todas (
-                    {flowchartData?.metrics.totalMandatoryDisciplines || 0})
-                  </Button>
+                {/* BottomSheet mobile de filtros (padrão FeedToolbar / Início) */}
+                <BottomSheet
+                  open={filterSheetOpen}
+                  onClose={() => setFilterSheetOpen(false)}
+                  role="dialog"
+                  aria-label="Filtros das disciplinas"
+                  backdrop
+                  backdropClassName="z-40 md:hidden"
+                  className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
+                  portal
+                  dragOnlyOnHandle
+                >
+                  <div className="px-4 max-h-[calc(85dvh-2rem)] overflow-y-auto overflow-x-hidden pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+                    <div className="flex items-center justify-between gap-2 pb-3 border-b-2 border-ink/10">
+                      <h2 className="text-base font-extrabold tracking-tight text-black">
+                        Filtros
+                      </h2>
+                      {hasActiveSheetFilter ? (
+                        <button
+                          type="button"
+                          onClick={() => setActiveFilter("all")}
+                          className="cursor-pointer text-xs font-bold text-neutral-600 underline hover:text-black"
+                        >
+                          Limpar filtros
+                        </button>
+                      ) : null}
+                    </div>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActiveFilter("pending_mandatory")}
-                    aria-pressed={activeFilter === "pending_mandatory"}
-                    className={
-                      activeFilter === "pending_mandatory"
-                        ? "gap-1 bg-ink-deep text-white hover:bg-filter-hover dark:bg-slate-50 dark:text-ink dark:hover:bg-slate-200"
-                        : "gap-1"
-                    }
-                    title="Disciplinas obrigatórias que ainda faltam concluir"
-                  >
-                    <BookOpen className="w-3.5 h-3.5 stroke-[2.5]" />
-                    Faltam Cursar (
-                    {Math.max(
-                      0,
-                      (flowchartData?.metrics.totalMandatoryDisciplines || 0) -
-                        (flowchartData?.metrics.completedMandatoryDisciplines ||
-                          0),
-                    )}
-                    )
-                  </Button>
+                    <div className="space-y-4 pt-3 pb-2">
+                      <div className="space-y-2">
+                        <span className="text-xs font-extrabold uppercase tracking-wide text-neutral-600">
+                          Situação
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {statusFilterOptions.map((opt) => {
+                            const selected = activeFilter === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                aria-pressed={selected}
+                                onClick={() => setActiveFilter(opt.value)}
+                                className={`cursor-pointer px-3 py-2 text-xs font-bold rounded-lg border-2 border-ink transition-colors ${
+                                  selected
+                                    ? "bg-neo-blue text-white"
+                                    : "bg-paper text-black hover:bg-neutral-100"
+                                }`}
+                              >
+                                {opt.label} ({opt.count})
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </BottomSheet>
 
-                  <Button
-                    type="button"
-                    variant={
-                      activeFilter === "completed" ? "accent" : "outline"
-                    }
-                    size="sm"
-                    onClick={() => setActiveFilter("completed")}
-                    aria-pressed={activeFilter === "completed"}
-                    className={
-                      activeFilter === "completed"
-                        ? "gap-1"
-                        : "gap-1 bg-pastel-green text-black dark:text-neo-green hover:bg-pastel-green"
-                    }
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
-                    Concluídas (
-                    {flowchartData?.metrics.completedMandatoryDisciplines || 0})
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant={
-                      activeFilter === "in_progress" ? "primary" : "outline"
-                    }
-                    size="sm"
-                    onClick={() => setActiveFilter("in_progress")}
-                    aria-pressed={activeFilter === "in_progress"}
-                    className={
-                      activeFilter === "in_progress"
-                        ? "gap-1"
-                        : "gap-1 bg-pastel-blue text-black dark:text-blue-ink hover:bg-pastel-blue"
-                    }
-                    title="Disciplinas que você está matriculado neste semestre"
-                  >
-                    <CircleDotDashed className="w-3.5 h-3.5 stroke-[2.5]" />
-                    Cursando ({flowchartData?.metrics.inProgressCount || 0})
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant={
-                      activeFilter === "available" ? "yellow" : "outline"
-                    }
-                    size="sm"
-                    onClick={() => setActiveFilter("available")}
-                    aria-pressed={activeFilter === "available"}
-                    className={
-                      activeFilter === "available"
-                        ? "gap-1"
-                        : "gap-1 bg-pastel-yellow text-black dark:text-neo-yellow hover:bg-neo-yellow/40"
-                    }
-                    title="Disciplinas liberadas para matrícula (pré-requisitos cumpridos)"
-                  >
-                    <Unlock className="w-3.5 h-3.5 stroke-[2.5]" />
-                    Disponíveis ({flowchartData?.metrics.availableCount || 0})
-                  </Button>
-                </div>
-              </div>
-              {viewMode === "list" ? (
-                <FlowchartList
-                  semesters={flowchartData.semesters}
-                  visibleCodes={filteredCodesSet}
-                  disciplineNames={disciplineNames}
-                  onToggle={toggleDiscipline}
-                  onSendToGrade={(code, name) =>
-                    sendDisciplineToGradeAction(container, code, name)
+                <section
+                  className="bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo"
+                  aria-label={
+                    viewMode === "list"
+                      ? "Fluxograma de disciplinas por semestre"
+                      : "Mapa de cadeias de pré-requisitos"
                   }
-                />
-              ) : (
-                <FlowchartDiagram
-                  flowchartData={flowchartData}
-                  visibleCodes={filteredCodesSet}
-                  onToggle={toggleDiscipline}
-                  onSendToGrade={(code, name) =>
-                    sendDisciplineToGradeAction(container, code, name)
-                  }
-                />
-              )}
-            </section>
-          )}
+                >
+                  <div className="p-3 md:p-4 border-b-2 border-ink md:space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="hidden md:block relative flex-1 min-w-0">
+                        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none text-neutral-500 stroke-[2.5]" />
+                        <Input
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Buscar por código ou nome (ex: APC, Cálculo, CIC0004)..."
+                          aria-label="Buscar disciplina por código ou nome"
+                          className={`pl-10 h-9 text-xs w-full transition-[background-color] ${
+                            searchQuery.trim() ? "bg-pastel-blue" : "bg-paper"
+                          }`}
+                        />
+                      </div>
+
+                      <div
+                        role="group"
+                        aria-label="Modo de visualização do fluxograma"
+                        className="relative grid grid-cols-2 gap-0.5 p-0.5 bg-paper border-2 border-ink rounded-xl w-full md:w-auto md:shrink-0"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`pointer-events-none absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-3px)] rounded-lg bg-neo-blue transition-transform duration-150 ease-out ${
+                            viewMode === "map"
+                              ? "translate-x-[calc(100%+2px)]"
+                              : "translate-x-0"
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => switchViewMode("list")}
+                          aria-pressed={viewMode === "list"}
+                          title="Visualização em lista por semestre"
+                          className={`relative cursor-pointer flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-black transition-colors duration-150 active:translate-y-px focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 ${
+                            viewMode === "list"
+                              ? "text-white"
+                              : "text-black hover:bg-neutral-100"
+                          }`}
+                        >
+                          <List className="w-3.5 h-3.5 stroke-[2.5]" />
+                          Lista
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => switchViewMode("map")}
+                          aria-pressed={viewMode === "map"}
+                          title="Visualização em mapa de cadeias de pré-requisitos"
+                          className={`relative cursor-pointer flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-black transition-colors duration-150 active:translate-y-px focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 ${
+                            viewMode === "map"
+                              ? "text-white"
+                              : "text-black hover:bg-neutral-100"
+                          }`}
+                        >
+                          <Network className="w-3.5 h-3.5 stroke-[2.5]" />
+                          Mapa
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="hidden md:flex md:flex-wrap items-center gap-2 text-xs font-bold pt-0.5">
+                      {statusFilterOptions.map((opt) => {
+                        const isActive = activeFilter === opt.value;
+                        const Icon = opt.icon;
+                        return (
+                          <Button
+                            key={opt.value}
+                            type="button"
+                            variant={isActive ? opt.activeVariant : "outline"}
+                            size="sm"
+                            onClick={() => setActiveFilter(opt.value)}
+                            aria-pressed={isActive}
+                            title={opt.title}
+                            className={`shrink-0 whitespace-nowrap ${
+                              isActive ? opt.activeClass : opt.inactiveClass
+                            }`}
+                          >
+                            {Icon ? (
+                              <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
+                            ) : null}
+                            {opt.label} ({opt.count})
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {viewMode === "list" ? (
+                    <FlowchartList
+                      semesters={flowchartData.semesters}
+                      visibleCodes={filteredCodesSet}
+                      disciplineNames={disciplineNames}
+                      onToggle={toggleDiscipline}
+                      onSendToGrade={(code, name) =>
+                        sendDisciplineToGradeAction(container, code, name)
+                      }
+                    />
+                  ) : (
+                    <FlowchartDiagram
+                      flowchartData={flowchartData}
+                      visibleCodes={filteredCodesSet}
+                      onToggle={toggleDiscipline}
+                      onSendToGrade={(code, name) =>
+                        sendDisciplineToGradeAction(container, code, name)
+                      }
+                    />
+                  )}
+                </section>
+              </>
+            );
+          })()}
 
           {(flowchartData?.electiveCompletedDisciplines?.length || 0) > 0 && (
             <div className="mt-8 bg-paper border-2 border-ink rounded-xl p-5 shadow-neo-sm md:shadow-neo">

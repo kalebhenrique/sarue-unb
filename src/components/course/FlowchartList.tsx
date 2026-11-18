@@ -126,76 +126,85 @@ const DisciplineRow: React.FC<{
 
   return (
     <div
-      className={`group flex items-center gap-3 px-4 py-2.5 transition-colors duration-150 hover:bg-neutral-50 ${
+      className={`group flex items-start gap-3 px-4 py-2.5 transition-colors duration-150 hover:bg-neutral-50 ${
         isCompleted ? "bg-neutral-50/70" : "bg-paper"
       }`}
     >
-      <Checkbox
-        checked={isCompleted}
-        aria-label={
-          isCompleted
-            ? `Desmarcar ${d.name} como concluída`
-            : `Marcar ${d.name} como concluída`
-        }
-        onClick={() => onToggle(d.code, isCompleted)}
-        title={
-          isCompleted
-            ? "Desmarcar disciplina"
-            : "Marcar como concluída manualmente"
-        }
-        className="data-checked:bg-neo-green data-checked:text-ink hover:bg-neutral-100"
-      />
-
-      <div className="flex-1 min-w-0 flex items-center gap-1.5">
-        <span
-          className={`truncate text-xs font-bold ${
+      <div className="pt-0.5 shrink-0">
+        <Checkbox
+          checked={isCompleted}
+          aria-label={
             isCompleted
-              ? "text-neutral-500 line-through decoration-2"
-              : "text-black"
-          }`}
-          title={`${d.code} - ${d.name}`}
-        >
-          {d.code} - {d.name}
-        </span>
-        {isMandatory && (
-          <span
-            className={`text-sm font-black leading-none shrink-0 ${
-              isCompleted ? "text-neutral-500" : "text-neo-danger"
-            }`}
-            title="Disciplina obrigatória"
-            aria-label="Obrigatória"
-          >
-            *
-          </span>
-        )}
+              ? `Desmarcar ${d.name} como concluída`
+              : `Marcar ${d.name} como concluída`
+          }
+          onClick={() => onToggle(d.code, isCompleted)}
+          title={
+            isCompleted
+              ? "Desmarcar disciplina"
+              : "Marcar como concluída manualmente"
+          }
+          className="data-checked:bg-neo-green data-checked:text-ink hover:bg-neutral-100"
+        />
       </div>
 
-      {/* Ações e Metadados alinhados à direita */}
-      <div className="flex items-center gap-2.5 shrink-0 ml-auto">
-        {/* Botão rápido no hover: Enviar para o Montar Grade */}
-        {onSendToGrade && (
-          <Tooltip>
-            <TooltipTrigger
-              type="button"
-              onClick={() => onSendToGrade(d.code, d.name)}
-              aria-label={`Enviar ${d.name} para o Montar Grade`}
-              className="cursor-pointer p-1 rounded-md border border-ink bg-paper hover:bg-pastel-yellow text-neutral-700 hover:text-black transition-[opacity,background-color,color] shrink-0 shadow-neo-xs opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+      <div className="flex-1 min-w-0 space-y-1">
+        {/* Linha 1: Apenas o nome da disciplina em destaque */}
+        <p
+          className="text-sm font-medium leading-snug line-clamp-2"
+          title={`${d.code} - ${d.name}`}
+        >
+          <span
+            className={
+              isCompleted
+                ? "text-neutral-500 line-through decoration-2"
+                : "text-black"
+            }
+          >
+            {d.name}
+          </span>
+          {isMandatory && (
+            <span
+              className={`ml-1 font-black ${
+                isCompleted ? "text-neutral-500" : "text-neo-danger"
+              }`}
+              title="Disciplina obrigatória"
+              aria-label="Obrigatória"
             >
-              <CalendarPlus className="w-3.5 h-3.5 stroke-[2.5]" />
-            </TooltipTrigger>
-            <TooltipContent>Enviar para o Montar Grade</TooltipContent>
-          </Tooltip>
-        )}
+              *
+            </span>
+          )}
+        </p>
 
-        {/* Estado (ícone de cursando, bloqueado, etc.) */}
-        <StatusIcon d={d} />
+        {/* Linha 2: Código + carga horária e status alinhado à direita */}
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <span className="text-xs font-medium text-neutral-600 truncate">
+            {d.code} • {d.workloadHours}h
+          </span>
 
-        {/* Pré-requisitos: uma pill com tooltip, em vez de códigos soltos */}
-        <PrereqPill d={d} disciplineNames={disciplineNames} />
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
+            {/* Botão rápido no hover: Enviar para o Montar Grade */}
+            {onSendToGrade && (
+              <Tooltip>
+                <TooltipTrigger
+                  type="button"
+                  onClick={() => onSendToGrade(d.code, d.name)}
+                  aria-label={`Enviar ${d.name} para o Montar Grade`}
+                  className="cursor-pointer p-1 rounded-md border border-ink bg-paper hover:bg-pastel-yellow text-neutral-700 hover:text-black transition-[opacity,background-color,color] shrink-0 shadow-neo-xs opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                >
+                  <CalendarPlus className="w-3.5 h-3.5 stroke-[2.5]" />
+                </TooltipTrigger>
+                <TooltipContent>Enviar para o Montar Grade</TooltipContent>
+              </Tooltip>
+            )}
 
-        <span className="text-[11px] font-bold text-neutral-600 w-8 text-right shrink-0">
-          {d.workloadHours}h
-        </span>
+            {/* Pré-requisitos: uma pill com tooltip, em vez de códigos soltos */}
+            <PrereqPill d={d} disciplineNames={disciplineNames} />
+
+            {/* Estado (ícone de cursando, bloqueado, etc.) */}
+            <StatusIcon d={d} />
+          </div>
+        </div>
       </div>
     </div>
   );
