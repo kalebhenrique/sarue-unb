@@ -11,7 +11,17 @@ import {
   Clock,
   MessageSquare,
   Sheet,
+  RefreshCw,
 } from "lucide-react";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui";
 import type {
   SyncStepId,
   SyncStepInfo,
@@ -69,12 +79,8 @@ function formatRelativeTime(isoString: string | null): string {
   }
 }
 
-export const SyncStatusTooltip: React.FC<SyncStatusTooltipProps> = ({
-  steps,
-  isSyncing: _isSyncing,
-  lastSyncedAt,
-}) => {
-  const stepList = [
+function getOrderedSteps(steps: Record<SyncStepId, SyncStepInfo>): SyncStepInfo[] {
+  return [
     steps.sigaa,
     steps.aprender3,
     steps.teams,
@@ -82,6 +88,30 @@ export const SyncStatusTooltip: React.FC<SyncStatusTooltipProps> = ({
     steps.ghPages,
     steps.planilha,
   ];
+}
+
+function getSummaryStatusLabel(step: SyncStepInfo): string {
+  switch (step.status) {
+    case "syncing":
+      return "Sincronizando...";
+    case "success":
+      return "Atualizado";
+    case "error":
+      return "Falha";
+    case "skipped":
+      return "Não conectado";
+    case "idle":
+    default:
+      return "Aguardando";
+  }
+}
+
+export const SyncStatusTooltip: React.FC<SyncStatusTooltipProps> = ({
+  steps,
+  isSyncing: _isSyncing,
+  lastSyncedAt,
+}) => {
+  const stepList = getOrderedSteps(steps);
 
   return (
     <div className="w-full p-3 space-y-3 bg-canvas text-black select-none">
@@ -92,7 +122,7 @@ export const SyncStatusTooltip: React.FC<SyncStatusTooltipProps> = ({
         </div>
       </div>
 
-      {/* Lista das 4 sincronizações */}
+      {/* Lista das sincronizações */}
       <div className="space-y-2">
         {stepList.map((step) => {
           const Icon = STEP_ICONS[step.id];
@@ -144,5 +174,106 @@ export const SyncStatusTooltip: React.FC<SyncStatusTooltipProps> = ({
         </span>
       </div>
     </div>
+  );
+};
+
+export interface SyncStatusSummaryDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  steps?: Record<SyncStepId, SyncStepInfo>;
+  isSyncing: boolean;
+  lastSyncedAt: string | null;
+}
+
+/**
+ * Dialog resumido dos status de sincronização, aberto ao tocar na barra de
+ * carregamento dentro do menu mobile da tab bar.
+ */
+export const SyncStatusSummaryDialog: React.FC<SyncStatusSummaryDialogProps> = ({
+  open,
+  onOpenChange,
+  steps,
+  isSyncing,
+  lastSyncedAt,
+}) => {
+  const stepList = steps ? getOrderedSteps(steps) : [];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm p-5 gap-3">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <RefreshCw
+              className={`w-4 h-4 stroke-[2.5] text-blue-ink shrink-0 ${
+                isSyncing ? "animate-spin" : ""
+              }`}
+            />
+            <span>Status da Sincronização</span>
+          </DialogTitle>
+          <DialogDescription>
+            {isSyncing
+              ? "Sincronização em andamento..."
+              : `Última atualização: ${formatRelativeTime(lastSyncedAt)}`}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="divide-y divide-ink/10 rounded-xl border-2 border-ink bg-paper overflow-hidden">
+          {stepList.map((step) => {
+            const Icon = STEP_ICONS[step.id];
+            const statusText = getSummaryStatusLabel(step);
+
+            return (
+              <div
+                key={step.id}
+                className="px-3 py-2.5 flex items-center justify-between gap-2.5"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Icon className="w-4 h-4 text-neutral-700 shrink-0 stroke-[2.2]" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-extrabold text-black truncate">
+                      {step.label}
+                    </p>
+                    {step.status === "error" && step.message ? (
+                      <p className="text-[11px] font-semibold text-ink-error truncate">
+                        {step.message}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span
+                    className={`text-[11px] font-bold ${
+                      step.status === "error"
+                        ? "text-ink-error"
+                        : step.status === "success"
+                          ? "text-ink-success"
+                          : step.status === "syncing"
+                            ? "text-blue-ink"
+                            : "text-neutral-500"
+                    }`}
+                  >
+                    {statusText}
+                  </span>
+                  <StatusIndicator status={step.status} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto"
+          >
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

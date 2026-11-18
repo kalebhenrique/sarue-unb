@@ -15,13 +15,14 @@ import { AppBootSkeleton } from './components/boot/AppBootSkeleton';
 import { TooltipProvider, Toaster, ErrorBoundary } from '@/components/ui';
 import { useCredentials } from './hooks/useCredentials';
 import { useUpdateAvailable } from './hooks/useAppUpdater';
+import { useMediaQuery } from './hooks/useMediaQuery';
 import { SyncProvider, useSync } from './context/SyncContext';
 import { DeadlineProvider } from './context/DeadlineContext';
 import { WelcomeSyncDialog } from './components/onboarding/WelcomeSyncDialog';
 import { FeedbackWidget } from './components/feedback/FeedbackWidget';
 import { WithdrawalDeadlineDialog } from './components/notifications/WithdrawalDeadlineDialog';
 import { useContainer } from './context/ContainerContext';
-import type { AcademicCalendar } from './core';
+import { setOnboardingNotificationsBlocked, type AcademicCalendar } from './core';
 import { NAVIGATE_EVENT } from './lib/utils';
 import { initSoundEffectsListener } from './lib/sound-effects';
 import { AccessibilityProvider } from './context/AccessibilityContext';
@@ -57,6 +58,7 @@ const AppShell: React.FC = () => {
   ].filter((p): p is string => Boolean(p));
 
   const [step, setStep] = useState<AppStep>('onboarding');
+  const isMobile = useMediaQuery('(max-width: 767px)');
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [currentCalendar, setCurrentCalendar] = useState<AcademicCalendar | null>(null);
@@ -101,6 +103,10 @@ const AppShell: React.FC = () => {
     };
   }, [repos, useCases.getAcademicCalendar]);
 
+  React.useEffect(() => {
+    setOnboardingNotificationsBlocked(step === 'onboarding');
+  }, [step]);
+
   // Usuário recorrente pula o onboarding na abertura do app: credenciais salvas
   // (entra sincronizando) ou, como fallback, dados locais de uso anterior (modo
   // local: reconectar contas em Configurações). Roda uma vez no boot apenas:
@@ -111,10 +117,12 @@ const AppShell: React.FC = () => {
     if (isCheckingAuth || hasLocalData === null || bootstrapped.current) return;
     bootstrapped.current = true;
     if (hasCredentials) {
+      setOnboardingNotificationsBlocked(false);
       setStep('main');
       // Sessão restabelecida: atualiza os dados locais em segundo plano
       void syncAll({ isAutoSync: true });
     } else if (hasLocalData) {
+      setOnboardingNotificationsBlocked(false);
       setStep('main');
     }
   }, [isCheckingAuth, hasLocalData, hasCredentials, syncAll]);
@@ -146,12 +154,16 @@ const AppShell: React.FC = () => {
     return (
       <OnboardingScreen
         onComplete={() => {
+          setOnboardingNotificationsBlocked(false);
           setStep('main');
-          // Ritual pós-cadastro: dialog abre; popover abre quando o dialog é dispensado
+          // Ritual pós-cadastro: dialog abre; no desktop o popover abre ao dispensar o dialog
           setWelcomeOpen(true);
           syncAll();
         }}
-        onExplore={() => setStep('main')}
+        onExplore={() => {
+          setOnboardingNotificationsBlocked(false);
+          setStep('main');
+        }}
       />
     );
   }
@@ -159,6 +171,7 @@ const AppShell: React.FC = () => {
   // Fluxo 3: Aplicação Principal (Dashboard com Sidebar Colapsável)
   return (
     <DeadlineProvider>
+    <Toaster />
     <div className="flex h-full bg-canvas bg-grid overflow-hidden">
       {/* Sidebar Colapsável com Botão de Sincronização no Canto Inferior */}
       <Sidebar
@@ -172,13 +185,13 @@ const AppShell: React.FC = () => {
         hasConnectedAccounts={Boolean(hasCredentials)}
         hasUpdateAvailable={hasUpdateAvailable}
         syncSteps={syncSteps}
-        syncPopoverOpen={syncPopoverOpen}
+        syncPopoverOpen={!isMobile && syncPopoverOpen}
         onSyncPopoverOpenChange={setSyncPopoverOpen}
       />
 
       {/* Área Central de Conteúdo (Sem Header global, títulos direto no corpo) */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <main className="flex-1 overflow-y-auto px-2 py-6 md:px-4 md:py-8">
+        <main className="flex-1 overflow-y-auto px-2.5 pt-3 pb-6 md:px-4 md:py-8">
           <ErrorBoundary key={currentTab} onReset={() => setCurrentTab('home')}>
             {currentTab === 'home' && <DashboardScreen />}
             {currentTab === 'courses' && <CoursesScreen />}
@@ -192,6 +205,9 @@ const AppShell: React.FC = () => {
             {currentTab === 'settings' && (
               <SettingsScreen
                 onResetCredentials={() => {
+                  setOnboardingNotificationsBlocked(true);
+                  setSyncPopoverOpen(false);
+                  setWelcomeOpen(false);
                   setStep('onboarding');
                   setCurrentTab('home');
                 }}
@@ -206,7 +222,7 @@ const AppShell: React.FC = () => {
         open={welcomeOpen}
         onOpenChange={(open) => {
           setWelcomeOpen(open);
-          if (!open) setSyncPopoverOpen(true);
+          if (!open && !isMobile) setSyncPopoverOpen(true);
         }}
         platforms={connectedPlatforms}
       />
@@ -221,7 +237,6 @@ const App: React.FC = () => (
     <ThemeProvider>
       <SyncProvider>
         <TooltipProvider delay={150}>
-          <Toaster />
           <AppShell />
         </TooltipProvider>
       </SyncProvider>

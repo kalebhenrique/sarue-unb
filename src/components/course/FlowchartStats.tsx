@@ -32,8 +32,8 @@ export const FlowchartStats: React.FC<FlowchartStatsProps> = ({ metrics, onOpenI
           : (metrics.totalHours > 0 ? metrics.totalHours : undefined));
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo-sm md:shadow-neo flex flex-col justify-between">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-4 mb-4 md:mb-6">
+      <div className="col-span-2 lg:col-span-1 bg-paper border-2 border-ink rounded-xl p-3.5 md:p-4 shadow-neo-sm md:shadow-neo flex flex-col justify-between">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-black uppercase tracking-wider text-neutral-600">
             {metrics.isAlternativeCurriculum
@@ -91,57 +91,57 @@ export const FlowchartStats: React.FC<FlowchartStatsProps> = ({ metrics, onOpenI
         </p>
       </div>
 
-      <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo-sm md:shadow-neo flex flex-col justify-between">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-black uppercase tracking-wider text-neutral-600">
+      <div className="col-span-1 bg-paper border-2 border-ink rounded-xl p-3 md:p-4 shadow-neo-sm md:shadow-neo flex flex-col justify-between">
+        <div className="flex items-center justify-between gap-1 mb-2">
+          <span className="text-[11px] md:text-xs font-black uppercase tracking-wider text-neutral-600">
             CH Obrigatória
           </span>
-          <div className="w-8 h-8 rounded-lg bg-pastel-blue border-2 border-ink flex items-center justify-center text-blue-ink dark:bg-sticker-blue dark:text-ink shadow-neo-xs">
-            <Clock className="w-4 h-4 stroke-[2.5]" />
+          <div className="w-7 h-7 md:w-8 md:h-8 shrink-0 rounded-lg bg-pastel-blue border-2 border-ink flex items-center justify-center text-blue-ink dark:bg-sticker-blue dark:text-ink shadow-neo-xs">
+            <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[2.5]" />
           </div>
         </div>
 
-        <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-3xl font-black text-black">
+        <div className="flex items-baseline gap-1.5 mb-1 flex-wrap">
+          <span className="text-2xl md:text-3xl font-black text-black">
             {chConcluidaObrigatoria}h
           </span>
           {chTotalObrigatoriaExibida != null && (
-            <span className="text-xs font-bold text-neutral-600">
+            <span className="text-[11px] md:text-xs font-bold text-neutral-600">
               de {chTotalObrigatoriaExibida}h
             </span>
           )}
         </div>
 
-        <p className="text-[11px] font-bold text-neutral-600 mt-2">
-          Pendente: <span className="text-black font-extrabold">{obrigatoriaPendente != null ? `${obrigatoriaPendente}h` : `${metrics.remainingHours}h`}</span> obrigatórias
+        <p className="text-[11px] font-bold text-neutral-600 mt-1.5 md:mt-2">
+          Pendente: <span className="text-black font-extrabold">{obrigatoriaPendente != null ? `${obrigatoriaPendente}h` : `${metrics.remainingHours}h`}</span> obrig.
         </p>
       </div>
 
-      <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo-sm md:shadow-neo flex flex-col justify-between">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-black uppercase tracking-wider text-neutral-600">
+      <div className="col-span-1 bg-paper border-2 border-ink rounded-xl p-3 md:p-4 shadow-neo-sm md:shadow-neo flex flex-col justify-between">
+        <div className="flex items-center justify-between gap-1 mb-2">
+          <span className="text-[11px] md:text-xs font-black uppercase tracking-wider text-neutral-600">
             CH Total do Curso
           </span>
-          <div className="w-8 h-8 rounded-lg bg-pastel-yellow border-2 border-ink flex items-center justify-center text-ink dark:bg-neo-yellow shadow-neo-xs">
-            <Sparkles className="w-4 h-4 stroke-[2.5]" />
+          <div className="w-7 h-7 md:w-8 md:h-8 shrink-0 rounded-lg bg-pastel-yellow border-2 border-ink flex items-center justify-center text-ink dark:bg-neo-yellow shadow-neo-xs">
+            <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[2.5]" />
           </div>
         </div>
 
-        <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-3xl font-black text-black">
+        <div className="flex items-baseline gap-1.5 mb-1 flex-wrap">
+          <span className="text-2xl md:text-3xl font-black text-black">
             {totalCurriculo}h
           </span>
-          <span className="text-xs font-bold text-neutral-600">
+          <span className="text-[11px] md:text-xs font-bold text-neutral-600">
             currículo
           </span>
         </div>
 
-        <p className="text-[11px] font-bold text-neutral-600 mt-2">
-          Optativas pendentes: <span className="text-black font-extrabold">{optativaPendente != null ? `${optativaPendente}h` : '---'}</span>
+        <p className="text-[11px] font-bold text-neutral-600 mt-1.5 md:mt-2">
+          Optativas pend.: <span className="text-black font-extrabold">{optativaPendente != null ? `${optativaPendente}h` : '---'}</span>
         </p>
       </div>
 
-      <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-neo-sm md:shadow-neo flex flex-col justify-between">
+      <div className="col-span-2 lg:col-span-1 bg-paper border-2 border-ink rounded-xl p-3.5 md:p-4 shadow-neo-sm md:shadow-neo flex flex-col justify-between">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-black uppercase tracking-wider text-neutral-600">
             Índices Acadêmicos
@@ -151,34 +151,36 @@ export const FlowchartStats: React.FC<FlowchartStatsProps> = ({ metrics, onOpenI
           </div>
         </div>
 
-        <div className="flex items-baseline gap-3 mb-1">
-          {metrics.ira != null && (
-            <div>
-              <span className="text-2xl font-black text-black">
-                {metrics.ira.toFixed(2)}
-              </span>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 ml-1">
-                IRA
-              </span>
-            </div>
-          )}
-          {metrics.mp != null && (
-            <div>
-              <span className="text-2xl font-black text-black">
-                {metrics.mp.toFixed(2)}
-              </span>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 ml-1">
-                MP
-              </span>
-            </div>
-          )}
-        </div>
+        <div className="flex items-center justify-between gap-3 flex-wrap lg:block">
+          <div className="flex items-baseline gap-3 mb-1">
+            {metrics.ira != null && (
+              <div>
+                <span className="text-2xl font-black text-black">
+                  {metrics.ira.toFixed(2)}
+                </span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 ml-1">
+                  IRA
+                </span>
+              </div>
+            )}
+            {metrics.mp != null && (
+              <div>
+                <span className="text-2xl font-black text-black">
+                  {metrics.mp.toFixed(2)}
+                </span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 ml-1">
+                  MP
+                </span>
+              </div>
+            )}
+          </div>
 
-        <div className="mt-2">
-          <Button variant="yellow" size="sm" onClick={onOpenIraCalculator}>
-            <Calculator className="w-3.5 h-3.5 stroke-[2.5]" />
-            Calculadora de IRA
-          </Button>
+          <div className="lg:mt-2">
+            <Button variant="yellow" size="sm" onClick={onOpenIraCalculator}>
+              <Calculator className="w-3.5 h-3.5 stroke-[2.5]" />
+              Calculadora de IRA
+            </Button>
+          </div>
         </div>
       </div>
     </div>

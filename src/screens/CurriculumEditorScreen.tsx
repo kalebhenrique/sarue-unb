@@ -9,12 +9,19 @@ import {
   Save,
   Search,
   ChevronDown,
+  MoreVertical,
 } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import {
   PageContainer,
   PageHeader,
   Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  FloatingActionButton,
+  HeaderIconButton,
   Input,
   Card,
   Badge,
@@ -726,6 +733,41 @@ export const CurriculumEditorScreen: React.FC<CurriculumEditorScreenProps> = ({
       <PageHeader
         title="Gerenciar Currículo"
         icon={BookOpen}
+        count={totalCount}
+        onBack={requestBack}
+        backLabel="Voltar para Meu Curso"
+        mobileActions={
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <HeaderIconButton
+                  aria-label="Ações do currículo"
+                  hasActiveIndicator={hasChanges}
+                >
+                  <MoreVertical className="w-4 h-4 stroke-[2.5]" />
+                </HeaderIconButton>
+              }
+            />
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                disabled={!hasChanges || isSaving}
+                onClick={handleSaveAll}
+              >
+                <Save className="w-4 h-4 stroke-[2.5]" />
+                {isSaving ? "Salvando..." : "Salvar Currículo"}
+              </DropdownMenuItem>
+              {hasCustomCurriculum ? (
+                <DropdownMenuItem
+                  disabled={isSaving}
+                  onClick={() => setConfirm({ kind: "reset" })}
+                >
+                  <RotateCcw className="w-4 h-4 stroke-[2.5]" />
+                  Restaurar Oficial
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={requestBack}>
@@ -1093,6 +1135,15 @@ export const CurriculumEditorScreen: React.FC<CurriculumEditorScreenProps> = ({
           </DialogContent>
         </Dialog>
       )}
+
+      <FloatingActionButton
+        variant="accent"
+        icon={Plus}
+        aria-label="Adicionar Disciplina"
+        title="Adicionar Disciplina"
+        onClick={openAdd}
+        className="md:hidden"
+      />
     </PageContainer>
   );
 };

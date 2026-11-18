@@ -187,7 +187,7 @@ export const FeedList: React.FC<FeedListProps> = ({
                 {item.title}
               </span>
 
-              <div className="mt-1 flex items-center gap-2 min-w-0 text-[11px] font-semibold text-neutral-500">
+              <div className="mt-1 flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2 min-w-0 text-[11px] font-semibold text-neutral-500">
                 <Badge variant={item.platform} size="sm" className={`shrink-0${completedFade}`}>
                   {platformLabel}
                 </Badge>
@@ -196,9 +196,9 @@ export const FeedList: React.FC<FeedListProps> = ({
                     variant="neutral"
                     size="sm"
                     title={item.courseName}
-                    className={`shrink-0 bg-neutral-200 dark:bg-neutral-300${completedFade}`}
+                    className={`min-w-0 max-w-[180px] bg-neutral-200 dark:bg-neutral-300${completedFade}`}
                   >
-                    {disciplineLabel}
+                    <span className="truncate">{disciplineLabel}</span>
                   </Badge>
                 ) : null}
                 <span className="truncate whitespace-nowrap">

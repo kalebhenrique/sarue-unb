@@ -225,7 +225,7 @@ function SelectContent({
             backdropClassName="z-40"
             dragOnlyOnHandle
             id="mobile-select-sheet"
-            className="fixed inset-x-0 bottom-0 w-full z-50"
+            className="fixed inset-x-0 bottom-0 w-full z-50 bg-canvas"
           >
             <SelectPrimitive.Popup
               data-slot="select-content"

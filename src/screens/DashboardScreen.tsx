@@ -6,13 +6,18 @@ import { useFeed } from "../hooks/useFeed";
 import { useFeedSelection } from "../hooks/useFeedSelection";
 import {
   Card,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  HeaderIconButton,
   Pagination,
   PageContainer,
   PageHeader,
   toast,
   EmptyState,
 } from "@/components/ui";
-import { Home } from "lucide-react";
+import { Archive, CheckSquare, Home, MoreVertical } from "lucide-react";
 
 export const DashboardScreen: React.FC = () => {
   const {
@@ -146,12 +151,61 @@ export const DashboardScreen: React.FC = () => {
     searchQuery.trim().length > 0;
 
   return (
-    <PageContainer>
-      {/* Título Padronizado da Página com contagem de resultados em destaque menor */}
+    <PageContainer className={isSelecting ? "pb-40 md:pb-12" : undefined}>
+      {/* Título Padronizado da Página com marca no mobile e contagem de resultados */}
       <PageHeader
         icon={Home}
-        title="Início"
+        title={
+          <>
+            <span className="inline-flex items-center gap-2.5 md:hidden">
+              <span className="w-10 h-10 border-2 border-ink rounded-xl overflow-hidden shadow-neo-sm flex items-center justify-center bg-paper shrink-0">
+                <img
+                  src="/sarue-logo.png"
+                  alt="Saruê UnB"
+                  className="w-full h-full object-cover select-none pointer-events-none"
+                />
+              </span>
+              <span className="font-extrabold text-base tracking-tight whitespace-nowrap text-black">
+                Saruê <span className="text-unb-blue">UnB</span>
+              </span>
+            </span>
+            <span className="hidden md:inline">Início</span>
+          </>
+        }
+        count={hasLoadedOnce ? totalItems : null}
         subtitle={hasLoadedOnce ? `(${resultLabel})` : null}
+        mobileActions={
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <HeaderIconButton
+                  aria-label="Mais ações"
+                  hasActiveIndicator={showArchived || isSelecting}
+                >
+                  <MoreVertical className="w-4 h-4 stroke-[2.5]" />
+                </HeaderIconButton>
+              }
+            />
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => setShowArchived(!showArchived)}
+              >
+                <Archive className="w-4 h-4 stroke-[2.5]" />
+                {showArchived ? "Ver itens ativos" : "Arquivados"}
+              </DropdownMenuItem>
+              {items.length > 0 ? (
+                <DropdownMenuItem
+                  onClick={
+                    isSelecting ? selection.exit : selection.enter
+                  }
+                >
+                  <CheckSquare className="w-4 h-4 stroke-[2.5]" />
+                  {isSelecting ? "Sair da seleção" : "Selecionar itens"}
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
       />
 
       {/* Barra de Filtros e Busca (card próprio; expande para baixo no modo Selecionar) */}

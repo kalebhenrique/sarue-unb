@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import {
   Utensils,
   Coffee,
@@ -532,31 +531,29 @@ export const RuScreen: React.FC = () => {
       </section>
 
       {/* Seletor de Dias: BottomSheet no mobile (< md) e Dialog no desktop (>= md) */}
-      {isMobile && typeof document !== 'undefined' ? (
-        createPortal(
-          <BottomSheet
-            open={dayPickerOpen}
-            onClose={() => setDayPickerOpen(false)}
-            backdrop
-            backdropClassName="md:hidden z-40"
-            id="ru-day-picker-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Selecionar dia do cardápio"
-            className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
-          >
-            <div className="flex items-center gap-2 px-4 pb-3 border-b-2 border-black/15">
-              <Calendar className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
-              <h2 className="text-base font-black text-black">
-                Selecionar dia
-              </h2>
-            </div>
-            <div className="px-3 pt-3.5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
-              {dayPickerGrid}
-            </div>
-          </BottomSheet>,
-          document.body
-        )
+      {isMobile ? (
+        <BottomSheet
+          open={dayPickerOpen}
+          onClose={() => setDayPickerOpen(false)}
+          backdrop
+          backdropClassName="md:hidden z-40"
+          id="ru-day-picker-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Selecionar dia do cardápio"
+          className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
+          portal
+        >
+          <div className="flex items-center gap-2 px-4 pb-3 border-b-2 border-black/15">
+            <Calendar className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
+            <h2 className="text-base font-black text-black">
+              Selecionar dia
+            </h2>
+          </div>
+          <div className="px-3 pt-3.5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+            {dayPickerGrid}
+          </div>
+        </BottomSheet>
       ) : (
         <Dialog open={!isMobile && dayPickerOpen} onOpenChange={setDayPickerOpen}>
           <DialogContent className="sm:max-w-lg">

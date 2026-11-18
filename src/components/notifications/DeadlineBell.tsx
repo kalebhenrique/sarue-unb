@@ -248,7 +248,7 @@ export const DeadlineBell: React.FC<{ className?: string }> = ({ className }) =>
             <div className="overflow-y-auto overflow-x-hidden overscroll-contain">
               {snapshot.length === 0 ? (
                 <div className="px-6 py-10 text-center space-y-3">
-                  <div className="w-12 h-12 mx-auto bg-paper border-2 border-ink rounded-lg shadow-[2px_2px_0px_0px_var(--neo-shadow)] flex items-center justify-center">
+                  <div className="w-12 h-12 mx-auto bg-paper border-2 border-ink rounded-lg flex items-center justify-center">
                     <BellOff className="size-6 stroke-[2.5] text-blue-ink" />
                   </div>
                   <h4 className="text-base font-bold text-black">Nada vencendo</h4>

@@ -1,6 +1,13 @@
-import React from 'react';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { PageContainer, PageHeader } from '@/components/ui';
+import React, { useMemo, useState } from 'react';
+import { Calendar as CalendarIcon, Plus, SlidersHorizontal } from 'lucide-react';
+import {
+  BottomSheet,
+  Checkbox,
+  FloatingActionButton,
+  HeaderIconButton,
+  PageContainer,
+  PageHeader,
+} from '@/components/ui';
 import { useCalendar } from '@/hooks/useCalendar';
 import {
   CalendarToolbar,
@@ -9,6 +16,7 @@ import {
   CalendarAgendaView,
   CalendarEventDialog,
   CalendarDeleteDialog,
+  buildCourseFilterOptions,
 } from '@/components/calendar';
 
 export const CalendarScreen: React.FC = () => {
@@ -52,12 +60,45 @@ export const CalendarScreen: React.FC = () => {
     toggleFeedTaskCompleted,
   } = useCalendar();
 
+  const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
+
+  const courseOptions = useMemo(
+    () => buildCourseFilterOptions(courses),
+    [courses],
+  );
+
+  const hasActiveFilters =
+    !showAcademic ||
+    !showManual ||
+    !showFeedTasks ||
+    (Boolean(selectedCourse) && selectedCourse !== 'all');
+
+  const handleResetFilters = () => {
+    setShowAcademic(true);
+    setShowManual(true);
+    setShowFeedTasks(true);
+    setSelectedCourse('all');
+  };
+
   return (
     <PageContainer>
       {/* Cabeçalho da Página */}
-      <PageHeader icon={CalendarIcon} title="Calendário" />
+      <PageHeader
+        icon={CalendarIcon}
+        title="Calendário"
+        mobileActions={
+          <HeaderIconButton
+            aria-label="Filtros do calendário"
+            hasActiveIndicator={hasActiveFilters}
+            active={filtersSheetOpen || hasActiveFilters}
+            onClick={() => setFiltersSheetOpen(true)}
+          >
+            <SlidersHorizontal className="w-4 h-4 stroke-[2.5]" />
+          </HeaderIconButton>
+        }
+      />
 
-      <div className="space-y-6">
+      <div className="space-y-3 md:space-y-6">
         {/* Barra de Ferramentas com Navegação, Filtros e Seleção de Matéria */}
         <CalendarToolbar
           currentDate={currentDate}
@@ -77,12 +118,7 @@ export const CalendarScreen: React.FC = () => {
           selectedCourse={selectedCourse}
           onCourseChange={setSelectedCourse}
           onOpenCreateDialog={() => openCreateDialog()}
-          onResetFilters={() => {
-            setShowAcademic(true);
-            setShowManual(true);
-            setShowFeedTasks(true);
-            setSelectedCourse('all');
-          }}
+          onResetFilters={handleResetFilters}
         />
 
         {/* Conteúdo Principal do Calendário */}
@@ -152,6 +188,108 @@ export const CalendarScreen: React.FC = () => {
           }
         }}
         isDeleting={isSaving}
+      />
+      {/* Bottom Sheet de filtros no mobile */}
+      <BottomSheet
+        open={filtersSheetOpen}
+        onClose={() => setFiltersSheetOpen(false)}
+        role="dialog"
+        aria-label="Filtros do calendário"
+        backdrop
+        backdropClassName="z-40 md:hidden"
+        className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
+        portal
+        dragOnlyOnHandle
+      >
+        <div className="px-4 max-h-[calc(85dvh-2rem)] overflow-y-auto overflow-x-hidden pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+          <div className="flex items-center justify-between gap-2 pb-3 border-b-2 border-ink/10">
+            <h2 className="text-base font-extrabold tracking-tight text-black">
+              Filtros do calendário
+            </h2>
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="cursor-pointer text-xs font-bold text-neutral-600 underline hover:text-black"
+              >
+                Limpar filtros
+              </button>
+            ) : null}
+          </div>
+
+          <div className="space-y-4 pt-3 pb-2">
+            <div className="space-y-2.5">
+              <span className="text-xs font-extrabold uppercase tracking-wide text-neutral-600">
+                Fontes de eventos
+              </span>
+              <div className="space-y-2.5">
+                <label className="cursor-pointer flex items-center gap-2.5 text-sm font-bold text-black select-none">
+                  <Checkbox
+                    checked={showAcademic}
+                    onCheckedChange={() => setShowAcademic((prev) => !prev)}
+                    className="data-checked:bg-[#468AFB] data-checked:text-white"
+                  />
+                  <span>Calendário Acadêmico (UnB)</span>
+                </label>
+
+                <label className="cursor-pointer flex items-center gap-2.5 text-sm font-bold text-black select-none">
+                  <Checkbox
+                    checked={showManual}
+                    onCheckedChange={() => setShowManual((prev) => !prev)}
+                    className="data-checked:bg-neo-green data-checked:text-ink"
+                  />
+                  <span>Meus Eventos</span>
+                </label>
+
+                <label className="cursor-pointer flex items-center gap-2.5 text-sm font-bold text-black select-none">
+                  <Checkbox
+                    checked={showFeedTasks}
+                    onCheckedChange={() => setShowFeedTasks((prev) => !prev)}
+                    className="data-checked:bg-neo-yellow data-checked:text-ink"
+                  />
+                  <span>Tarefas do Feed</span>
+                </label>
+              </div>
+            </div>
+
+            {courseOptions.length > 1 ? (
+              <div className="space-y-2">
+                <span className="text-xs font-extrabold uppercase tracking-wide text-neutral-600">
+                  Disciplina
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {courseOptions.map((opt) => {
+                    const selected = (selectedCourse || 'all') === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => setSelectedCourse(opt.value)}
+                        className={`cursor-pointer px-3 py-1.5 text-xs font-bold rounded-lg border-2 border-ink text-left max-w-full truncate transition-colors ${
+                          selected
+                            ? 'bg-neo-blue text-white'
+                            : 'bg-paper text-black hover:bg-neutral-100'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </BottomSheet>
+
+      <FloatingActionButton
+        variant="primary"
+        icon={Plus}
+        aria-label="Novo evento pessoal"
+        title="Novo evento pessoal"
+        onClick={() => openCreateDialog()}
+        className="md:hidden"
       />
     </PageContainer>
   );

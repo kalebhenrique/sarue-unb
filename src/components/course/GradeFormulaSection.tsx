@@ -21,6 +21,9 @@ interface GradeFormulaSectionProps {
   discipline: Discipline;
   /** Quando embutido dentro de outro Card (evita sombras empilhadas) */
   embedded?: boolean;
+  /** Força expansão inicial/permanente e oculta o cabeçalho do acordeão (BottomSheet mobile) */
+  forceExpanded?: boolean;
+  hideHeader?: boolean;
   /** Notifica o componente pai sobre a badge de resumo calculada (para exibição no topo do Card) */
   onSummaryChange?: (badge: React.ReactNode) => void;
 }
@@ -35,6 +38,8 @@ const formatGrade = (val: number, decimals: number = 1): string => {
 export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
   discipline,
   embedded = false,
+  forceExpanded = false,
+  hideHeader = false,
   onSummaryChange,
 }) => {
   const storagePrefix = `sarue:discipline_grades:${discipline.id}`;
@@ -175,9 +180,15 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
     onSummaryChange?.(headerSummaryBadge);
   }, [headerSummaryBadge, onSummaryChange]);
 
+  const effectiveExpanded = forceExpanded || isExpanded;
+
   const Container = embedded ? "div" : Card;
   const containerProps = embedded
-    ? { className: "pt-3 pb-1 border-t-2 border-black/10" }
+    ? {
+        className: hideHeader
+          ? "pt-1 pb-2"
+          : "pt-3 pb-1 border-t-2 border-black/10",
+      }
     : {
         className:
           "p-4 bg-paper rounded-lg border-2 border-ink shadow-(--neo-card-shadow)",
@@ -185,54 +196,62 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
 
   return (
     <Container {...containerProps}>
-      {/* Topo / Cabeçalho da Seção com Chevron estilo sarue-unb-site */}
-      <div
-        onClick={toggleExpanded}
-        className="flex items-center justify-between gap-3 cursor-pointer select-none group"
-        role="button"
-        tabIndex={0}
-        aria-expanded={isExpanded}
-        aria-label={
-          isExpanded
-            ? "Recolher calculadora de nota"
-            : "Expandir calculadora de nota"
-        }
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            toggleExpanded();
+      {!hideHeader ? (
+        /* Topo / Cabeçalho da Seção com Chevron estilo sarue-unb-site */
+        <div
+          onClick={toggleExpanded}
+          className="flex items-center justify-between gap-3 cursor-pointer select-none group"
+          role="button"
+          tabIndex={0}
+          aria-expanded={effectiveExpanded}
+          aria-label={
+            effectiveExpanded
+              ? "Recolher calculadora de nota"
+              : "Expandir calculadora de nota"
           }
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-ink/10 border-2 border-ink flex items-center justify-center text-blue-ink shrink-0 group-hover:bg-blue-ink/20 transition-colors">
-            <Calculator className="w-5 h-5 stroke-[2.5]" />
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleExpanded();
+            }
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-ink/10 border-2 border-ink flex items-center justify-center text-blue-ink shrink-0 group-hover:bg-blue-ink/20 transition-colors">
+              <Calculator className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <h3 className="text-sm font-black text-black group-hover:text-blue-ink transition-colors">
+              Calculadora de Nota
+            </h3>
           </div>
-          <h3 className="text-sm font-black text-black group-hover:text-blue-ink transition-colors">
-            Calculadora de Nota
-          </h3>
-        </div>
 
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-2 border-ink bg-cream dark:bg-btn-raise text-black shadow-neo-xs group-hover:bg-neutral-100 dark:group-hover:bg-neutral-200 transition-colors">
-          <ChevronDown
-            className={`h-4 w-4 stroke-[2.5] transition-transform duration-200 ${
-              isExpanded ? "rotate-180" : ""
-            }`}
-            aria-hidden="true"
-          />
-        </span>
-      </div>
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-2 border-ink bg-cream dark:bg-btn-raise text-black shadow-neo-xs group-hover:bg-neutral-100 dark:group-hover:bg-neutral-200 transition-colors">
+            <ChevronDown
+              className={`h-4 w-4 stroke-[2.5] transition-transform duration-200 ${
+                effectiveExpanded ? "rotate-180" : ""
+              }`}
+              aria-hidden="true"
+            />
+          </span>
+        </div>
+      ) : null}
 
       {/* Conteúdo Expandido com animação suave (0fr -> 1fr) */}
       <div
         className={`grid transition-[grid-template-rows] duration-150 ease-out ${
-          isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+          effectiveExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         }`}
-        aria-hidden={!isExpanded}
-        inert={!isExpanded}
+        aria-hidden={!effectiveExpanded}
+        inert={!effectiveExpanded}
       >
         <div className="min-h-0 overflow-hidden">
-          <div className="pb-2 pl-4 sm:pl-12 pr-1.5 mt-3 space-y-5">
+          <div
+            className={
+              hideHeader
+                ? "pb-2 px-0.5 space-y-4"
+                : "pb-2 pl-4 sm:pl-12 pr-1.5 mt-3 space-y-5"
+            }
+          >
             {/* Seletor de Presets Rápidos */}
             <div className="space-y-2">
               <div className="flex items-center gap-1.5 text-xs font-black text-black">

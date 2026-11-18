@@ -169,6 +169,7 @@ export const NotificationsScreen: React.FC = () => {
       <PageHeader
         icon={Bell}
         title="Notificações"
+        count={entries.length > 0 ? entries.length : null}
         subtitle={
           entries.length > 0
             ? `(${entries.length} pendência${entries.length > 1 ? "s" : ""})`
@@ -179,7 +180,7 @@ export const NotificationsScreen: React.FC = () => {
       <Card className="p-0 overflow-hidden">
         {entries.length === 0 ? (
           <div className="px-6 py-12 text-center space-y-3">
-            <div className="w-12 h-12 mx-auto bg-paper border-2 border-ink rounded-lg shadow-neo-sm flex items-center justify-center">
+            <div className="w-12 h-12 mx-auto bg-paper border-2 border-ink rounded-lg flex items-center justify-center">
               <BellOff className="size-6 stroke-[2.5] text-blue-ink" />
             </div>
             <h2 className="text-base font-extrabold text-black">

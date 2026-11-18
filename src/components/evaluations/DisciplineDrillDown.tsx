@@ -1,11 +1,11 @@
-import React from 'react';
+import React from "react";
 import {
   PageContainer,
   PageHeader,
   Button,
   Card,
   Badge,
-} from '@/components/ui';
+} from "@/components/ui";
 import {
   ArrowLeft,
   MapPin,
@@ -14,15 +14,15 @@ import {
   CheckCircle2,
   HelpCircle,
   XCircle,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   normalizeDepartmentDisplay,
   type DisciplineSummary,
   type ProfessorSummary,
-} from '@/core';
-import { hasConsensusSeal } from './types';
-import { ConsensusSeal } from './ConsensusSeal';
-import { DisciplineProfessorCard } from './CatalogCards';
+} from "@/core";
+import { hasConsensusSeal } from "./types";
+import { ConsensusSeal } from "./ConsensusSeal";
+import { DisciplineProfessorCard } from "./CatalogCards";
 
 export interface DisciplineDrillDownProps {
   summary: DisciplineSummary;
@@ -46,12 +46,12 @@ export const DisciplineDrillDown: React.FC<DisciplineDrillDownProps> = ({
   // Posiciona o scroll no topo (ou restaura a posição caso venha de um retorno)
   React.useEffect(() => {
     const target = initialScrollTop ?? 0;
-    const mainEl = document.querySelector('main');
+    const mainEl = document.querySelector("main");
     const restore = () => {
       if (mainEl) {
-        mainEl.scrollTo({ top: target, behavior: 'instant' });
+        mainEl.scrollTo({ top: target, behavior: "instant" });
       }
-      window.scrollTo({ top: target, behavior: 'instant' });
+      window.scrollTo({ top: target, behavior: "instant" });
     };
     restore();
     const rafId = requestAnimationFrame(restore);
@@ -64,27 +64,30 @@ export const DisciplineDrillDown: React.FC<DisciplineDrillDownProps> = ({
   const mediaDidatica: number | null =
     didaticas.length > 0
       ? Math.round(
-          (didaticas.reduce((a, v) => a + v, 0) / didaticas.length) * 10
+          (didaticas.reduce((a, v) => a + v, 0) / didaticas.length) * 10,
         ) / 10
       : summary.averageDidatica;
   const mediaRecomendacao =
     professorSummaries.length > 0
       ? Math.round(
           professorSummaries.reduce((a, p) => a + p.recommendationRate, 0) /
-            professorSummaries.length
+            professorSummaries.length,
         )
       : summary.recommendationRate;
 
   const mediaStr =
     mediaDidatica !== null
-      ? mediaDidatica.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
-      : 'N/A';
+      ? mediaDidatica.toLocaleString("pt-BR", { maximumFractionDigits: 1 })
+      : "N/A";
 
   return (
     <PageContainer>
       <PageHeader
         icon={MessageSquareQuote}
         title={summary.disciplineName}
+        count={professorSummaries.length}
+        onBack={onBack}
+        backLabel="Voltar para disciplinas"
         actions={
           <Button
             type="button"
@@ -169,31 +172,28 @@ export const DisciplineDrillDown: React.FC<DisciplineDrillDownProps> = ({
         <div className="flex flex-wrap items-center gap-4 pt-3 border-t-2 border-black/10 text-xs font-bold">
           <span className="inline-flex items-center gap-1.5 text-ink-success">
             <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-            {summary.recommendYesCount}{' '}
-            {summary.recommendYesCount === 1 ? 'recomenda' : 'recomendam'}
+            {summary.recommendYesCount}{" "}
+            {summary.recommendYesCount === 1 ? "recomenda" : "recomendam"}
           </span>
           <span className="inline-flex items-center gap-1.5 text-neutral-700">
             <HelpCircle className="w-4 h-4 stroke-[2.5]" />
-            {summary.recommendDependeCount}{' '}
+            {summary.recommendDependeCount}{" "}
             {summary.recommendDependeCount === 1
               ? 'responde "depende"'
               : 'respondem "depende"'}
           </span>
           <span className="inline-flex items-center gap-1.5 text-ink-error">
             <XCircle className="w-4 h-4 stroke-[2.5]" />
-            {summary.recommendNoCount}{' '}
+            {summary.recommendNoCount}{" "}
             {summary.recommendNoCount === 1
-              ? 'não recomenda'
-              : 'não recomendam'}
+              ? "não recomenda"
+              : "não recomendam"}
           </span>
         </div>
       </Card>
 
       {/* Professores da disciplina */}
       <div className="space-y-3">
-        <p className="text-xs font-black uppercase tracking-wider text-neutral-600 px-1">
-          Professores desta disciplina ({professorSummaries.length})
-        </p>
         {professorSummaries.length === 0 ? (
           <p className="text-xs font-bold text-neutral-600 px-1">
             Não foi possível relacionar professores a esta disciplina.
@@ -210,8 +210,8 @@ export const DisciplineDrillDown: React.FC<DisciplineDrillDownProps> = ({
           </div>
         )}
 
-        {/* Botão de redundância para navegação no final da listagem */}
-        <div className="flex items-center justify-end pt-2">
+        {/* Botão de redundância para navegação no final da listagem (desktop) */}
+        <div className="hidden md:flex items-center justify-end pt-2">
           <Button
             type="button"
             variant="outline"

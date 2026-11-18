@@ -81,6 +81,9 @@ export const EvaluationDrillDown: React.FC<EvaluationDrillDownProps> = ({
       <PageHeader
         icon={icon}
         title={title}
+        count={reviews.length}
+        onBack={onBack}
+        backLabel="Voltar para avaliações"
         actions={
           <Button
             type="button"
@@ -204,14 +207,6 @@ export const EvaluationDrillDown: React.FC<EvaluationDrillDownProps> = ({
 
       {/* Lista de Relatos */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between text-xs font-bold text-neutral-600 px-1">
-          <span>
-            Avaliações registradas ({reviews.length}{" "}
-            {reviews.length === 1 ? "relato" : "relatos"})
-          </span>
-          <span>Ordenado das mais recentes</span>
-        </div>
-
         {pageItems.map((ev) => (
           <ReviewCard key={ev.id} evaluation={ev} detailed />
         ))}
@@ -222,8 +217,8 @@ export const EvaluationDrillDown: React.FC<EvaluationDrillDownProps> = ({
           onPageChange={handlePageChange}
         />
 
-        {/* Botão de redundância para navegação no final da listagem */}
-        <div className="flex items-center justify-end pt-2">
+        {/* Botão de redundância para navegação no final da listagem (desktop) */}
+        <div className="hidden md:flex items-center justify-end pt-2">
           <Button
             type="button"
             variant="outline"

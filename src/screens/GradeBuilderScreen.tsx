@@ -5,7 +5,14 @@ import {
   PageHeader,
   toast,
   Alert,
+  BottomSheet,
   Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  FloatingActionButton,
+  HeaderIconButton,
   Tooltip,
   TooltipTrigger,
   TooltipContent,
@@ -24,7 +31,11 @@ import {
   Info,
   AlertTriangle,
   RefreshCw,
+  Calendar,
+  MoreVertical,
 } from "lucide-react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { isMobileDevice } from "@/lib/platform";
 import { toPng } from "html-to-image";
 import type { ScrapedClass } from "@/core";
 import { GradeFilters } from "../components/grade/GradeFilters";
@@ -111,6 +122,11 @@ export const GradeBuilderScreen: React.FC = () => {
   // Beco sem saída do solver: estado persistente com próximo passo, não só toast
   const [solverEmpty, setSolverEmpty] = useState(false);
   const lastSolveSignatureRef = useRef("");
+  const isMobile = useMediaQuery("(max-width: 767px)");
+  // Bottom sheets mobile: Grade Horária montada + Prazos acadêmicos
+  const [scheduleSheetOpen, setScheduleSheetOpen] = useState(false);
+  const [deadlinesSheetOpen, setDeadlinesSheetOpen] = useState(false);
+
   // Diálogo de confirmação do "Novo planejamento"
   const [newPlanningOpen, setNewPlanningOpen] = useState(false);
 
@@ -182,21 +198,34 @@ export const GradeBuilderScreen: React.FC = () => {
 
 
   // Exportar grade horária para imagem PNG em alta resolução (2x retina)
+  // No mobile, abre a folha nativa de compartilhamento (Share Sheet); no desktop, baixa o PNG.
   const handleDownloadPng = async () => {
-    if (!scheduleGridRef.current) return;
+    const node = scheduleGridRef.current;
+    if (!node) return;
     try {
       setIsExportingPng(true);
-      const dataUrl = await toPng(scheduleGridRef.current, {
+
+      const gridEl = node.querySelector<HTMLElement>("[data-timetable-grid]");
+      const exportWidth = gridEl
+        ? Math.max(node.clientWidth, gridEl.scrollWidth + 32)
+        : node.clientWidth;
+
+      const dataUrl = await toPng(node, {
         cacheBust: true,
         pixelRatio: 2,
+        width: exportWidth,
+        style: {
+          width: `${exportWidth}px`,
+          maxWidth: "none",
+        },
         // A exportação segue o tema ativo: base de corte escura exporta fundo escuro.
         backgroundColor: document.documentElement.classList.contains("dark")
           ? "#111622"
           : "#FFFFFF",
-        filter: (node) => {
+        filter: (el) => {
           if (
-            node instanceof HTMLElement &&
-            node.classList.contains("no-export")
+            el instanceof HTMLElement &&
+            el.classList.contains("no-export")
           ) {
             return false;
           }
@@ -204,16 +233,41 @@ export const GradeBuilderScreen: React.FC = () => {
         },
       });
 
+      const filename = `grade-unb-${year}-${period}.png`;
+      const shareTitle = `Grade Horária ${year}.${period} • UnB`;
+
+      if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+        const { commands } = await import("@/core/infrastructure/bindings");
+        const res = await commands.shareImage(dataUrl, filename, shareTitle);
+        if (res.status === "error") {
+          throw new Error(res.error);
+        }
+        // `true` = compartilhado nativamente no mobile; `false` = fallback desktop (download)
+        if (res.data) {
+          return;
+        }
+      } else if (isMobileDevice() && typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        const blob = await (await fetch(dataUrl)).blob();
+        const file = new File([blob], filename, { type: "image/png" });
+        if (typeof navigator.canShare !== "function" || navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: shareTitle });
+          return;
+        }
+      }
+
       const link = document.createElement("a");
-      link.download = `grade-unb-${year}-${period}.png`;
+      link.download = filename;
       link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
       toast.add({
         title: "Exportação da grade",
-        description: "Não foi possível gerar a imagem. Tente novamente.",
+        description: "Não foi possível gerar ou compartilhar a imagem. Tente novamente.",
         type: "error",
       });
     } finally {
@@ -221,108 +275,248 @@ export const GradeBuilderScreen: React.FC = () => {
     }
   };
 
-  return (
-    <PageContainer>
-      {/* Título Padronizado da Página com Ícone da Sidebar */}
-      <PageHeader icon={SquareKanban} title="Montar Grade Horária" />
-
-      {/* Alerta de Semestre em Andamento para contas com Meu Curso ativado */}
-      {hasSemesterAlert && (
+  const renderScheduleContent = (inSheet: boolean) => (
+    <>
+      {conflicts.length > 0 && selectedClasses.length > 0 ? (
         <Alert
-          variant="yellow"
-          title={`Semestre ${year}.${period} em andamento`}
+          variant="destructive"
+          icon={AlertTriangle}
+          className={inSheet ? "shadow-none!" : undefined}
+          title={`Conflito de horário (${conflicts.length})`}
           description={
-            <div className="space-y-2.5 mt-1">
-              {/* Frase única; prazos acadêmicos sob demanda no tooltip do ícone */}
-              <p className="flex flex-wrap items-center gap-1.5">
-                <span>
-                  {isCurrentSemesterMode
-                    ? "Suas turmas matriculadas estão na grade."
-                    : "Restaure suas turmas matriculadas ou comece um novo planejamento."}
-                </span>
-                <Tooltip>
-                  <TooltipTrigger
-                    aria-label="Prazos acadêmicos deste semestre"
-                    className="inline-flex h-5 w-5 items-center justify-center cursor-help rounded-md text-neutral-600 hover:bg-black/5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-1"
-                  >
-                    <Info className="w-3.5 h-3.5 stroke-[2.5]" />
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side="bottom"
-                    align="start"
-                    className="max-w-[300px] text-left space-y-1"
-                  >
-                    <p className="font-bold text-black">
-                      Prazos acadêmicos • {year}.{period}
-                    </p>
-                    <ul className="list-disc pl-4 space-y-0.5">
-                      {calendar?.periodoAulas && (
-                        <li>Aulas: {calendar.periodoAulas.raw}</li>
-                      )}
-                      {calendar?.periodoRetirada && (
-                        <li>Retirada: {calendar.periodoRetirada.raw}</li>
-                      )}
-                      {calendar?.periodoTrancamentoParcial && (
-                        <li>
-                          Trancamento parcial:{" "}
-                          {calendar.periodoTrancamentoParcial.raw}
-                        </li>
-                      )}
-                      {calendar?.periodoTrancamentoGeral && (
-                        <li>
-                          Trancamento geral:{" "}
-                          {calendar.periodoTrancamentoGeral.raw}
-                        </li>
-                      )}
-                    </ul>
-                  </TooltipContent>
-                </Tooltip>
+            <div className="space-y-1">
+              <p>
+                {conflicts.slice(0, 2).join(" • ")}
+                {conflicts.length > 2
+                  ? ` • +${conflicts.length - 2} outros`
+                  : ""}
               </p>
-              <div className="flex flex-wrap items-center gap-2">
-                {!isCurrentSemesterMode &&
-                  currentEnrolledClasses.length > 0 && (
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      onClick={restoreEnrolledClasses}
-                      className="dark:bg-neo-yellow dark:text-ink dark:hover:bg-neo-yellowHover"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>
-                        Restaurar turmas matriculadas ({enrolledCount})
-                      </span>
-                    </Button>
-                  )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setNewPlanningOpen(true)}
-                  className="dark:bg-neo-yellow dark:text-ink dark:hover:bg-neo-yellowHover"
-                >
-                  <PlusCircle className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Novo planejamento</span>
-                </Button>
-              </div>
+              <p>
+                Remova uma das turmas conflitantes ou gere combinações para
+                resolver.
+              </p>
             </div>
           }
           aside={
-            daysLeftInSemester !== null ? (
-              <div className="flex flex-col items-end gap-1 text-right">
-                <span className="text-5xl font-black tracking-tight leading-none text-black tabular-nums">
-                  {daysLeftInSemester}
-                </span>
-                <span className="text-xs font-medium text-black leading-snug max-w-[10rem]">
-                  {daysLeftInSemester === 1
-                    ? "dia para acabar o semestre"
-                    : "dias para acabar o semestre"}
-                </span>
-              </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={inSheet ? "shadow-none!" : undefined}
+              onClick={() => runSolver(shiftFilter)}
+            >
+              Gerar combinações
+            </Button>
+          }
+        />
+      ) : null}
+
+      {scheduleOptions.length >= 1 ? (
+        <OptionNavigator
+          optionsCount={scheduleOptions.length}
+          currentIndex={currentOptionIndex}
+          onApplyOption={applyOption}
+          inSheet={inSheet}
+        />
+      ) : null}
+
+      {solverEmpty && !isSolving && selectedClasses.length > 0 ? (
+        <EmptyState
+          title="Nenhuma combinação sem conflito"
+          description={`As turmas disponíveis sempre colidem entre si. Remova uma disciplina, escolha outra turma manualmente no catálogo, ou aceite os conflitos e salve mesmo assim.`}
+          action={
+            shiftFilter !== "ALL" ? (
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                className={inSheet ? "shadow-none!" : undefined}
+                onClick={() => {
+                  setShiftFilter("ALL");
+                  runSolver("ALL");
+                }}
+              >
+                <RefreshCw className="w-3.5 h-3.5 stroke-[2.5]" />
+                Tentar sem preferência de turno
+              </Button>
             ) : undefined
           }
-          className="mb-4"
         />
+      ) : null}
+
+      <ScheduleTimetable
+        ref={scheduleGridRef}
+        selectedClasses={selectedClasses}
+        slotOccupancy={slotOccupancy}
+        disciplineColorMap={disciplineColorMap}
+        year={year}
+        period={period}
+        conflicts={conflicts}
+        onDownloadPng={handleDownloadPng}
+        isExportingPng={isExportingPng}
+        inSheet={inSheet}
+      />
+    </>
+  );
+
+  return (
+    <PageContainer>
+      {/* Título Padronizado da Página com Ícone da Sidebar */}
+      <PageHeader
+        icon={SquareKanban}
+        title="Montar Grade Horária"
+        count={selectedClasses.length > 0 ? selectedClasses.length : null}
+        mobileActions={
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <HeaderIconButton
+                  aria-label="Mais ações da grade horária"
+                  hasActiveIndicator={conflicts.length > 0}
+                >
+                  <MoreVertical className="w-4 h-4 stroke-[2.5]" />
+                </HeaderIconButton>
+              }
+            />
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setNewPlanningOpen(true)}>
+                <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+                Novo planejamento
+              </DropdownMenuItem>
+              {!isCurrentSemesterMode && currentEnrolledClasses.length > 0 ? (
+                <DropdownMenuItem onClick={restoreEnrolledClasses}>
+                  <RotateCcw className="w-4 h-4 stroke-[2.5]" />
+                  Restaurar matriculadas ({enrolledCount})
+                </DropdownMenuItem>
+              ) : null}
+              {hasSemesterAlert ? (
+                <DropdownMenuItem onClick={() => setDeadlinesSheetOpen(true)}>
+                  <Info className="w-4 h-4 stroke-[2.5]" />
+                  Prazos acadêmicos • {year}.{period}
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
+      />
+
+      {/* Barra de status compacta em 1 linha no mobile + Alert completo no desktop */}
+      {hasSemesterAlert && (
+        <>
+          <div className="md:hidden flex items-center justify-between gap-2 px-3 py-2 bg-pastel-yellow dark:bg-paper border-2 border-ink dark:border-l-[6px] dark:border-l-neo-yellow rounded-lg text-xs font-extrabold text-black">
+            <span className="min-w-0 truncate">
+              Semestre {year}.{period} em andamento
+              {daysLeftInSemester !== null
+                ? ` (${daysLeftInSemester} ${daysLeftInSemester === 1 ? "dia" : "dias"})`
+                : ""}
+            </span>
+            <button
+              type="button"
+              onClick={() => setDeadlinesSheetOpen(true)}
+              aria-label="Ver prazos acadêmicos"
+              className="cursor-pointer shrink-0 inline-flex items-center gap-1 underline font-black hover:text-blue-ink"
+            >
+              <Info className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Prazos</span>
+            </button>
+          </div>
+
+          <Alert
+            variant="yellow"
+            title={`Semestre ${year}.${period} em andamento`}
+            description={
+              <div className="space-y-2.5 mt-1">
+                {/* Frase única; prazos acadêmicos sob demanda no tooltip do ícone */}
+                <p className="flex flex-wrap items-center gap-1.5">
+                  <span>
+                    {isCurrentSemesterMode
+                      ? "Suas turmas matriculadas estão na grade."
+                      : "Restaure suas turmas matriculadas ou comece um novo planejamento."}
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger
+                      aria-label="Prazos acadêmicos deste semestre"
+                      className="inline-flex h-5 w-5 items-center justify-center cursor-help rounded-md text-neutral-600 hover:bg-black/5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-1"
+                    >
+                      <Info className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="bottom"
+                      align="start"
+                      className="max-w-[300px] text-left space-y-1"
+                    >
+                      <p className="font-bold text-black">
+                        Prazos acadêmicos • {year}.{period}
+                      </p>
+                      <ul className="list-disc pl-4 space-y-0.5">
+                        {calendar?.periodoAulas && (
+                          <li>Aulas: {calendar.periodoAulas.raw}</li>
+                        )}
+                        {calendar?.periodoRetirada && (
+                          <li>Retirada: {calendar.periodoRetirada.raw}</li>
+                        )}
+                        {calendar?.periodoTrancamentoParcial && (
+                          <li>
+                            Trancamento parcial:{" "}
+                            {calendar.periodoTrancamentoParcial.raw}
+                          </li>
+                        )}
+                        {calendar?.periodoTrancamentoGeral && (
+                          <li>
+                            Trancamento geral:{" "}
+                            {calendar.periodoTrancamentoGeral.raw}
+                          </li>
+                        )}
+                      </ul>
+                    </TooltipContent>
+                  </Tooltip>
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {!isCurrentSemesterMode &&
+                    currentEnrolledClasses.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        onClick={restoreEnrolledClasses}
+                        className="dark:bg-neo-yellow dark:text-ink dark:hover:bg-neo-yellowHover"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>
+                          Restaurar turmas matriculadas ({enrolledCount})
+                        </span>
+                      </Button>
+                    )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNewPlanningOpen(true)}
+                    className="dark:bg-neo-yellow dark:text-ink dark:hover:bg-neo-yellowHover"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>Novo planejamento</span>
+                  </Button>
+                </div>
+              </div>
+            }
+            aside={
+              daysLeftInSemester !== null ? (
+                <div className="flex flex-col items-end gap-1 text-right">
+                  <span className="text-5xl font-black tracking-tight leading-none text-black tabular-nums">
+                    {daysLeftInSemester}
+                  </span>
+                  <span className="text-xs font-medium text-black leading-snug max-w-[10rem]">
+                    {daysLeftInSemester === 1
+                      ? "dia para acabar o semestre"
+                      : "dias para acabar o semestre"}
+                  </span>
+                </div>
+              ) : undefined
+            }
+            className="hidden md:flex mb-4"
+          />
+        </>
       )}
 
       {/* Seção de busca: parâmetros e busca de turmas */}
@@ -364,134 +558,207 @@ export const GradeBuilderScreen: React.FC = () => {
             onSearchAllUnb={() => executeSearch(activeSearchQuery, "ALL")}
           />
 
-          <SelectedClassesCard
-            selectedClasses={selectedClasses}
-            disciplineColorMap={disciplineColorMap}
-            onClearGrade={clearGrade}
-            onRemoveClass={removeClass}
-            shiftFilter={shiftFilter}
-            onShiftFilterChange={setShiftFilter}
-            onGenerateCombinations={() => runSolver(shiftFilter)}
-            onSaveGrade={saveGrade}
-            isSolving={isSolving}
-            isSaving={isSaving}
-            isDirty={isDirty}
-          />
+          <div className="hidden md:block">
+            <SelectedClassesCard
+              selectedClasses={selectedClasses}
+              disciplineColorMap={disciplineColorMap}
+              onClearGrade={clearGrade}
+              onRemoveClass={removeClass}
+              shiftFilter={shiftFilter}
+              onShiftFilterChange={setShiftFilter}
+              onGenerateCombinations={() => runSolver(shiftFilter)}
+              onSaveGrade={saveGrade}
+              isSolving={isSolving}
+              isSaving={isSaving}
+              isDirty={isDirty}
+            />
+          </div>
         </div>
 
-        {/* Coluna Direita: resultado (7 colunas) */}
-        <div className="lg:col-span-7 space-y-4 sticky top-6">
-          {conflicts.length > 0 && selectedClasses.length > 0 ? (
-            <Alert
-              variant="destructive"
-              icon={AlertTriangle}
-              title={`Conflito de horário (${conflicts.length})`}
-              description={
-                <div className="space-y-1">
-                  <p>
-                    {conflicts.slice(0, 2).join(" • ")}
-                    {conflicts.length > 2
-                      ? ` • +${conflicts.length - 2} outros`
-                      : ""}
-                  </p>
-                  <p>
-                    Remova uma das turmas conflitantes ou gere combinações
-                    para resolver.
-                  </p>
-                </div>
-              }
-              aside={
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => runSolver(shiftFilter)}
-                >
-                  Gerar combinações
-                </Button>
-              }
-            />
-          ) : null}
-
-          {scheduleOptions.length >= 1 ? (
-            <OptionNavigator
-              optionsCount={scheduleOptions.length}
-              currentIndex={currentOptionIndex}
-              onApplyOption={applyOption}
-            />
-          ) : null}
-
-          {solverEmpty && !isSolving && selectedClasses.length > 0 ? (
-            <EmptyState
-              title="Nenhuma combinação sem conflito"
-              description={`As turmas disponíveis sempre colidem entre si. Remova uma disciplina, escolha outra turma manualmente no catálogo, ou aceite os conflitos e salve mesmo assim.`}
-              action={
-                shiftFilter !== "ALL" ? (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    onClick={() => {
-                      setShiftFilter("ALL");
-                      runSolver("ALL");
-                    }}
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 stroke-[2.5]" />
-                    Tentar sem preferência de turno
-                  </Button>
-                ) : undefined
-              }
-            />
-          ) : null}
-
-          <ScheduleTimetable
-            ref={scheduleGridRef}
-            selectedClasses={selectedClasses}
-            slotOccupancy={slotOccupancy}
-            disciplineColorMap={disciplineColorMap}
-            year={year}
-            period={period}
-            conflicts={conflicts}
-            onDownloadPng={handleDownloadPng}
-            isExportingPng={isExportingPng}
-          />
-
-          {/* Confirmação de novo planejamento quando há turmas na grade */}
-          <Dialog
-            open={newPlanningOpen}
-            onOpenChange={(open) => setNewPlanningOpen(open)}
-          >
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Começar novo planejamento?</DialogTitle>
-                <DialogDescription>
-                  Isso limpa as {selectedClasses.length}{" "}
-                  {selectedClasses.length === 1 ? "turma" : "turmas"} da grade
-                  atual. Suas turmas matriculadas continuam salvas no Meu
-                  Curso — dá para restaurá-las depois neste banner.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setNewPlanningOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    startNewPlanning();
-                    setNewPlanningOpen(false);
-                  }}
-                >
-                  Limpar e planejar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+        {/* Coluna Direita (Desktop/Tablet): Grade Horária montada */}
+        {!isMobile ? (
+          <div className="lg:col-span-7 space-y-4 sticky top-6">
+            {renderScheduleContent(false)}
+          </div>
+        ) : null}
       </div>
+
+      {/* Confirmação de novo planejamento quando há turmas na grade */}
+      <Dialog
+        open={newPlanningOpen}
+        onOpenChange={(open) => setNewPlanningOpen(open)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Começar novo planejamento?</DialogTitle>
+            <DialogDescription>
+              Isso limpa as {selectedClasses.length}{" "}
+              {selectedClasses.length === 1 ? "turma" : "turmas"} da grade
+              atual. Suas turmas matriculadas continuam salvas no Meu Curso —
+              dá para restaurá-las depois neste banner.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setNewPlanningOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                startNewPlanning();
+                setNewPlanningOpen(false);
+              }}
+            >
+              Limpar e planejar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bottom Sheet de Prazos Acadêmicos no mobile */}
+      <BottomSheet
+        open={deadlinesSheetOpen}
+        onClose={() => setDeadlinesSheetOpen(false)}
+        role="dialog"
+        aria-label="Prazos acadêmicos"
+        backdrop
+        backdropClassName="z-40 md:hidden"
+        className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
+        portal
+        dragOnlyOnHandle
+      >
+        <div className="px-4 max-h-[calc(85dvh-2rem)] overflow-y-auto overflow-x-hidden pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-3">
+          <div className="flex items-center gap-2 pb-2 border-b-2 border-ink/10">
+            <Info className="w-5 h-5 text-blue-ink stroke-[2.5] shrink-0" />
+            <h2 className="text-base font-black text-black">
+              Prazos acadêmicos • {year}.{period}
+            </h2>
+          </div>
+          <p className="text-xs font-semibold text-neutral-700">
+            {isCurrentSemesterMode
+              ? "Suas turmas matriculadas estão carregadas na grade."
+              : "Restaure suas turmas matriculadas ou comece um novo planejamento."}
+            {daysLeftInSemester !== null
+              ? ` Restam ${daysLeftInSemester} ${daysLeftInSemester === 1 ? "dia" : "dias"} para o fim do semestre.`
+              : ""}
+          </p>
+          <ul className="space-y-1.5 text-xs font-medium text-neutral-700 list-disc pl-4">
+            {calendar?.periodoAulas ? (
+              <li>Aulas: {calendar.periodoAulas.raw}</li>
+            ) : null}
+            {calendar?.periodoRetirada ? (
+              <li>Retirada: {calendar.periodoRetirada.raw}</li>
+            ) : null}
+            {calendar?.periodoTrancamentoParcial ? (
+              <li>
+                Trancamento parcial: {calendar.periodoTrancamentoParcial.raw}
+              </li>
+            ) : null}
+            {calendar?.periodoTrancamentoGeral ? (
+              <li>
+                Trancamento geral: {calendar.periodoTrancamentoGeral.raw}
+              </li>
+            ) : null}
+          </ul>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {!isCurrentSemesterMode && currentEnrolledClasses.length > 0 ? (
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  restoreEnrolledClasses();
+                  setDeadlinesSheetOpen(false);
+                }}
+              >
+                <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
+                Restaurar matriculadas ({enrolledCount})
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setDeadlinesSheetOpen(false);
+                setNewPlanningOpen(true);
+              }}
+            >
+              <PlusCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+              Novo planejamento
+            </Button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* Bottom Sheet da Grade Horária montada no mobile */}
+      {isMobile ? (
+        <BottomSheet
+          open={scheduleSheetOpen}
+          onClose={() => setScheduleSheetOpen(false)}
+          role="dialog"
+          aria-label="Grade horária montada"
+          backdrop
+          backdropClassName="z-40 md:hidden"
+          className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
+          portal
+          dragOnlyOnHandle
+        >
+          <div className="px-4 max-h-[calc(88dvh-2rem)] overflow-y-auto overflow-x-hidden pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-4">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b-2 border-ink/10">
+              <div className="flex items-center gap-2 min-w-0">
+                <Calendar className="w-5 h-5 text-blue-ink stroke-[2.5] shrink-0" />
+                <h2 className="text-base font-black text-black truncate">
+                  Grade Horária • {year}.{period}
+                </h2>
+              </div>
+              <span className="shrink-0 text-xs font-extrabold px-2 py-0.5 rounded-full border-2 border-ink bg-pastel-yellow text-black">
+                {selectedClasses.length}{" "}
+                {selectedClasses.length === 1 ? "turma" : "turmas"}
+              </span>
+            </div>
+
+            {renderScheduleContent(true)}
+
+            <SelectedClassesCard
+              selectedClasses={selectedClasses}
+              disciplineColorMap={disciplineColorMap}
+              onClearGrade={clearGrade}
+              onRemoveClass={removeClass}
+              shiftFilter={shiftFilter}
+              onShiftFilterChange={setShiftFilter}
+              onGenerateCombinations={() => runSolver(shiftFilter)}
+              onSaveGrade={saveGrade}
+              isSolving={isSolving}
+              isSaving={isSaving}
+              isDirty={isDirty}
+              inSheet
+            />
+          </div>
+        </BottomSheet>
+      ) : null}
+
+      {/* FAB para abrir a Grade Horária sem perder o catálogo no mobile */}
+      <FloatingActionButton
+        variant="primary"
+        aria-label={`Visualizar grade horária (${selectedClasses.length} ${selectedClasses.length === 1 ? "turma" : "turmas"})`}
+        title="Visualizar Grade Horária"
+        onClick={() => setScheduleSheetOpen(true)}
+        className="md:hidden"
+      >
+        <Calendar className="w-6 h-6 stroke-[2.5]" />
+        {selectedClasses.length > 0 ? (
+          <span
+            aria-hidden="true"
+            className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 rounded-full bg-neo-yellow text-ink border-2 border-ink text-[11px] font-black flex items-center justify-center shadow-neo-xs tabular-nums"
+          >
+            {selectedClasses.length}
+          </span>
+        ) : null}
+      </FloatingActionButton>
     </PageContainer>
   );
 };

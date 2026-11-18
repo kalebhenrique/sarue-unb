@@ -1,5 +1,4 @@
 import * as React from "react";
-import { createPortal } from "react-dom";
 import {
   Bug,
   CircleCheck,
@@ -313,26 +312,22 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
           </Tooltip>
         )}
 
-        {typeof document !== "undefined"
-          ? createPortal(
-              <BottomSheet
-                open={open}
-                onClose={() => handleOpenChange(false)}
-                backdrop
-                dragOnlyOnHandle
-                backdropClassName="z-50"
-                role="dialog"
-                aria-modal="true"
-                aria-label="Formulário de feedback"
-                className="fixed inset-x-0 bottom-0 z-50 w-full"
-              >
-                <div className="max-h-[calc(85dvh-2rem)] overflow-y-auto overflow-x-hidden pb-[env(safe-area-inset-bottom)]">
-                  {feedbackContent}
-                </div>
-              </BottomSheet>,
-              document.body,
-            )
-          : null}
+        <BottomSheet
+          open={open}
+          onClose={() => handleOpenChange(false)}
+          backdrop
+          dragOnlyOnHandle
+          portal
+          backdropClassName="z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Formulário de feedback"
+          className="fixed inset-x-0 bottom-0 z-50 w-full"
+        >
+          <div className="max-h-[calc(85dvh-2rem)] overflow-y-auto overflow-x-hidden pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+            {feedbackContent}
+          </div>
+        </BottomSheet>
       </>
     );
   }

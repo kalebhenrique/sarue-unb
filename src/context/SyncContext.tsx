@@ -18,6 +18,7 @@ import {
   fetchAndCacheStudentWallet,
   getNotificationSettings,
   getSavedRuCampus,
+  isOnboardingNotificationsBlocked,
   loadNotificationSettings,
   syncRuMenuNotifications,
   type CurriculumStructure,
@@ -168,7 +169,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const syncAll = useCallback(async (options?: SyncOptions) => {
-    if (syncInFlightRef.current) {
+    if (syncInFlightRef.current || isOnboardingNotificationsBlocked()) {
       return;
     }
 
@@ -514,44 +515,46 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
       const totalErrors = (sigaaError ? 1 : 0) + (aprenderError ? 1 : 0);
       const totalSuccess = (sigaaSuccess ? 1 : 0) + (aprenderSuccess ? 1 : 0);
 
-      if (totalConfigured > 0 && totalSuccess === 0 && totalErrors > 0) {
-        toast.add({
-          title: "Erro na sincronização",
-          description: "Não foi possível conectar às plataformas acadêmicas.",
-          type: "danger",
-          timeout: 5000,
-        });
-        if (options?.isAutoSync && getNotificationSettings().backgroundSync) {
-          void repos.osNotifier.notify({
-            title: "Falha na sincronização em segundo plano",
-            body: "Não foi possível conectar às plataformas acadêmicas.",
+      if (!isOnboardingNotificationsBlocked()) {
+        if (totalConfigured > 0 && totalSuccess === 0 && totalErrors > 0) {
+          toast.add({
+            title: "Erro na sincronização",
+            description: "Não foi possível conectar às plataformas acadêmicas.",
+            type: "danger",
+            timeout: 5000,
           });
-        }
-      } else if (totalErrors > 0 && totalSuccess > 0) {
-        toast.add({
-          title: "Sincronização com avisos",
-          description: "Algumas plataformas não puderam ser sincronizadas.",
-          type: "warning",
-          timeout: 5000,
-        });
-        if (options?.isAutoSync && getNotificationSettings().backgroundSync) {
-          void repos.osNotifier.notify({
-            title: "Sincronização em segundo plano com avisos",
-            body: "Algumas plataformas não puderam ser sincronizadas.",
+          if (options?.isAutoSync && getNotificationSettings().backgroundSync) {
+            void repos.osNotifier.notify({
+              title: "Falha na sincronização em segundo plano",
+              body: "Não foi possível conectar às plataformas acadêmicas.",
+            });
+          }
+        } else if (totalErrors > 0 && totalSuccess > 0) {
+          toast.add({
+            title: "Sincronização com avisos",
+            description: "Algumas plataformas não puderam ser sincronizadas.",
+            type: "warning",
+            timeout: 5000,
           });
-        }
-      } else if (totalSuccess > 0 || totalConfigured === 0) {
-        toast.add({
-          title: "Sincronização concluída",
-          description: "Seus dados foram atualizados com sucesso.",
-          type: "success",
-          timeout: 4000,
-        });
-        if (options?.isAutoSync && getNotificationSettings().backgroundSync) {
-          void repos.osNotifier.notify({
-            title: "Sincronização em segundo plano concluída",
-            body: "Seus avisos, prazos e cardápio do RU foram atualizados.",
+          if (options?.isAutoSync && getNotificationSettings().backgroundSync) {
+            void repos.osNotifier.notify({
+              title: "Sincronização em segundo plano com avisos",
+              body: "Algumas plataformas não puderam ser sincronizadas.",
+            });
+          }
+        } else if (totalSuccess > 0 || totalConfigured === 0) {
+          toast.add({
+            title: "Sincronização concluída",
+            description: "Seus dados foram atualizados com sucesso.",
+            type: "success",
+            timeout: 4000,
           });
+          if (options?.isAutoSync && getNotificationSettings().backgroundSync) {
+            void repos.osNotifier.notify({
+              title: "Sincronização em segundo plano concluída",
+              body: "Seus avisos, prazos e cardápio do RU foram atualizados.",
+            });
+          }
         }
       }
 
@@ -655,7 +658,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
     const checkPeriodicSync = () => {
-      if (typeof window === "undefined") return;
+      if (typeof window === "undefined" || isOnboardingNotificationsBlocked()) {
+        return;
+      }
       const isBgEnabled =
         localStorage.getItem("sarue_background_run_enabled") !== "false";
       if (!isBgEnabled) return;
@@ -670,9 +675,15 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     const intervalId = setInterval(checkPeriodicSync, 10 * 60 * 1000);
 
     // Carrega preferências de notificação e mantém a agenda de alertas do RU atualizada
-    void loadNotificationSettings().then(() => syncRuMenuNotifications());
+    void loadNotificationSettings().then(() => {
+      if (!isOnboardingNotificationsBlocked()) {
+        void syncRuMenuNotifications();
+      }
+    });
     const ruNotifIntervalId = setInterval(() => {
-      void checkDueRuMenuNotification();
+      if (!isOnboardingNotificationsBlocked()) {
+        void checkDueRuMenuNotification();
+      }
     }, 60 * 1000);
 
     return () => {

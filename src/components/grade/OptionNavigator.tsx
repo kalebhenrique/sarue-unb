@@ -6,6 +6,8 @@ export interface OptionNavigatorProps {
   optionsCount: number;
   currentIndex: number;
   onApplyOption: (index: number) => void;
+  /** Quando renderizado dentro de um BottomSheet, suprime sombras de elevação. */
+  inSheet?: boolean;
 }
 
 /**
@@ -16,11 +18,20 @@ export const OptionNavigator: React.FC<OptionNavigatorProps> = ({
   optionsCount,
   currentIndex,
   onApplyOption,
+  inSheet = false,
 }) => {
   return (
-    <div className="bg-pastel-yellow dark:bg-paper dark:border-l-[6px] dark:border-l-neo-yellow border-2 border-ink rounded-lg shadow-(--neo-card-shadow) p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-black">
+    <div
+      className={`bg-pastel-yellow dark:bg-paper dark:border-l-[6px] dark:border-l-neo-yellow border-2 border-ink rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-black ${
+        inSheet ? 'shadow-none' : 'shadow-(--neo-card-shadow)'
+      }`}
+    >
       <div className="flex items-center gap-3 min-w-0">
-        <div className="p-1.5 bg-paper dark:bg-neo-yellow border-2 border-ink rounded-lg shadow-[2px_2px_0px_0px_var(--neo-shadow)] shrink-0">
+        <div
+          className={`p-1.5 bg-paper dark:bg-neo-yellow border-2 border-ink rounded-lg shrink-0 ${
+            inSheet ? 'shadow-none' : 'shadow-[2px_2px_0px_0px_var(--neo-shadow)]'
+          }`}
+        >
           <Sparkles className="w-4 h-4 stroke-[2.5] text-blue-ink dark:text-ink" />
         </div>
         <div className="min-w-0" aria-live="polite">
@@ -36,7 +47,11 @@ export const OptionNavigator: React.FC<OptionNavigatorProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0 bg-paper border-2 border-ink rounded-xl p-1 shadow-[2px_2px_0px_0px_var(--neo-shadow)]">
+      <div
+        className={`flex items-center justify-between sm:justify-start gap-2 shrink-0 bg-paper border-2 border-ink rounded-xl p-1 ${
+          inSheet ? 'shadow-none' : 'shadow-[2px_2px_0px_0px_var(--neo-shadow)]'
+        }`}
+      >
         <Button
           type="button"
           variant="outline"

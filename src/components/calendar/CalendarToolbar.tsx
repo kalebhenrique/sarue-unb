@@ -85,6 +85,30 @@ const MONTH_SHORT_NAMES = [
   "Dez",
 ];
 
+export function buildCourseFilterOptions(
+  courses: Course[],
+): { value: string; label: string }[] {
+  const map = new Map<string, { value: string; label: string }>();
+  courses.forEach((c) => {
+    const key = (c.code || c.name).trim();
+    if (!key) return;
+    const upper = key.toUpperCase();
+    if (!map.has(upper)) {
+      const label =
+        c.code && c.code !== c.name ? `${c.code} - ${c.name}` : c.name;
+      map.set(upper, {
+        value: upper,
+        label,
+      });
+    }
+  });
+
+  return [
+    { value: "all", label: "Todas as disciplinas" },
+    ...Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label)),
+  ];
+}
+
 export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   currentDate,
   onPrevMonth,
@@ -122,29 +146,10 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   const currentActualYear = now.getFullYear();
   const currentActualMonth = now.getMonth();
 
-  const courseOptions = useMemo(() => {
-    const map = new Map<string, { value: string; label: string }>();
-    courses.forEach((c) => {
-      const key = (c.code || c.name).trim();
-      if (!key) return;
-      const upper = key.toUpperCase();
-      if (!map.has(upper)) {
-        const label =
-          c.code && c.code !== c.name ? `${c.code} - ${c.name}` : c.name;
-        map.set(upper, {
-          value: upper,
-          label,
-        });
-      }
-    });
-
-    return [
-      { value: "all", label: "Todas as disciplinas" },
-      ...Array.from(map.values()).sort((a, b) =>
-        a.label.localeCompare(b.label),
-      ),
-    ];
-  }, [courses]);
+  const courseOptions = useMemo(
+    () => buildCourseFilterOptions(courses),
+    [courses],
+  );
 
   const hasActiveFilters =
     !showAcademic ||
@@ -164,20 +169,20 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   };
 
   return (
-    <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-[4px_4px_0px_0px_var(--neo-shadow)] space-y-4">
-      {/* Linha superior: Navegação de Mês/Ano + Alternador de Visão + Botão Novo Evento */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        {/* Navegador de Mês */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center border-2 border-ink rounded-xl bg-canvas overflow-hidden shadow-[2px_2px_0px_0px_var(--neo-shadow)]">
+    <div className="bg-paper border-2 border-ink rounded-xl p-2.5 md:p-4 shadow-neo-sm md:shadow-[4px_4px_0px_0px_var(--neo-shadow)] md:space-y-4">
+      {/* Linha superior: Navegação de Mês/Ano + Hoje + Alternador Mês/Lista */}
+      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 md:gap-3">
+        {/* Navegador de Mês + Hoje */}
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+          <div className="flex items-center border-2 border-ink rounded-xl bg-canvas overflow-hidden shadow-[2px_2px_0px_0px_var(--neo-shadow)] min-w-0">
             <button
               type="button"
               onClick={onPrevMonth}
               title="Mês anterior"
               aria-label="Mês anterior"
-              className="p-2 hover:bg-neutral-200 dark:hover:bg-neutral-300 transition-colors text-black active:translate-y-[1px] cursor-pointer"
+              className="p-1.5 sm:p-2 hover:bg-neutral-200 dark:hover:bg-neutral-300 transition-colors text-black active:translate-y-[1px] cursor-pointer"
             >
-              <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
             </button>
             <PopoverPrimitive.Root
               open={monthPickerOpen}
@@ -187,9 +192,9 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
                 type="button"
                 title="Selecionar mês e ano"
                 aria-label="Selecionar mês e ano"
-                className="cursor-pointer px-4 py-1.5 border-x-2 border-ink min-w-[170px] text-center bg-paper hover:bg-neutral-100 dark:hover:bg-neutral-200 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neo-blue"
+                className="cursor-pointer px-2 sm:px-4 py-1 sm:py-1.5 border-x-2 border-ink min-w-[116px] sm:min-w-[170px] text-center bg-paper hover:bg-neutral-100 dark:hover:bg-neutral-200 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neo-blue"
               >
-                <span className="font-black text-base tracking-tight text-black block capitalize">
+                <span className="font-black text-sm sm:text-base tracking-tight text-black block capitalize truncate">
                   {monthName} <span className="text-neo-blue">{year}</span>
                 </span>
               </PopoverPrimitive.Trigger>
@@ -263,9 +268,9 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
               onClick={onNextMonth}
               title="Próximo mês"
               aria-label="Próximo mês"
-              className="p-2 hover:bg-neutral-200 dark:hover:bg-neutral-300 transition-colors text-black active:translate-y-[1px] cursor-pointer"
+              className="p-1.5 sm:p-2 hover:bg-neutral-200 dark:hover:bg-neutral-300 transition-colors text-black active:translate-y-[1px] cursor-pointer"
             >
-              <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
             </button>
           </div>
 
@@ -274,7 +279,7 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             variant="outline"
             size="sm"
             onClick={onGoToToday}
-            className="font-bold text-xs cursor-pointer"
+            className="font-bold text-xs cursor-pointer h-8 sm:h-9 px-2.5 sm:px-3"
             title="Voltar para o dia de hoje"
           >
             Hoje
@@ -282,20 +287,20 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         </div>
 
         {/* Lado Direito: Alternador Mês/Lista */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
           <SegmentedControl<CalendarViewMode>
             options={VIEW_OPTIONS}
             value={viewMode}
             onValueChange={onViewModeChange}
             ariaLabel="Modo de visualização do calendário"
             size="sm"
-            className="w-40"
+            className="w-[124px] sm:w-40"
           />
         </div>
       </div>
 
-      {/* Linha inferior: Filtros de Tipo e Barra de Busca */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 pt-2 border-t-2 border-black/10">
+      {/* Linha inferior (desktop apenas; no mobile mora no Bottom Sheet de filtros) */}
+      <div className="hidden md:flex flex-col md:flex-row md:items-end justify-between gap-3 pt-2 border-t-2 border-black/10">
         {/* Filtros com Checkbox de cada cor + texto */}
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-bold text-neutral-700">Filtros:</span>

@@ -5,6 +5,12 @@ import {
   Card,
   Badge,
   Alert,
+  BottomSheet,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  HeaderIconButton,
   PageContainer,
   PageHeader,
   Button,
@@ -22,9 +28,16 @@ import {
   MessageSquare,
   ArrowLeft,
   AlertCircle,
+  AlertTriangle,
+  Archive,
+  Calculator,
+  CalendarX,
+  Info,
   Link2,
   Folder,
+  MoreVertical,
 } from "lucide-react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { UnmatchedCourseDialog } from "../components/UnmatchedCourseDialog";
 import {
   AbsenceSection,
@@ -62,10 +75,14 @@ export const CoursesScreen: React.FC = () => {
   } = useFeed();
 
   const { repos } = useContainer();
+  const isMobile = useMediaQuery("(max-width: 767px)");
 
   const [selectedDiscipline, setSelectedDiscipline] =
     useState<Discipline | null>(null);
   const [resolvingCourse, setResolvingCourse] = useState<Course | null>(null);
+  const [gradeSheetOpen, setGradeSheetOpen] = useState(false);
+  const [absenceSheetOpen, setAbsenceSheetOpen] = useState(false);
+  const [detailsSheetOpen, setDetailsSheetOpen] = useState(false);
   // Ajuste manual de faltas da disciplina aberta no drill-down (null = usar valor do SIGAA).
   // Persistido em localStorage para sobreviver aos re-syncs do SIGAA.
   const [absenceOverride, setAbsenceOverride] = useState<number | null>(null);
@@ -95,9 +112,12 @@ export const CoursesScreen: React.FC = () => {
     showArchived,
   ]);
 
-  // Trocou de disciplina: filtro de plataforma volta para "Todas"
+  // Trocou de disciplina: filtro de plataforma volta para "Todas" e fecha sheets mobile
   useEffect(() => {
     setDrillPlatform("all");
+    setGradeSheetOpen(false);
+    setAbsenceSheetOpen(false);
+    setDetailsSheetOpen(false);
   }, [selectedDiscipline]);
 
   const selectedDisciplineId = selectedDiscipline?.id;
@@ -445,25 +465,78 @@ export const CoursesScreen: React.FC = () => {
       selectedDiscipline.semester || null,
     ].filter((part): part is string => Boolean(part));
 
+    const handleBackToCourses = () => {
+      setSelectedDiscipline(null);
+      setDrillSearchQuery("");
+      setDrillCategory("all");
+      setDrillPlatform("all");
+      setShowArchived(false);
+      setGradeSheetOpen(false);
+      setAbsenceSheetOpen(false);
+      setDetailsSheetOpen(false);
+    };
+
+    const hasAbsencesData =
+      drillAbsenceStatus &&
+      getEffectiveAbsences(selectedDiscipline) !== undefined;
+    const isAbsenceDanger = Boolean(
+      drillAbsenceStatus &&
+        (drillAbsenceStatus.isExceeded || drillAbsenceStatus.isCritical),
+    );
+    const isAbsenceWarn = Boolean(
+      drillAbsenceStatus && drillAbsenceStatus.isAtRisk && !isAbsenceDanger,
+    );
+
     return (
-      <PageContainer>
+      <PageContainer className={isSelecting ? "pb-40 md:pb-12" : undefined}>
         {/* Título Padronizado da Página com Nome da Disciplina e Ação de Voltar */}
         <PageHeader
           icon={GraduationCap}
           title={selectedDiscipline.name}
+          count={disciplineAllItems.length}
           subtitle={`(${disciplineAllItems.length} ${disciplineAllItems.length === 1 ? "resultado" : "resultados"})`}
+          onBack={handleBackToCourses}
+          backLabel="Voltar para disciplinas"
+          mobileActions={
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <HeaderIconButton
+                    aria-label="Mais ações da disciplina"
+                    hasActiveIndicator={showArchived || isSelecting}
+                  >
+                    <MoreVertical className="w-4 h-4 stroke-[2.5]" />
+                  </HeaderIconButton>
+                }
+              />
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => setShowArchived(!showArchived)}
+                >
+                  <Archive className="w-4 h-4 stroke-[2.5]" />
+                  {showArchived ? "Ver itens ativos" : "Ver Arquivados"}
+                </DropdownMenuItem>
+                {disciplineFeedItems.length > 0 ? (
+                  <DropdownMenuItem
+                    onClick={isSelecting ? selection.exit : selection.enter}
+                  >
+                    <CheckSquare className="w-4 h-4 stroke-[2.5]" />
+                    {isSelecting ? "Sair da seleção" : "Selecionar"}
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuItem onClick={() => setDetailsSheetOpen(true)}>
+                  <Info className="w-4 h-4 stroke-[2.5]" />
+                  Detalhes da turma
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
           actions={
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => {
-                setSelectedDiscipline(null);
-                setDrillSearchQuery("");
-                setDrillCategory("all");
-                setDrillPlatform("all");
-                setShowArchived(false);
-              }}
+              onClick={handleBackToCourses}
               className="cursor-pointer flex items-center gap-1.5 font-bold"
             >
               <ArrowLeft className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -472,87 +545,286 @@ export const CoursesScreen: React.FC = () => {
           }
         />
 
-        {/* Card de detalhes da disciplina: badges de plataforma + meta SIGAA + Faltas UnB */}
-        <Card className="p-4 sm:p-5 space-y-3 pb-5">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {selectedDiscipline.sigaaCourse ? (
-                <Badge variant="sigaa" size="sm">
-                  SIGAA
-                </Badge>
+        {isMobile ? (
+          <>
+            {/* Mobile: informações compactas + 2 botões lado a lado para Nota e Faltas */}
+            <Card className="p-3 space-y-2.5">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {selectedDiscipline.sigaaCourse ? (
+                  <Badge variant="sigaa" size="sm">
+                    SIGAA
+                  </Badge>
+                ) : null}
+                {selectedDiscipline.aprenderCourses.length > 0 ? (
+                  <Badge variant="aprender3" size="sm">
+                    Aprender 3
+                  </Badge>
+                ) : null}
+                {selectedDiscipline.teamsCourses &&
+                selectedDiscipline.teamsCourses.length > 0 ? (
+                  <Badge variant="teams" size="sm">
+                    Teams
+                  </Badge>
+                ) : null}
+                {gradeSummaryBadge}
+              </div>
+
+              {selectedDiscipline.professor || selectedDiscipline.classroom ? (
+                <p className="text-xs font-semibold text-neutral-700 truncate">
+                  {[
+                    selectedDiscipline.professor
+                      ? `Prof. ${selectedDiscipline.professor}`
+                      : null,
+                    selectedDiscipline.classroom
+                      ? `Sala ${selectedDiscipline.classroom}`
+                      : null,
+                    selectedDiscipline.schedule || null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
               ) : null}
-              {selectedDiscipline.aprenderCourses.length > 0 ? (
-                <Badge variant="aprender3" size="sm">
-                  Aprender 3
-                </Badge>
-              ) : null}
-              {selectedDiscipline.teamsCourses &&
-              selectedDiscipline.teamsCourses.length > 0 ? (
-                <Badge variant="teams" size="sm">
-                  Teams
-                </Badge>
-              ) : null}
-              {drillAbsenceStatus &&
-              getEffectiveAbsences(selectedDiscipline) !== undefined ? (
-                <Badge
-                  variant={
-                    drillAbsenceStatus.absences === 0
-                      ? "success"
-                      : drillAbsenceStatus.isExceeded ||
-                          drillAbsenceStatus.isCritical
-                        ? "urgent"
-                        : drillAbsenceStatus.isAtRisk
-                          ? "yellow"
-                          : "success"
-                  }
-                  size="sm"
-                  title={
-                    drillAbsenceStatus.warningMessage ||
-                    `Faltas registradas${hasManualAbsenceOverride ? " (ajustado manualmente)" : ""}: ${drillAbsenceStatus.absences} de ${drillAbsenceStatus.maxAbsences} aulas permitidas (limite de 25% da carga horária na UnB).`
-                  }
-                  className="font-black"
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setGradeSheetOpen(true)}
+                  className="cursor-pointer flex items-center justify-center gap-2 min-h-[44px] px-2.5 py-2 rounded-lg border-2 border-ink bg-cream dark:bg-btn-raise text-black font-extrabold text-xs shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none hover:bg-pastel-blue transition-[transform,box-shadow,background-color]"
                 >
-                  {drillAbsenceStatus.absences}/{drillAbsenceStatus.maxAbsences}{" "}
-                  faltas
-                </Badge>
-              ) : selectedDiscipline.sigaaCourse ? (
-                <Badge variant="neutral" size="sm" className="font-bold">
-                  Sem registro no SIGAA
-                </Badge>
+                  <Calculator className="w-4 h-4 shrink-0 text-blue-ink stroke-[2.5]" />
+                  <span className="truncate">Calc. de Nota</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAbsenceSheetOpen(true)}
+                  className={`cursor-pointer flex items-center justify-center gap-2 min-h-[44px] px-2.5 py-2 rounded-lg border-2 border-ink font-extrabold text-xs shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow,background-color] ${
+                    isAbsenceDanger
+                      ? "bg-pastel-red text-black"
+                      : isAbsenceWarn
+                        ? "bg-pastel-yellow text-black"
+                        : "bg-cream dark:bg-btn-raise text-black hover:bg-pastel-blue"
+                  }`}
+                >
+                  <CalendarX
+                    className={`w-4 h-4 shrink-0 stroke-[2.5] ${
+                      isAbsenceDanger ? "text-neo-coral" : "text-blue-ink"
+                    }`}
+                  />
+                  <span className="truncate">
+                    {hasAbsencesData && drillAbsenceStatus
+                      ? `Faltas (${drillAbsenceStatus.absences}/${drillAbsenceStatus.maxAbsences})`
+                      : "Controle de Faltas"}
+                  </span>
+                </button>
+              </div>
+            </Card>
+
+            <BottomSheet
+              open={gradeSheetOpen}
+              onClose={() => setGradeSheetOpen(false)}
+              role="dialog"
+              aria-label="Calculadora de Nota"
+              backdrop
+              backdropClassName="z-40 md:hidden"
+              className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
+              portal
+              dragOnlyOnHandle
+            >
+              <div className="px-4 max-h-[calc(85dvh-2rem)] overflow-y-auto overflow-x-hidden pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+                <div className="flex items-center gap-2.5 pb-3 mb-2 border-b-2 border-ink/10">
+                  <div className="w-8 h-8 rounded-lg bg-blue-ink/10 border-2 border-ink flex items-center justify-center text-blue-ink shrink-0">
+                    <Calculator className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                  <h2 className="text-base font-black text-black">
+                    Calculadora de Nota
+                  </h2>
+                </div>
+                <GradeFormulaSection
+                  key={`mobile-grade-${selectedDiscipline.id}`}
+                  discipline={selectedDiscipline}
+                  embedded
+                  forceExpanded
+                  hideHeader
+                  onSummaryChange={setGradeSummaryBadge}
+                />
+              </div>
+            </BottomSheet>
+
+            <BottomSheet
+              open={absenceSheetOpen}
+              onClose={() => setAbsenceSheetOpen(false)}
+              role="dialog"
+              aria-label="Controle de Faltas"
+              backdrop
+              backdropClassName="z-40 md:hidden"
+              className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
+              portal
+              dragOnlyOnHandle
+            >
+              <div className="px-4 max-h-[calc(85dvh-2rem)] overflow-y-auto overflow-x-hidden pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+                <div className="flex items-center gap-2.5 pb-3 mb-2 border-b-2 border-ink/10">
+                  <div className="w-8 h-8 rounded-lg bg-blue-ink/10 border-2 border-ink flex items-center justify-center text-blue-ink shrink-0">
+                    <CalendarX className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                  <h2 className="text-base font-black text-black">
+                    Controle de Faltas
+                  </h2>
+                </div>
+                <AbsenceSection
+                  key={`mobile-absence-${selectedDiscipline.id}`}
+                  discipline={selectedDiscipline}
+                  override={absenceOverride}
+                  onOverrideChange={handleAbsenceOverrideChange}
+                  embedded
+                  forceExpanded
+                  hideHeader
+                />
+              </div>
+            </BottomSheet>
+
+            <BottomSheet
+              open={detailsSheetOpen}
+              onClose={() => setDetailsSheetOpen(false)}
+              role="dialog"
+              aria-label="Detalhes da turma"
+              backdrop
+              backdropClassName="z-40 md:hidden"
+              className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
+              portal
+              dragOnlyOnHandle
+            >
+              <div className="px-4 max-h-[calc(85dvh-2rem)] overflow-y-auto overflow-x-hidden pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-3">
+                <h2 className="text-base font-black text-black pb-2 border-b-2 border-ink/10">
+                  Detalhes da turma
+                </h2>
+                <div className="space-y-2 text-xs font-semibold text-neutral-700">
+                  <div>
+                    <span className="font-extrabold text-black">Disciplina:</span>{" "}
+                    {selectedDiscipline.name}
+                  </div>
+                  {selectedDiscipline.code ? (
+                    <div>
+                      <span className="font-extrabold text-black">Código:</span>{" "}
+                      {selectedDiscipline.code}
+                    </div>
+                  ) : null}
+                  {selectedDiscipline.turma ? (
+                    <div>
+                      <span className="font-extrabold text-black">Turma:</span>{" "}
+                      {selectedDiscipline.turma}
+                    </div>
+                  ) : null}
+                  {selectedDiscipline.professor ? (
+                    <div>
+                      <span className="font-extrabold text-black">Docente:</span>{" "}
+                      {selectedDiscipline.professor}
+                    </div>
+                  ) : null}
+                  {selectedDiscipline.classroom ? (
+                    <div>
+                      <span className="font-extrabold text-black">Local:</span>{" "}
+                      {selectedDiscipline.classroom}
+                    </div>
+                  ) : null}
+                  {selectedDiscipline.schedule ? (
+                    <div>
+                      <span className="font-extrabold text-black">Horário:</span>{" "}
+                      {selectedDiscipline.schedule}
+                    </div>
+                  ) : null}
+                  {selectedDiscipline.semester ? (
+                    <div>
+                      <span className="font-extrabold text-black">Semestre:</span>{" "}
+                      {selectedDiscipline.semester}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </BottomSheet>
+          </>
+        ) : (
+          /* Desktop: Card completo de detalhes + seções expansíveis de Nota e Faltas */
+          <Card className="p-4 sm:p-5 space-y-3 pb-5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {selectedDiscipline.sigaaCourse ? (
+                  <Badge variant="sigaa" size="sm">
+                    SIGAA
+                  </Badge>
+                ) : null}
+                {selectedDiscipline.aprenderCourses.length > 0 ? (
+                  <Badge variant="aprender3" size="sm">
+                    Aprender 3
+                  </Badge>
+                ) : null}
+                {selectedDiscipline.teamsCourses &&
+                selectedDiscipline.teamsCourses.length > 0 ? (
+                  <Badge variant="teams" size="sm">
+                    Teams
+                  </Badge>
+                ) : null}
+                {hasAbsencesData && drillAbsenceStatus ? (
+                  <Badge
+                    variant={
+                      drillAbsenceStatus.absences === 0
+                        ? "success"
+                        : drillAbsenceStatus.isExceeded ||
+                            drillAbsenceStatus.isCritical
+                          ? "urgent"
+                          : drillAbsenceStatus.isAtRisk
+                            ? "yellow"
+                            : "success"
+                    }
+                    size="sm"
+                    title={
+                      drillAbsenceStatus.warningMessage ||
+                      `Faltas registradas${hasManualAbsenceOverride ? " (ajustado manualmente)" : ""}: ${drillAbsenceStatus.absences} de ${drillAbsenceStatus.maxAbsences} aulas permitidas (limite de 25% da carga horária na UnB).`
+                    }
+                    className="font-black"
+                  >
+                    {drillAbsenceStatus.absences}/{drillAbsenceStatus.maxAbsences}{" "}
+                    faltas
+                  </Badge>
+                ) : selectedDiscipline.sigaaCourse ? (
+                  <Badge variant="neutral" size="sm" className="font-bold">
+                    Sem registro no SIGAA
+                  </Badge>
+                ) : null}
+                {gradeSummaryBadge}
+              </div>
+
+              {metaItems.length > 0 ? (
+                <>
+                  <span
+                    className="hidden h-4 w-px bg-black/15 sm:block"
+                    aria-hidden
+                  />
+                  <span className="text-xs font-semibold text-neutral-600">
+                    {metaItems.join(" · ")}
+                  </span>
+                </>
               ) : null}
-              {gradeSummaryBadge}
             </div>
 
-            {metaItems.length > 0 ? (
-              <>
-                <span
-                  className="hidden h-4 w-px bg-black/15 sm:block"
-                  aria-hidden
-                />
-                <span className="text-xs font-semibold text-neutral-600">
-                  {metaItems.join(" · ")}
-                </span>
-              </>
-            ) : null}
-          </div>
+            {/* Seção de Cálculo de Notas, Fórmula e Estimativa de Aprovação */}
+            <GradeFormulaSection
+              key={selectedDiscipline.id}
+              discipline={selectedDiscipline}
+              embedded
+              onSummaryChange={setGradeSummaryBadge}
+            />
 
-          {/* Seção de Cálculo de Notas, Fórmula e Estimativa de Aprovação */}
-          <GradeFormulaSection
-            key={selectedDiscipline.id}
-            discipline={selectedDiscipline}
-            embedded
-            onSummaryChange={setGradeSummaryBadge}
-          />
-
-          {/* Seção de Controle de Faltas com ajuste manual (override persistido) */}
-          <AbsenceSection
-            key={`absence-${selectedDiscipline.id}`}
-            discipline={selectedDiscipline}
-            override={absenceOverride}
-            onOverrideChange={handleAbsenceOverrideChange}
-            embedded
-          />
-        </Card>
+            {/* Seção de Controle de Faltas com ajuste manual (override persistido) */}
+            <AbsenceSection
+              key={`absence-${selectedDiscipline.id}`}
+              discipline={selectedDiscipline}
+              override={absenceOverride}
+              onOverrideChange={handleAbsenceOverrideChange}
+              embedded
+            />
+          </Card>
+        )}
 
         {/* Barra de Filtros e Busca da Disciplina (expande para baixo no modo Selecionar) */}
         <FeedToolbar
@@ -649,45 +921,82 @@ export const CoursesScreen: React.FC = () => {
   return (
     <PageContainer>
       {/* Título Padronizado da Página com Ícone da Sidebar */}
-      <PageHeader icon={GraduationCap} title="Disciplinas do Semestre" />
+      <PageHeader
+        icon={GraduationCap}
+        title="Disciplinas do Semestre"
+        count={disciplines.length > 0 ? disciplines.length : null}
+      />
 
       {/* Alerta caso haja disciplinas próximas do limite de faltas ou reprovadas */}
       {atRiskDisciplines.length > 0 ? (
-        <Alert
-          variant="destructive"
-          title={
-            atRiskDisciplines.length === 1
-              ? "1 disciplina em situação crítica de faltas"
-              : `${atRiskDisciplines.length} disciplinas em situação crítica de faltas`
-          }
-          description="Acompanhe a estimativa de aulas restantes para reprovação nos cards abaixo para não perder matérias por infrequência."
-        />
+        <>
+          <div className="md:hidden flex items-center gap-2 px-3 py-2 bg-pastel-red dark:bg-paper border-2 border-ink dark:border-l-[6px] dark:border-l-neo-danger rounded-lg text-xs font-extrabold text-black">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-neo-coral stroke-[2.5]" />
+            <span className="truncate">
+              {atRiskDisciplines.length === 1
+                ? "1 disciplina em situação crítica de faltas"
+                : `${atRiskDisciplines.length} disciplinas em situação crítica de faltas`}
+            </span>
+          </div>
+
+          <Alert
+            className="hidden md:flex"
+            variant="destructive"
+            title={
+              atRiskDisciplines.length === 1
+                ? "1 disciplina em situação crítica de faltas"
+                : `${atRiskDisciplines.length} disciplinas em situação crítica de faltas`
+            }
+            description="Acompanhe a estimativa de aulas restantes para reprovação nos cards abaixo para não perder matérias por infrequência."
+          />
+        </>
       ) : null}
 
       {/* Alerta caso haja turmas do Aprender 3 ou Teams não associadas */}
       {unmatchedCourses.length > 0 ? (
-        <Alert
-          variant="yellow"
-          icon={AlertCircle}
-          title={
-            unmatchedCourses.length === 1
-              ? "1 turma externa aguarda associação"
-              : `${unmatchedCourses.length} turmas externas aguardam associação`
-          }
-          description="Associe para exibir os comunicados e tarefas na matéria oficial do SIGAA ou direcione para a seção Outros."
-          aside={
-            <Button
+        <>
+          <div className="md:hidden flex items-center justify-between gap-2 px-3 py-2 bg-pastel-yellow dark:bg-paper border-2 border-ink dark:border-l-[6px] dark:border-l-neo-yellow rounded-lg text-xs font-extrabold text-black">
+            <span className="inline-flex items-center gap-1.5 min-w-0 truncate">
+              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 stroke-[2.5]" />
+              <span className="truncate">
+                {unmatchedCourses.length === 1
+                  ? "1 turma externa aguarda associação"
+                  : `${unmatchedCourses.length} turmas externas aguardam associação`}
+              </span>
+            </span>
+            <button
               type="button"
-              variant="default"
-              size="sm"
               onClick={() => setResolvingCourse(unmatchedCourses[0])}
-              className="cursor-pointer shrink-0 flex items-center gap-1.5 text-xs bg-neo-blue text-white hover:bg-neo-blueHover"
+              className="cursor-pointer shrink-0 px-2.5 py-1 rounded-md border-2 border-ink bg-neo-blue text-white font-black text-[11px]"
             >
-              <Link2 className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Associar Turma</span>
-            </Button>
-          }
-        />
+              Associar
+            </button>
+          </div>
+
+          <Alert
+            className="hidden md:flex"
+            variant="yellow"
+            icon={AlertCircle}
+            title={
+              unmatchedCourses.length === 1
+                ? "1 turma externa aguarda associação"
+                : `${unmatchedCourses.length} turmas externas aguardam associação`
+            }
+            description="Associe para exibir os comunicados e tarefas na matéria oficial do SIGAA ou direcione para a seção Outros."
+            aside={
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => setResolvingCourse(unmatchedCourses[0])}
+                className="cursor-pointer shrink-0 flex items-center gap-1.5 text-xs bg-neo-blue text-white hover:bg-neo-blueHover"
+              >
+                <Link2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Associar Turma</span>
+              </Button>
+            }
+          />
+        </>
       ) : null}
 
       {disciplines.length === 0 ? (
@@ -848,7 +1157,10 @@ export const CoursesScreen: React.FC = () => {
 
       {/* Seção Outros: Equipes do Teams, Monitorias e Projetos */}
       {otherCourses.length > 0 ? (
-        <div className="space-y-4 pt-6 border-t-2 border-black/10">
+        <div
+          id="other-courses-section"
+          className="space-y-4 pt-6 border-t-2 border-black/10"
+        >
           <div className="flex items-center justify-between text-xs font-bold text-neutral-600 px-1">
             <div className="flex items-center gap-2">
               <Folder className="w-4 h-4 stroke-[2.5] text-blue-ink" />
@@ -911,7 +1223,7 @@ export const CoursesScreen: React.FC = () => {
                       {oc.platform === "teams" ? "Teams" : "Aprender 3"}
                     </Badge>
                     {oc.code && oc.code !== oc.name ? (
-                      <span className="text-[11px] font-bold bg-neutral-100 px-2 py-0.5 border border-black/20 rounded-md">
+                      <span className="max-w-[180px] truncate text-[11px] font-bold bg-neutral-100 px-2 py-0.5 border border-black/20 rounded-md">
                         {oc.code}
                       </span>
                     ) : null}

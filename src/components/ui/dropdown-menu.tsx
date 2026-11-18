@@ -29,7 +29,7 @@ function DropdownMenuContent({
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
           className={cn(
-            'relative z-50 min-w-[200px] max-h-[min(24rem,var(--available-height))] overflow-y-auto overflow-x-hidden rounded-lg border-2 border-ink bg-canvas text-black p-1 outline-hidden origin-[var(--transform-origin)]',
+            'relative z-50 min-w-[220px] md:min-w-[200px] max-h-[min(24rem,var(--available-height))] overflow-y-auto overflow-x-hidden rounded-lg border-2 border-ink bg-canvas text-black p-1.5 space-y-0.5 md:p-1 md:space-y-0 outline-hidden origin-[var(--transform-origin)]',
             className,
           )}
           {...props}
@@ -44,7 +44,7 @@ function DropdownMenuItem({ className, ...props }: React.ComponentProps<typeof M
     <MenuPrimitive.Item
       data-slot="dropdown-menu-item"
       className={cn(
-        'relative flex w-full cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-bold text-black outline-hidden hover:bg-neo-blue hover:text-white data-highlighted:bg-neo-blue data-highlighted:text-white data-disabled:pointer-events-none data-disabled:opacity-50 transition-colors [&_svg]:shrink-0 [&_svg]:stroke-[2.5]',
+        'relative flex w-full cursor-pointer select-none items-center gap-2.5 md:gap-2 rounded-lg min-h-11 md:min-h-0 px-3.5 py-2.5 md:px-2.5 md:py-1.5 text-sm md:text-xs font-bold text-black outline-hidden hover:bg-neo-blue hover:text-white data-highlighted:bg-neo-blue data-highlighted:text-white data-disabled:pointer-events-none data-disabled:opacity-50 transition-colors [&_svg]:shrink-0 [&_svg]:stroke-[2.5] [&_svg]:size-4 md:[&_svg]:size-3.5',
         className,
       )}
       {...props}
@@ -53,7 +53,7 @@ function DropdownMenuItem({ className, ...props }: React.ComponentProps<typeof M
 }
 
 function DropdownMenuSeparator({ className, ...props }: React.ComponentProps<typeof MenuPrimitive.Separator>) {
-  return <MenuPrimitive.Separator data-slot="dropdown-menu-separator" className={cn('-mx-1 my-1 h-px bg-neutral-200', className)} {...props} />;
+  return <MenuPrimitive.Separator data-slot="dropdown-menu-separator" className={cn('-mx-1 my-1.5 md:my-1 h-px bg-neutral-200', className)} {...props} />;
 }
 
 function DropdownMenuLabel({ className, ...props }: React.ComponentProps<typeof MenuPrimitive.GroupLabel>) {

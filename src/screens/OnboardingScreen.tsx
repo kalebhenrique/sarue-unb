@@ -102,9 +102,9 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   const isLast = step === TOTAL_STEPS;
 
   return (
-    <div className="min-h-full bg-canvas bg-grid flex flex-col">
-      {/* Chrome do wizard: logo, progresso, pular */}
-      <div className="w-full max-w-2xl mx-auto px-6 pt-6 flex items-center justify-between gap-4 shrink-0">
+    <div className="h-dvh overflow-hidden md:h-auto md:overflow-visible md:min-h-full bg-canvas bg-grid flex flex-col">
+      {/* Chrome do wizard: tema, progresso, pular */}
+      <div className="w-full max-w-2xl mx-auto px-5 md:px-6 pt-[max(1.25rem,env(safe-area-inset-top))] md:pt-6 flex items-center justify-between gap-4 shrink-0">
         <div className="flex-1 flex items-center gap-2.5">
           {/* Preferência de ambiente: canto superior esquerdo. Sol e lua
               nomeiam o switch; tooltip explica cada lado no hover. */}
@@ -196,8 +196,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
       </div>
 
       {/* Conteúdo do passo */}
-      <div className="flex-1 flex items-center justify-center px-6 py-8">
-        <div className="w-full max-w-2xl relative">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden md:overflow-visible flex px-5 py-5 md:px-6 md:py-8">
+        <div className="w-full max-w-2xl relative m-auto">
           <AnimatePresence mode="wait">
             {/* PASSO 1: BEM-VINDO */}
             {step === 1 && (
@@ -471,44 +471,46 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         </div>
       </div>
 
-      {/* Footer do wizard: Voltar à esquerda; CTA primária à direita (Entrar exige conta conectada) */}
-      <div className="w-full max-w-2xl mx-auto px-6 pb-8 flex items-center justify-between shrink-0">
-        {step > 1 ? (
-          <Button
-            variant="ghost"
-            size="md"
-            onClick={back}
-            className="text-neutral-700 hover:text-black"
-          >
-            <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
-            Voltar
-          </Button>
-        ) : (
-          <span />
-        )}
-        {step < 4 ? (
-          <Button ref={ctaRef} size="md" onClick={next}>
-            <span>{step === 1 ? "Começar" : "Continuar"}</span>
-            <ArrowRight className="w-5 h-5 stroke-[2.5]" />
-          </Button>
-        ) : (
-          <Button
-            size="md"
-            disabled={!credState.connected || credState.busy}
-            isLoading={isEntering}
-            onClick={async () => {
-              setIsEntering(true);
-              try {
-                await finishRef.current();
-              } finally {
-                setIsEntering(false);
-              }
-            }}
-          >
-            <span>Entrar no Saruê</span>
-            <ArrowRight className="w-5 h-5 stroke-[2.5]" />
-          </Button>
-        )}
+      {/* Footer do wizard: fixo no rodapé no mobile; Voltar à esquerda e CTA à direita */}
+      <div className="shrink-0 w-full border-t-2 border-ink bg-paper px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:border-t-0 md:bg-transparent md:px-6 md:pt-0 md:pb-8">
+        <div className="w-full max-w-2xl mx-auto flex items-center justify-between gap-3">
+          {step > 1 ? (
+            <Button
+              variant="ghost"
+              size="md"
+              onClick={back}
+              className="text-neutral-700 hover:text-black"
+            >
+              <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+              Voltar
+            </Button>
+          ) : (
+            <span />
+          )}
+          {step < 4 ? (
+            <Button ref={ctaRef} size="md" onClick={next}>
+              <span>{step === 1 ? "Começar" : "Continuar"}</span>
+              <ArrowRight className="w-5 h-5 stroke-[2.5]" />
+            </Button>
+          ) : (
+            <Button
+              size="md"
+              disabled={!credState.connected || credState.busy}
+              isLoading={isEntering}
+              onClick={async () => {
+                setIsEntering(true);
+                try {
+                  await finishRef.current();
+                } finally {
+                  setIsEntering(false);
+                }
+              }}
+            >
+              <span>Entrar no Saruê</span>
+              <ArrowRight className="w-5 h-5 stroke-[2.5]" />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

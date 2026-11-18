@@ -57,7 +57,7 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
     >
       {/* Linha de Badges e Ações */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
           {/* Conclusão de Tarefa do Feed: checkbox Verde Giz, igual à lista do Feed */}
           {event.type === 'feed_task' && onToggleFeedTask && (
             <Checkbox
@@ -81,13 +81,13 @@ export const CalendarEventCard: React.FC<CalendarEventCardProps> = ({
           </Badge>
 
           {event.categoryLabel && (
-            <Badge variant="neutral" size="sm" className="font-bold">
-              {event.categoryLabel}
+            <Badge variant="neutral" size="sm" className="font-bold max-w-[180px]">
+              <span className="truncate">{event.categoryLabel}</span>
             </Badge>
           )}
 
           {courseDisplay && (
-            <span className="text-xs font-bold text-neutral-700 truncate max-w-[200px]" title={courseDisplay}>
+            <span className="text-xs font-bold text-neutral-700 truncate max-w-[180px]" title={courseDisplay}>
               {courseDisplay}
             </span>
           )}

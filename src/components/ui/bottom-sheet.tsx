@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import {
   AnimatePresence,
   motion,
@@ -45,6 +46,8 @@ export interface BottomSheetProps
   backdropClassName?: string;
   /** Chamado após a conclusão da animação de saída (AnimatePresence onExitComplete) */
   onExitComplete?: () => void;
+  /** Renderiza via Portal em document.body (útil para sheets fixos acima de tapbars). Padrão: false */
+  portal?: boolean;
 }
 
 /**
@@ -65,12 +68,13 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   handleClassName,
   backdropClassName,
   onExitComplete,
+  portal = false,
   ...rest
 }) => {
   const shouldReduceMotion = useReducedMotion();
   const dragControls = useDragControls();
 
-  return (
+  const content = (
     <AnimatePresence onExitComplete={onExitComplete}>
       {open && backdrop && (
         <motion.div
@@ -121,7 +125,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
                 dragOnlyOnHandle ? (event) => dragControls.start(event) : undefined
               }
               className={cn(
-                "pt-2.5 pb-2.5 flex justify-center cursor-grab bg-neutral-50 active:cursor-grabbing",
+                "w-full pt-2.5 pb-2.5 flex justify-center cursor-grab active:cursor-grabbing",
                 dragOnlyOnHandle && "touch-none",
                 handleClassName
               )}
@@ -134,4 +138,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       )}
     </AnimatePresence>
   );
+
+  if (portal) {
+    return typeof document !== "undefined"
+      ? createPortal(content, document.body)
+      : null;
+  }
+
+  return content;
 };

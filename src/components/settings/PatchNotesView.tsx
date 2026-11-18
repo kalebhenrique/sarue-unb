@@ -83,6 +83,8 @@ export const PatchNotesView: React.FC<PatchNotesViewProps> = ({
       <PageHeader
         icon={RotateCwClock}
         title="Novidades e Patch Notes"
+        onBack={onBack}
+        backLabel="Voltar para Configurações"
         actions={
           <Button type="button" variant="outline" size="sm" onClick={onBack}>
             <ArrowLeft className="w-3.5 h-3.5 stroke-[2.5]" />

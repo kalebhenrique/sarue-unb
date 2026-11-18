@@ -300,7 +300,13 @@ export const IraCalculatorScreen: React.FC<IraCalculatorScreenProps> = ({ onBack
   if (!profile) {
     return (
       <PageContainer>
-        <PageHeader title="Calculadora de IRA" icon={Calculator} actions={backButton} />
+        <PageHeader
+          title="Calculadora de IRA"
+          icon={Calculator}
+          onBack={onBack}
+          backLabel="Voltar para Meu Curso"
+          actions={backButton}
+        />
         <EmptyState
           title="Nenhum Perfil Acadêmico Carregado"
           description={
@@ -336,7 +342,13 @@ export const IraCalculatorScreen: React.FC<IraCalculatorScreenProps> = ({ onBack
 
     return (
       <PageContainer>
-        <PageHeader title="Calculadora de IRA" icon={Calculator} actions={backButton} />
+        <PageHeader
+          title="Calculadora de IRA"
+          icon={Calculator}
+          onBack={onBack}
+          backLabel="Voltar para Meu Curso"
+          actions={backButton}
+        />
         <EmptyState
           title="Não foi possível montar o cenário"
           description="Ocorreu um erro ao construir o cenário a partir do seu histórico. Seus dados continuam salvos — tente carregar de novo."
@@ -358,6 +370,8 @@ export const IraCalculatorScreen: React.FC<IraCalculatorScreenProps> = ({ onBack
       <PageHeader
         title="Calculadora de IRA"
         icon={Calculator}
+        onBack={onBack}
+        backLabel="Voltar para Meu Curso"
         actions={backButton}
       />
 

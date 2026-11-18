@@ -19,10 +19,11 @@ import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { AnimatePresence, motion } from "motion/react";
 import { Progress } from "@/components/ui/progress";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { SyncStatusTooltip } from "./SyncStatusTooltip";
+import { SyncStatusTooltip, SyncStatusSummaryDialog } from "./SyncStatusTooltip";
 import { DeadlineBell } from "./notifications/DeadlineBell";
 import { useDeadlines } from "../context/DeadlineContext";
 import { useUpdateAvailable } from "../hooks/useAppUpdater";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import type { SyncStepInfo } from "../context/SyncContext";
 
 export type NavTab =
@@ -73,6 +74,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const hookHasUpdateAvailable = useUpdateAvailable();
   const hasUpdate = propHasUpdateAvailable ?? hookHasUpdateAvailable;
   const { badgeCount } = useDeadlines();
+  const isMobile = useMediaQuery("(max-width: 767px)");
+  const [mobileSyncDialogOpen, setMobileSyncDialogOpen] = React.useState(false);
 
   // Popover de status: controlado pelo AppShell (ritual pós-cadastro), com fallback interno
   const [internalSyncPopoverOpen, setInternalSyncPopoverOpen] =
@@ -497,7 +500,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }`}
             >
               <PopoverPrimitive.Root
-                open={syncPopoverOpenValue}
+                open={!isMobile && syncPopoverOpenValue}
                 onOpenChange={handleSyncPopoverOpenChange}
               >
                 <PopoverPrimitive.Trigger
@@ -574,6 +577,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClose={() => setIsMoreOpen(false)}
           backdrop
           backdropClassName="md:hidden -z-10"
+          handleClassName="bg-neutral-50"
           className="relative z-10"
           id="mobile-more-menu"
           role="navigation"
@@ -602,12 +606,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span>{isSyncing ? "Sincronizando..." : "Sincronizar"}</span>
                 </button>
 
-                <Progress
-                  value={syncProgressInfo.percent}
-                  stepsCount={syncProgressInfo.total}
-                  completedSteps={syncProgressInfo.completed}
-                  aria-label="Progresso da sincronização"
-                />
+                <button
+                  type="button"
+                  onClick={() => setMobileSyncDialogOpen(true)}
+                  aria-label="Ver status resumido da sincronização"
+                  className="cursor-pointer block w-full text-left rounded-xl px-1.5 py-1 hover:bg-black/5 active:bg-black/10 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue"
+                >
+                  <Progress
+                    value={syncProgressInfo.percent}
+                    stepsCount={syncProgressInfo.total}
+                    completedSteps={syncProgressInfo.completed}
+                    aria-label="Progresso da sincronização"
+                  />
+                  <div className="flex items-center justify-between gap-2 text-[11px] font-bold text-neutral-600 mt-0.5 px-0.5">
+                    <span className="truncate">
+                      {isSyncing || activeSyncStep
+                        ? `Sincronizando ${activeSyncStep?.label ?? "..."}`
+                        : formatLastSync(lastSyncedAt)}
+                    </span>
+                    <span className="shrink-0 text-blue-ink font-extrabold underline">
+                      Ver status
+                    </span>
+                  </div>
+                </button>
               </div>
 
               {/* Lista de Navegação Expansível (incluindo Carteirinha) */}
@@ -812,6 +833,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </nav>
       </div>
+
+      <SyncStatusSummaryDialog
+        open={mobileSyncDialogOpen}
+        onOpenChange={setMobileSyncDialogOpen}
+        steps={syncSteps}
+        isSyncing={isSyncing || Boolean(activeSyncStep)}
+        lastSyncedAt={lastSyncedAt ?? null}
+      />
     </>
   );
 };

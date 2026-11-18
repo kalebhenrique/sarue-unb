@@ -1,7 +1,11 @@
 import React from 'react';
 import { Popover } from '@base-ui/react/popover';
-import { Check, ChevronDown, Search } from 'lucide-react';
+import { Check, ChevronDown, Search, X } from 'lucide-react';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { Department } from '@/core';
+
+const MOBILE_MEDIA_QUERY = '(max-width: 767px)';
 
 // Busca sem sensibilidade a acentos, maiúsculas ou pontuação ("ciencias" acha "Ciências")
 const normalizeText = (text: string) =>
@@ -23,7 +27,7 @@ export interface DepartmentSelectProps {
 
 /**
  * Seletor de departamento com busca interna.
- * Gatilho estilo SelectTrigger + popup com campo de pesquisa e lista filtrável.
+ * No desktop abre um Popover ancorado; no mobile abre um BottomSheet com busca.
  */
 export const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
   departments,
@@ -32,8 +36,10 @@ export const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
   bare = false,
   triggerClassName,
 }) => {
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState('');
+  const mobileSearchRef = React.useRef<HTMLInputElement>(null);
   // Navegação por setas: índice ativo da lista filtrável (padrão combobox)
   const [activeIndex, setActiveIndex] = React.useState(0);
   React.useEffect(() => {
@@ -55,20 +61,123 @@ export const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
     return allDepts.filter((d) => normalizeText(d.name).includes(q));
   }, [allDepts, query]);
 
+  const closeSheet = React.useCallback(() => {
+    setOpen(false);
+    setQuery('');
+  }, []);
+
   const pick = (id: string) => {
     onChange(id);
-    setOpen(false);
+    closeSheet();
   };
+
+  const triggerClasses = `flex w-full items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-black focus:outline-hidden transition-[box-shadow,border-color,background-color] cursor-pointer select-none ${
+    bare
+      ? 'h-full rounded-r-xl focus-visible:ring-2 focus-visible:ring-inset ring-neo-blue'
+      : 'h-10 rounded-xl border-2 border-ink bg-paper dark:bg-neutral-200 dark:text-slate-50 dark:hover:bg-neutral-300 focus:ring-2 focus:ring-neo-blue'
+  } ${triggerClassName ?? ''}`;
+
+  if (isMobile) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-label="Selecionar departamento"
+          className={triggerClasses}
+        >
+          <span className="truncate text-left">{selectedName ?? 'Selecione o departamento'}</span>
+          <ChevronDown className={`w-4 h-4 stroke-[2.5] shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+
+        <BottomSheet
+          open={open}
+          onClose={closeSheet}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Selecionar departamento"
+          backdrop
+          backdropClassName="z-40 md:hidden"
+          className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
+          portal
+          dragOnlyOnHandle
+        >
+          <div className="flex flex-col max-h-[80dvh] pb-[env(safe-area-inset-bottom)]">
+            <div className="px-4 pb-3 border-b-2 border-ink/10 shrink-0">
+              <h2 className="text-base font-extrabold tracking-tight text-black">
+                Departamento
+              </h2>
+            </div>
+
+            <div className="px-4 pt-3 pb-2 shrink-0">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 stroke-[2.5] pointer-events-none" />
+                <input
+                  ref={mobileSearchRef}
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Pesquisar departamento…"
+                  aria-label="Pesquisar departamento"
+                  className="w-full h-10 bg-paper pl-9 pr-9 text-sm font-semibold text-black rounded-xl border-2 border-ink focus:outline-hidden focus:ring-2 focus:ring-neo-blue placeholder:text-neutral-500"
+                />
+                {query ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery('');
+                      mobileSearchRef.current?.focus();
+                    }}
+                    aria-label="Limpar busca de departamento"
+                    className="cursor-pointer absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-neutral-500 hover:text-black focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue"
+                  >
+                    <X className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            <div role="listbox" aria-label="Lista de departamentos" className="px-2 pb-4 overflow-y-auto space-y-0.5 flex-1 min-h-0">
+              {filtered.length === 0 ? (
+                <p className="p-6 text-center text-sm font-semibold text-neutral-600">
+                  Nenhum departamento encontrado
+                </p>
+              ) : (
+                filtered.map((dept) => {
+                  const isSelected = dept.id === value;
+                  return (
+                    <button
+                      key={dept.id}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      onClick={() => pick(dept.id)}
+                      className={`relative flex w-full cursor-pointer select-none items-center gap-2 rounded-xl min-h-12 py-3 pr-10 pl-3.5 text-sm font-bold border-2 transition-colors text-left ${
+                        isSelected
+                          ? 'bg-neo-blue text-white border-ink'
+                          : 'bg-transparent text-black border-transparent hover:bg-neutral-100'
+                      }`}
+                    >
+                      <span className="truncate">{dept.name}</span>
+                      {isSelected ? (
+                        <Check className="w-4 h-4 stroke-[2.5] absolute right-3 shrink-0" />
+                      ) : null}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </BottomSheet>
+      </>
+    );
+  }
 
   return (
     <Popover.Root open={open} onOpenChange={(next) => { setOpen(next); if (!next) setQuery(''); }}>
-      <Popover.Trigger
-        className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-black focus:outline-hidden transition-[box-shadow,border-color,background-color] cursor-pointer select-none ${
-          bare
-            ? 'h-full rounded-r-xl focus-visible:ring-2 focus-visible:ring-inset ring-neo-blue'
-            : 'h-10 rounded-xl border-2 border-ink bg-paper focus:ring-2 focus:ring-neo-blue'
-        } ${triggerClassName ?? ''}`}
-      >
+      <Popover.Trigger className={triggerClasses}>
         <span className="truncate text-left">{selectedName ?? 'Selecione o departamento'}</span>
         <ChevronDown className={`w-4 h-4 stroke-[2.5] shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </Popover.Trigger>

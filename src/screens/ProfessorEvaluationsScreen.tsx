@@ -10,11 +10,25 @@ import {
   Card,
   Button,
   Alert,
+  BottomSheet,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   EmptyState,
+  FloatingActionButton,
+  HeaderIconButton,
   Pagination,
   Skeleton,
 } from "@/components/ui";
-import { MessageSquareQuote, RefreshCw, ExternalLink } from "lucide-react";
+import {
+  MessageSquareQuote,
+  MessageSquarePlus,
+  RefreshCw,
+  ExternalLink,
+  Info,
+  MoreVertical,
+} from "lucide-react";
 import { openExternalUrl } from "../lib/utils";
 import {
   professorKeyOf,
@@ -62,6 +76,7 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
     retry,
   } = useProfessorEvaluations();
   const { useCases, repos } = useContainer();
+  const [aboutSheetOpen, setAboutSheetOpen] = useState(false);
 
   // Valor inicial vem do localStorage; o setter grava a escolha para as
   // próximas visitas. Sem preferência salva (ou storage bloqueado), liga.
@@ -407,15 +422,46 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
       <PageHeader
         icon={MessageSquareQuote}
         title="Avaliação de Professores"
+        count={unfilteredSummaries.length > 0 ? unfilteredSummaries.length : null}
         subtitle={
           unfilteredSummaries.length > 0
             ? `(${unfilteredSummaries.length} ${unfilteredSummaries.length === 1 ? "professor" : "professores"})`
             : null
         }
+        mobileActions={
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <HeaderIconButton aria-label="Mais ações das avaliações">
+                  <MoreVertical className="w-4 h-4 stroke-[2.5]" />
+                </HeaderIconButton>
+              }
+            />
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setAboutSheetOpen(true)}>
+                <Info className="w-4 h-4 stroke-[2.5]" />
+                Sobre os relatos
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => openExternalUrl(PROFESSOR_EVALUATIONS_SHEET_URL)}
+              >
+                <ExternalLink className="w-4 h-4 stroke-[2.5]" />
+                Abrir Planilha
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => openExternalUrl(PROFESSOR_EVALUATIONS_FORM_URL)}
+              >
+                <ExternalLink className="w-4 h-4 stroke-[2.5]" />
+                Abrir Formulário
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
       />
 
-      {/* Aviso permanente: origem e responsabilidade do conteúdo */}
+      {/* Aviso permanente no desktop: origem e responsabilidade do conteúdo */}
       <Alert
+        className="hidden md:flex"
         variant="yellow"
         title="Sobre os relatos"
         description={
@@ -459,6 +505,59 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
           </div>
         }
       />
+
+      {/* Mobile BottomSheet: "Sobre os relatos" */}
+      <BottomSheet
+        open={aboutSheetOpen}
+        onClose={() => setAboutSheetOpen(false)}
+        role="dialog"
+        aria-label="Sobre os relatos"
+        backdrop
+        backdropClassName="z-40 md:hidden"
+        className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
+        portal
+        dragOnlyOnHandle
+      >
+        <div className="px-4 max-h-[calc(85dvh-2rem)] overflow-y-auto overflow-x-hidden pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-3">
+          <div className="flex items-center gap-2 pb-2 border-b-2 border-ink/10">
+            <Info className="w-5 h-5 text-amber-600 stroke-[2.5] shrink-0" />
+            <h2 className="text-base font-black text-black">
+              Sobre os relatos
+            </h2>
+          </div>
+          <p className="text-xs font-medium leading-relaxed text-neutral-700">
+            Estes relatos vêm de uma fonte externa: uma planilha pública mantida
+            pela própria comunidade de estudantes, sem moderação prévia:{" "}
+            <strong className="font-bold text-black">
+              palavrões e palavras de baixo calão são censurados
+              automaticamente pela plataforma
+            </strong>
+            . Cada opinião reflete a visão de quem escreveu — pode vir
+            enviesada, desatualizada ou até conter ofensas. Use as avaliações
+            como apoio na sua decisão, e não como verdade absoluta.
+          </p>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => openExternalUrl(PROFESSOR_EVALUATIONS_SHEET_URL)}
+            >
+              <span>Planilha</span>
+              <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => openExternalUrl(PROFESSOR_EVALUATIONS_FORM_URL)}
+            >
+              <span>Formulário</span>
+              <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+            </Button>
+          </div>
+        </div>
+      </BottomSheet>
 
       {/* Barra de Busca e Filtros */}
       <EvaluationsToolbar
@@ -532,6 +631,15 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
           />
         </div>
       )}
+
+      <FloatingActionButton
+        variant="primary"
+        icon={MessageSquarePlus}
+        aria-label="Avaliar Professor"
+        title="Avaliar Professor"
+        onClick={() => openExternalUrl(PROFESSOR_EVALUATIONS_FORM_URL)}
+        className="md:hidden"
+      />
     </PageContainer>
   );
 };

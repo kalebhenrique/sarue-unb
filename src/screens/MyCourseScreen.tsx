@@ -16,6 +16,11 @@ import {
   PageContainer,
   PageHeader,
   Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  HeaderIconButton,
   Input,
   EmptyState,
   ErrorBoundary,
@@ -25,6 +30,7 @@ import {
 import {
   GraduationCap,
   SlidersHorizontal,
+  ArrowLeftRight,
   RotateCcw,
   Search,
   CheckCircle2,
@@ -33,6 +39,7 @@ import {
   List,
   Network,
   CircleDotDashed,
+  MoreVertical,
 } from "lucide-react";
 
 type FilterType =
@@ -153,15 +160,54 @@ export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }
     );
   }
 
+  const overrideCount =
+    (profile?.manualCompletedCodes?.length || 0) +
+    (profile?.manualUncompletedCodes?.length || 0);
+
   return (
     <PageContainer>
       <PageHeader
         title="Meu Curso"
         icon={GraduationCap}
+        mobileActions={
+          profile ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <HeaderIconButton
+                    aria-label="Mais ações do curso"
+                    hasActiveIndicator={overrideCount > 0}
+                  >
+                    <MoreVertical className="w-4 h-4 stroke-[2.5]" />
+                  </HeaderIconButton>
+                }
+              />
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => setView("curriculum-editor")}
+                >
+                  <BookOpen className="w-4 h-4 stroke-[2.5]" />
+                  Gerenciar Currículo
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setIsCurriculumDialogOpen(true)}
+                >
+                  <ArrowLeftRight className="w-4 h-4 stroke-[2.5]" />
+                  Trocar Matriz / Curso
+                </DropdownMenuItem>
+                {overrideCount > 0 ? (
+                  <DropdownMenuItem onClick={resetOverrides}>
+                    <RotateCcw className="w-4 h-4 stroke-[2.5]" />
+                    Resetar ({overrideCount} alterações)
+                  </DropdownMenuItem>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null
+        }
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            {((profile?.manualCompletedCodes?.length || 0) > 0 ||
-              (profile?.manualUncompletedCodes?.length || 0) > 0) && (
+            {overrideCount > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -170,10 +216,7 @@ export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }
                 title="Restaurar o estado original vindo do histórico"
               >
                 <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
-                Resetar (
-                {(profile?.manualCompletedCodes?.length || 0) +
-                  (profile?.manualUncompletedCodes?.length || 0)}{" "}
-                alterações)
+                Resetar ({overrideCount} alterações)
               </Button>
             )}
 
@@ -271,7 +314,7 @@ export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }
               />
             )}
 
-            <div className="bg-paper border-2 border-ink rounded-lg p-5 mb-6 shadow-neo-sm md:shadow-neo">
+            <div className="bg-paper border-2 border-ink rounded-lg p-3.5 md:p-5 mb-3 md:mb-6 shadow-neo-sm md:shadow-neo">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center flex-wrap gap-2">
                   <span className="text-lg font-black text-black tracking-tight">

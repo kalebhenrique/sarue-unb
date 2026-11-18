@@ -17,6 +17,8 @@ export interface SelectedClassesCardProps {
   isSaving: boolean;
   /** A grade atual difere da última versão salva — liga o indicador "Não salva". */
   isDirty?: boolean;
+  /** Quando renderizado dentro de um BottomSheet, remove sombras do card e botões internos. */
+  inSheet?: boolean;
 }
 
 export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
@@ -31,6 +33,7 @@ export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
   isSolving,
   isSaving,
   isDirty = false,
+  inSheet = false,
 }) => {
   // A Regra do Risco Preto com guarda de 2 cliques: o primeiro clique arma a
   // confirmação (4s); o segundo executa a limpeza de verdade.
@@ -61,7 +64,7 @@ export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
     onClearGrade();
   };
   return (
-    <Card className="p-4 space-y-4">
+    <Card className={`p-4 space-y-4 ${inSheet ? "shadow-none! [&_[data-slot=button]]:shadow-none!" : ""}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-blue-ink/10 border-2 border-ink flex items-center justify-center text-blue-ink shrink-0">
@@ -100,9 +103,9 @@ export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
         ) : null}
       </div>
 
-      {/* Ações do Gerador Automático de Horários */}
+      {/* Ações do Gerador Automático de Horários */}
       <div className="pb-4 border-b-2 border-black/15 space-y-3">
-        <div className="flex items-end gap-2">
+        <div className="flex flex-wrap items-end gap-2">
           <FilterSelect
             label="Turno:"
             value={shiftFilter}

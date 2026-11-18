@@ -97,15 +97,15 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
   }, [days]);
 
   return (
-    <div className="bg-paper border-2 border-ink rounded-xl p-3 sm:p-4 shadow-[4px_4px_0px_0px_var(--neo-shadow)] select-none">
+    <div className="bg-paper border-2 border-ink rounded-xl p-2 sm:p-4 shadow-neo-sm sm:shadow-[4px_4px_0px_0px_var(--neo-shadow)] select-none">
       {/* Cabeçalho dos Dias da Semana */}
-      <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-2 text-center">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-1.5 sm:mb-2 text-center">
         {WEEKDAYS.map((day, idx) => {
           const isWeekend = idx === 0 || idx === 6;
           return (
             <div
               key={day}
-              className={`py-1 text-[11px] sm:text-xs font-black uppercase tracking-wider ${
+              className={`py-0.5 sm:py-1 text-[11px] sm:text-xs font-black uppercase tracking-wider ${
                 isWeekend ? 'text-neutral-500' : 'text-neutral-700'
               }`}
             >
@@ -116,7 +116,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
       </div>
 
       {/* Grade de Semanas com Blocos Lineares de Eventos Contínuos */}
-      <div className="space-y-1.5 sm:space-y-2">
+      <div className="space-y-1 sm:space-y-2">
         {weeks.map((weekDays, weekIdx) => {
           const weekStartDate = weekDays[0].date;
           const weekEndDate = weekDays[6].date;
@@ -270,7 +270,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                           setDragHover(cell.date);
                         }
                       }}
-                      className={`group relative min-h-[86px] sm:min-h-[104px] p-1.5 sm:p-2 rounded-lg border-2 border-ink transition-colors cursor-pointer flex flex-col justify-between ${
+                      className={`group relative min-h-[76px] sm:min-h-[104px] p-1 sm:p-2 rounded-lg border-2 border-ink transition-colors cursor-pointer flex flex-col justify-between ${
                         !cell.isCurrentMonth
                           ? 'bg-neutral-100 dark:bg-neutral-950 hover:bg-neutral-200/80 dark:hover:bg-neutral-100'
                           : 'bg-paper hover:bg-neutral-100 dark:hover:bg-neutral-100'
@@ -313,10 +313,10 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                       </div>
 
                       {/* Espaçador central onde as trilhas de eventos repousam */}
-                      <div className="h-[48px] sm:h-[52px]" />
+                      <div className="h-[46px] sm:h-[52px]" />
 
                       {/* Rodapé da Célula: Overflow "+N mais" e indicador de prazo fatal */}
-                      <div className="flex items-center justify-between min-h-[14px]">
+                      <div className="flex items-center justify-between min-h-[12px] sm:min-h-[14px]">
                         {hiddenCount > 0 ? (
                           <button
                             type="button"
@@ -328,7 +328,8 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                             title={`Ver eventos do dia ${cell.dayNumber}`}
                             className="text-[11px] font-extrabold text-blue-ink hover:underline cursor-pointer leading-none text-left"
                           >
-                            +{hiddenCount} mais
+                            +{hiddenCount}
+                            <span className="hidden sm:inline"> mais</span>
                           </button>
                         ) : (
                           <span />
@@ -349,7 +350,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
 
               {/* Camada Superior de Blocos Lineares de Eventos Contínuos */}
               <div
-                className="absolute top-[30px] sm:top-[34px] inset-x-0 grid grid-cols-7 gap-1.5 sm:gap-2 pointer-events-none"
+                className="absolute top-[24px] sm:top-[34px] inset-x-0 grid grid-cols-7 gap-1 sm:gap-2 pointer-events-none"
                 style={{
                   gridTemplateRows: 'repeat(2, 22px)',
                   rowGap: '4px',
