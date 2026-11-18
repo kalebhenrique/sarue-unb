@@ -24,10 +24,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 
 const rawArgs = process.argv.slice(2);
-const args = [...rawArgs];
+const isPreview = rawArgs.includes('--preview') || process.env.SARUE_ANDROID_PREVIEW === '1';
+const shouldInstall = rawArgs.includes('--install');
+if (isPreview) {
+  process.env.SARUE_ANDROID_PREVIEW = '1';
+}
+const args = rawArgs.filter((arg) => arg !== '--preview' && arg !== '--install');
 
 const isDev = args[0] === 'dev';
 const isAndroidDev = args[0] === 'android' && args[1] === 'dev';
+const isAndroidStudioScript = args[0] === 'android' && args[1] === 'android-studio-script';
 const hasConfig = args.includes('-c') || args.includes('--config');
 
 if (isDev && !hasConfig) {
@@ -52,16 +58,16 @@ function setupAndroidEnvironment() {
   process.env.ANDROID_HOME = sdkDir;
   process.env.ANDROID_SDK_ROOT = sdkDir;
 
-  const prependToPath = (dir) => {
+  const appendToPath = (dir) => {
     if (!fs.existsSync(dir)) return false;
     const entries = (process.env.PATH || '').split(path.delimiter);
     if (!entries.includes(dir)) {
-      process.env.PATH = `${dir}${path.delimiter}${process.env.PATH || ''}`;
+      process.env.PATH = `${process.env.PATH || ''}${path.delimiter}${dir}`;
     }
     return true;
   };
 
-  prependToPath(path.join(sdkDir, 'platform-tools'));
+  appendToPath(path.join(sdkDir, 'platform-tools'));
 
   let ndkDir = process.env.NDK_HOME || process.env.ANDROID_NDK_HOME;
   if (!ndkDir || !fs.existsSync(ndkDir)) {
@@ -84,7 +90,7 @@ function setupAndroidEnvironment() {
     else if (process.platform === 'win32') hostTag = 'windows-x86_64';
 
     const toolchainBin = path.join(ndkDir, 'toolchains/llvm/prebuilt', hostTag, 'bin');
-    if (prependToPath(toolchainBin)) {
+    if (appendToPath(toolchainBin)) {
 
       const llvmAr = path.join(toolchainBin, 'llvm-ar');
       const llvmRanlib = path.join(toolchainBin, 'llvm-ranlib');
@@ -92,6 +98,16 @@ function setupAndroidEnvironment() {
       // Necessário para Autotools / makefile do libsodium-sys-stable no Android
       process.env.AR = llvmAr;
       process.env.RANLIB = llvmRanlib;
+
+      // Garante que proc-macros do host (ex.: sqlx-macros -> libsqlite3-sys em aarch64-apple-darwin)
+      // usem o ar/ranlib nativo do macOS em vez do llvm-ar do NDK (evita mis-aligned LINKEDIT no dylib).
+      if (process.platform === 'darwin') {
+        for (const hostPrefix of ['aarch64_apple_darwin', 'AARCH64_APPLE_DARWIN', 'x86_64_apple_darwin', 'X86_64_APPLE_DARWIN']) {
+          process.env[`AR_${hostPrefix}`] = '/usr/bin/ar';
+          process.env[`RANLIB_${hostPrefix}`] = '/usr/bin/ranlib';
+          process.env[`CC_${hostPrefix}`] = '/usr/bin/clang';
+        }
+      }
 
       const apiLevel = 24; // minSdk do projeto
       const targets = [
@@ -134,8 +150,121 @@ function setupAndroidEnvironment() {
   }
 }
 
+function ensureAndroidPortraitOrientation() {
+  const manifestPath = path.join(
+    rootDir,
+    'src-tauri',
+    'gen',
+    'android',
+    'app',
+    'src',
+    'main',
+    'AndroidManifest.xml'
+  );
+  if (!fs.existsSync(manifestPath)) return;
+
+  const current = fs.readFileSync(manifestPath, 'utf8');
+  const activityRegex = /(<activity\b[^>]*android:name="\.MainActivity"[^>]*>)/;
+  const match = current.match(activityRegex);
+  if (!match) return;
+
+  const activityTag = match[1];
+  let updatedTag;
+  if (/android:screenOrientation="[^"]*"/.test(activityTag)) {
+    updatedTag = activityTag.replace(
+      /android:screenOrientation="[^"]*"/,
+      'android:screenOrientation="portrait"'
+    );
+  } else {
+    updatedTag = activityTag.replace(
+      'android:name=".MainActivity"',
+      'android:name=".MainActivity"\n            android:screenOrientation="portrait"'
+    );
+  }
+
+  if (updatedTag !== activityTag) {
+    fs.writeFileSync(manifestPath, current.replace(activityTag, updatedTag), 'utf8');
+  }
+}
+
+function configureAndroidVariant(preview) {
+  const androidAppDir = path.join(rootDir, 'src-tauri', 'gen', 'android', 'app');
+  if (!fs.existsSync(androidAppDir)) return;
+
+  const appId = preview ? 'br.unb.sarue.preview' : 'br.unb.sarue';
+  const appName = preview ? 'Saruê UnB (Preview)' : 'Saruê UnB';
+  const iconsSourceDir = path.join(
+    rootDir,
+    'src-tauri',
+    'icons',
+    preview ? 'android-preview' : 'android'
+  );
+
+  const gradlePath = path.join(androidAppDir, 'build.gradle.kts');
+  if (fs.existsSync(gradlePath)) {
+    let gradle = fs.readFileSync(gradlePath, 'utf8');
+    gradle = gradle.replace(/applicationId\s*=\s*"[^"]*"/, `applicationId = "${appId}"`);
+    if (!gradle.includes('signingConfigs.getByName("debug")')) {
+      gradle = gradle.replace(
+        'getByName("release") {',
+        'getByName("release") {\n            signingConfig = signingConfigs.getByName("debug")'
+      );
+    }
+    fs.writeFileSync(gradlePath, gradle, 'utf8');
+  }
+
+  const stringsPath = path.join(androidAppDir, 'src', 'main', 'res', 'values', 'strings.xml');
+  if (fs.existsSync(stringsPath)) {
+    const stringsXml = `<resources>\n    <string name="app_name">"${appName}"</string>\n    <string name="main_activity_title">"${appName}"</string>\n</resources>\n`;
+    fs.writeFileSync(stringsPath, stringsXml, 'utf8');
+  }
+
+  const resDir = path.join(androidAppDir, 'src', 'main', 'res');
+  if (fs.existsSync(iconsSourceDir) && fs.existsSync(resDir)) {
+    fs.cpSync(iconsSourceDir, resDir, { recursive: true, force: true });
+  }
+}
+
+function installAndroidApk() {
+  const apkPath = path.join(
+    rootDir,
+    'src-tauri',
+    'gen',
+    'android',
+    'app',
+    'build',
+    'outputs',
+    'apk',
+    'universal',
+    'release',
+    'app-universal-release.apk'
+  );
+  if (!fs.existsSync(apkPath)) {
+    console.error(`❌ APK não encontrado em: ${apkPath}\nRode 'pnpm android:preview' antes.`);
+    process.exit(1);
+  }
+  console.log('📲 Aguardando celular via USB (verifique se a Depuração USB está ativa e autorizada na tela do aparelho)...');
+  try {
+    execSync('adb wait-for-device', { stdio: 'inherit', timeout: 15000 });
+    execSync(`adb install -r "${apkPath}"`, { stdio: 'inherit' });
+    console.log('✅ APK instalado com sucesso no celular!');
+  } catch {
+    console.error(
+      '\n❌ Nenhum celular Android detectado pelo ADB. Verifique no aparelho:\n' +
+        '  1. Opções do desenvolvedor → Depuração USB ativada\n' +
+        '  2. Notificação do USB → mudar de "Apenas carregar" para "Transferência de arquivos"\n' +
+        '  3. Aceitar o popup "Permitir depuração USB?" na tela do celular'
+    );
+    process.exit(1);
+  }
+}
+
 if (args.includes('android')) {
   setupAndroidEnvironment();
+  ensureAndroidPortraitOrientation();
+  if (!isAndroidStudioScript) {
+    configureAndroidVariant(isPreview);
+  }
 
   if (isAndroidDev) {
     try {
@@ -182,5 +311,11 @@ child.on('error', (err) => {
 });
 
 child.on('exit', (code) => {
+  if ((code ?? 0) === 0 && args.includes('android')) {
+    ensureAndroidPortraitOrientation();
+    if (shouldInstall && !isAndroidStudioScript) {
+      installAndroidApk();
+    }
+  }
   process.exit(code ?? 0);
 });

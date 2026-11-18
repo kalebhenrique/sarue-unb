@@ -49,6 +49,22 @@ Antes de começar, por favor leia nosso [Código de Conduta](CODE_OF_CONDUCT.md)
        sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget
        ```
 
+3. **Android SDK & NDK** _(opcional — necessário apenas para desenvolvimento e build Android)_:
+   - **JDK 17+** (ex.: `brew install openjdk@17` ou o JBR incluso no Android Studio).
+   - **Android SDK & NDK**: podem ser instalados via Android Studio (_SDK Manager → SDK Tools → NDK (Side by side) + Android SDK Platform-Tools_) ou via `sdkmanager`.
+     - O wrapper `scripts/tauri-cli.mjs` detecta automaticamente o SDK em `~/Library/Android/sdk` (macOS) ou pelas variáveis `ANDROID_HOME` / `ANDROID_SDK_ROOT` e `NDK_HOME` / `ANDROID_NDK_HOME`, configurando os compiladores C/Clang e `llvm-ar` do NDK para compilar crates nativas como `libsodium-sys` (Stronghold).
+   - **Targets Rust para Android**:
+
+     ```bash
+     rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+     ```
+
+   - **Gerar projeto Android local** _(como `src-tauri/gen` é ignorado no Git, rode uma vez após clonar)_:
+
+     ```bash
+     pnpm android:init
+     ```
+
 ### Passo a Passo (Fork & Clone)
 
 1. Faça um **Fork** deste repositório no GitHub.
@@ -89,6 +105,16 @@ O Saruê UnB oferece dois modos principais de desenvolvimento:
 
   ```bash
   pnpm tauri dev
+  ```
+
+- **Modo Android (USB-C com HMR ou Emulador)**:
+  Para rodar no celular físico conectado via USB (sem precisar abrir o Android Studio):
+  1. No celular, ative **Opções do desenvolvedor → Depuração USB**.
+  2. Conecte via USB, selecione o modo **"Transferência de arquivos / Android Auto"** na notificação do Android e autorize o alerta **"Permitir depuração USB?"**.
+  3. Execute (o script configura `adb reverse` nas portas `1420` e `1421` automaticamente):
+
+  ```bash
+  pnpm android:dev
   ```
 
 - **Popular Banco de Dados de Desenvolvimento**:
@@ -147,13 +173,35 @@ pnpm format:rust   # Formata o código Rust automaticamente
 
 ---
 
-## 📦 Compilação de Produção (Build)
+## 📦 Compilação de Produção e Preview (Build)
 
-Para gerar os instaladores e binários executáveis otimizados para o seu sistema operacional (`.dmg` no macOS, `.deb`/`.AppImage` no Linux, `.msi` no Windows):
+### Desktop (macOS, Linux e Windows)
+
+Para gerar os instaladores e binários executáveis otimizados para o seu sistema operacional (`.dmg` no macOS, `.deb`/`.AppImage` no Linux, `.msi`/`.exe` no Windows):
 
 ```bash
 pnpm tauri build
 ```
+
+### Android (APK de Preview e Produção)
+
+- **Build de Preview Local** (gera o APK `arm64-v8a` assinado com nome **`Saruê UnB (Preview)`**, identificador `br.unb.sarue.preview` isolado do app de produção e ícone com a label **`PREVIEW`**):
+
+  ```bash
+  pnpm android:preview
+  ```
+
+- **Build de Preview + Instalar no Celular via USB**:
+
+  ```bash
+  pnpm android:preview:install
+  ```
+
+- **Build de Produção Android** (restaura nome `Saruê UnB`, identificador `br.unb.sarue` e ícone oficial):
+
+  ```bash
+  pnpm android:build
+  ```
 
 ---
 

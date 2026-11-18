@@ -26,6 +26,8 @@
     "android:init": "node scripts/tauri-cli.mjs android init",
     "android:dev": "node scripts/tauri-cli.mjs android dev",
     "android:build": "node scripts/tauri-cli.mjs android build --apk",
+    "android:preview": "node scripts/tauri-cli.mjs android build --preview --apk --target aarch64",
+    "android:preview:install": "node scripts/tauri-cli.mjs android build --preview --apk --target aarch64 --install",
     "scrape:grade": "node --experimental-strip-types src/scrapers/grade-scraper.ts",
     "scrape:courses": "node --experimental-strip-types src/scrapers/courses-scraper.ts",
     "scrape:calendar": "node --experimental-strip-types src/scrapers/calendar-scraper.ts",

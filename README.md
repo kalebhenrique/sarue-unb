@@ -6,9 +6,10 @@
     <img alt="Linux" src="https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black">
     <img alt="macOS" src="https://img.shields.io/badge/mac%20os-000000?style=for-the-badge&logo=macos&logoColor=F0F0F0">
     <img alt="Windows" src="https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white">
+    <img alt="Android" src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=black">
 </p>
 
-Saruê UnB é o **agregador acadêmico definitivo e moderno** para estudantes da [Universidade de Brasília (UnB)](https://www.unb.br), uma aplicação desktop de alta performance em **Tauri 2**, **Rust** e **React 19**. Ele centraliza e revitaliza a rotina universitária ao integrar **SIGAA**, **Aprender 3 (Moodle)** e **Microsoft Teams** em um feed unificado, sem atrito e com foco total em privacidade — mantendo todas as credenciais em um cofre criptográfico local e disponibilizando ferramentas essenciais como o **Monte sua Grade**, **Fluxograma Curricular interativo** de mais de 150 cursos e **Calculadora de IRA**.
+Saruê UnB é o **agregador acadêmico definitivo e moderno** para estudantes da [Universidade de Brasília (UnB)](https://www.unb.br), uma aplicação desktop e mobile (Android) de alta performance em **Tauri 2**, **Rust** e **React 19**. Ele centraliza e revitaliza a rotina universitária ao integrar **SIGAA**, **Aprender 3 (Moodle)** e **Microsoft Teams** em um feed unificado, sem atrito e com foco total em privacidade — mantendo todas as credenciais em um cofre criptográfico local e disponibilizando ferramentas essenciais como o **Monte sua Grade**, **Fluxograma Curricular interativo** de mais de 150 cursos e **Calculadora de IRA**.
 
 ---
 
@@ -34,7 +35,7 @@ Saruê UnB é o **agregador acadêmico definitivo e moderno** para estudantes da
 
 O Saruê UnB é um projeto de código aberto feito por e para estudantes da UnB. Toda contribuição é bem-vinda: código, design, documentação e relatos de bugs.
 
-O guia completo para configurar o ambiente local (Node.js, pnpm, Rust e dependências nativas do Tauri 2), rodar o aplicativo nos modos navegador e desktop, popular o banco de dados de desenvolvimento, executar os scrapers do SIGAA e abrir Pull Requests está em [CONTRIBUTING.md](CONTRIBUTING.md).
+O guia completo para configurar o ambiente local (Node.js, pnpm, Rust, Tauri 2 e Android SDK/NDK), rodar o aplicativo nos modos navegador, desktop e Android, popular o banco de dados de desenvolvimento, executar os scrapers do SIGAA e abrir Pull Requests está em [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Documentação complementar do projeto:
 
