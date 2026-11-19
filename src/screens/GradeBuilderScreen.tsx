@@ -202,36 +202,135 @@ export const GradeBuilderScreen: React.FC = () => {
   const handleDownloadPng = async () => {
     const node = scheduleGridRef.current;
     if (!node) return;
+    let exportHost: HTMLDivElement | null = null;
     try {
       setIsExportingPng(true);
 
       const gridEl = node.querySelector<HTMLElement>("[data-timetable-grid]");
-      const exportWidth = gridEl
-        ? Math.max(node.clientWidth, gridEl.scrollWidth + 32)
-        : node.clientWidth;
+      const exportWidth = Math.max(
+        760,
+        node.clientWidth,
+        (gridEl?.scrollWidth ?? 0) + 48,
+      );
 
-      const dataUrl = await toPng(node, {
-        cacheBust: true,
-        pixelRatio: 2,
-        width: exportWidth,
-        style: {
-          width: `${exportWidth}px`,
-          maxWidth: "none",
-        },
-        // A exportação segue o tema ativo: base de corte escura exporta fundo escuro.
-        backgroundColor: document.documentElement.classList.contains("dark")
-          ? "#111622"
-          : "#FFFFFF",
-        filter: (el) => {
-          if (
-            el instanceof HTMLElement &&
-            el.classList.contains("no-export")
-          ) {
-            return false;
-          }
-          return true;
-        },
+      const isDark = document.documentElement.classList.contains("dark");
+      const exportBg = isDark ? "#111622" : "#FFFFFF";
+
+      // Monta um estágio fora da viewport (exportHost) contendo um wrapper estático
+      // (exportInner) na largura desktop completa: como passamos exportInner — e não
+      // exportHost — para toPng, o clone NÃO herda `left: -99999px` dentro do SVG
+      // foreignObject, evitando imagem sólida em branco.
+      exportHost = document.createElement("div");
+      exportHost.style.position = "fixed";
+      exportHost.style.left = "-99999px";
+      exportHost.style.top = "0";
+      exportHost.style.margin = "0";
+      exportHost.style.padding = "0";
+      exportHost.style.pointerEvents = "none";
+
+      const exportInner = document.createElement("div");
+      exportInner.style.position = "static";
+      exportInner.style.width = `${exportWidth}px`;
+      exportInner.style.margin = "0";
+      exportInner.style.padding = "12px";
+      exportInner.style.backgroundColor = exportBg;
+      exportInner.style.boxSizing = "border-box";
+
+      const exportClone = node.cloneNode(true) as HTMLElement;
+      exportClone.style.width = "100%";
+      exportClone.style.maxWidth = "none";
+      exportClone.style.boxShadow = "none";
+      exportClone.querySelectorAll(".no-export").forEach((el) => el.remove());
+      exportClone.querySelectorAll<HTMLElement>(".export-only").forEach((el) => {
+        el.classList.remove("hidden");
+        el.style.display = "inline-block";
       });
+
+      const cloneGrid = exportClone.querySelector<HTMLElement>(
+        "[data-timetable-grid]",
+      );
+      if (cloneGrid) {
+        cloneGrid.style.width = "100%";
+        const scrollWrap = cloneGrid.parentElement;
+        if (scrollWrap) {
+          scrollWrap.style.overflow = "visible";
+          scrollWrap.style.marginLeft = "0";
+          scrollWrap.style.marginRight = "0";
+          scrollWrap.style.paddingLeft = "0";
+          scrollWrap.style.paddingRight = "0";
+        }
+      }
+
+      exportInner.appendChild(exportClone);
+      exportHost.appendChild(exportInner);
+      document.body.appendChild(exportHost);
+
+      // Converte imagens (ex.: /sarue-logo.png) em data URL direto dos pixels já
+      // decodificados para não depender de fetch/cacheBust no WebView do Android.
+      const origImgs = Array.from(node.querySelectorAll("img"));
+      const cloneImgs = Array.from(exportClone.querySelectorAll("img"));
+      await Promise.all(
+        cloneImgs.map(async (cloneImg, idx) => {
+          const origImg = origImgs[idx];
+          const src = origImg?.src || cloneImg.getAttribute("src") || "";
+          if (!src || src.startsWith("data:")) return;
+
+          let imgDataUrl: string | null = null;
+          if (origImg && origImg.complete && origImg.naturalWidth > 0) {
+            try {
+              const canvas = document.createElement("canvas");
+              canvas.width = origImg.naturalWidth;
+              canvas.height = origImg.naturalHeight;
+              const ctx = canvas.getContext("2d");
+              if (ctx) {
+                ctx.drawImage(origImg, 0, 0);
+                imgDataUrl = canvas.toDataURL("image/png");
+              }
+            } catch {
+              imgDataUrl = null;
+            }
+          }
+
+          if (!imgDataUrl) {
+            try {
+              const res = await fetch(src);
+              if (res.ok) {
+                const blob = await res.blob();
+                imgDataUrl = await new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () =>
+                    resolve(String(reader.result || ""));
+                  reader.onerror = reject;
+                  reader.readAsDataURL(blob);
+                });
+              }
+            } catch {
+              imgDataUrl = null;
+            }
+          }
+
+          if (imgDataUrl) {
+            cloneImg.removeAttribute("srcset");
+            cloneImg.src = imgDataUrl;
+            if (typeof cloneImg.decode === "function") {
+              await cloneImg.decode().catch(() => {});
+            }
+          }
+        }),
+      );
+
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+
+      const dataUrl = await toPng(exportInner, {
+        pixelRatio: 2,
+        // A exportação segue o tema ativo: base de corte escura exporta fundo escuro.
+        backgroundColor: exportBg,
+      });
+
+      exportHost.remove();
+      exportHost = null;
 
       const filename = `grade-unb-${year}-${period}.png`;
       const shareTitle = `Grade Horária ${year}.${period} • UnB`;
@@ -271,6 +370,7 @@ export const GradeBuilderScreen: React.FC = () => {
         type: "error",
       });
     } finally {
+      exportHost?.remove();
       setIsExportingPng(false);
     }
   };

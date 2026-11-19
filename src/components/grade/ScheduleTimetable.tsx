@@ -93,11 +93,7 @@ export const ScheduleTimetable = memo(forwardRef<
               src="/sarue-logo.png"
               alt=""
               aria-hidden="true"
-              className={`w-9 h-9 rounded-xl border-2 border-ink shrink-0 object-cover select-none pointer-events-none ${
-                inSheet
-                  ? "shadow-none"
-                  : "shadow-[2px_2px_0px_0px_var(--neo-shadow)]"
-              }`}
+              className="w-9 h-9 rounded-xl border-2 border-ink shrink-0 object-cover select-none pointer-events-none shadow-none"
             />
             <div className="min-w-0">
               <h3 className="text-xs sm:text-sm font-black uppercase text-blue-ink tracking-tight truncate">
@@ -187,6 +183,10 @@ export const ScheduleTimetable = memo(forwardRef<
               <span className="hidden md:inline">Baixar PNG</span>
             </Button>
           </div>
+
+          <span className="hidden export-only text-xs font-black text-blue-ink tracking-tight shrink-0">
+            sarue.app.br
+          </span>
         </div>
 
         {/* Grade rolável apenas na tabela de horários, mantendo coluna de Horário fixa */}
