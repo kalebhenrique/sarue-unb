@@ -666,23 +666,17 @@ export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }
                     key={d.code}
                     className="bg-neutral-50 border-2 border-ink rounded-lg p-2.5 shadow-neo-sm flex items-center justify-between"
                   >
-                    <div className="min-w-0 pr-2">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-[11px] font-bold text-neutral-700">
-                          {d.code}
-                        </span>
-                        {d.workloadHours && (
-                          <span className="text-[11px] font-bold text-neutral-600">
-                            {d.workloadHours}h
-                          </span>
-                        )}
-                      </div>
+                    <div className="min-w-0 pr-2 space-y-0.5">
                       <p
-                        className="text-xs font-black truncate text-black"
+                        className="text-sm font-medium leading-snug line-clamp-2 text-black"
                         title={d.name}
                       >
                         {d.name}
                       </p>
+                      <span className="text-xs font-medium text-neutral-600 block truncate">
+                        {d.code}
+                        {d.workloadHours ? ` • ${d.workloadHours}h` : ""}
+                      </span>
                     </div>
 
                     <span className="text-[11px] font-black px-1.5 py-0.5 bg-neo-green text-ink border border-ink rounded-md shrink-0">

@@ -1,11 +1,6 @@
 import React, { useState } from "react";
 import type { FlowchartDiscipline, FlowchartSemester } from "@/core";
-import {
-  CircleDotDashed,
-  Lock,
-  Unlock,
-  CalendarPlus,
-} from "lucide-react";
+import { CircleDotDashed, Lock, Unlock, CalendarPlus } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -151,7 +146,7 @@ const DisciplineRow: React.FC<{
       <div className="flex-1 min-w-0 space-y-1">
         {/* Linha 1: Apenas o nome da disciplina em destaque */}
         <p
-          className="text-sm font-medium leading-snug line-clamp-2"
+          className="text-sm font-semibold leading-snug line-clamp-2"
           title={`${d.code} - ${d.name}`}
         >
           <span

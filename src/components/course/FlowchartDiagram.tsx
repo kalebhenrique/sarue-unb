@@ -146,7 +146,7 @@ function DisciplineNode({ data }: NodeProps<DisciplineFlowNode>) {
                   <button
                     type="button"
                     aria-label={`Opções para ${d.code} - ${d.name}`}
-                    className={`group w-[212px] h-[78px] min-h-[78px] p-2 flex flex-col gap-1 text-left border-2 border-ink rounded-lg shadow-(--neo-card-shadow) cursor-pointer transition-[transform,box-shadow,opacity] duration-150 ease-out hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_var(--neo-shadow)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 select-none ${stickerBg} ${
+                    className={`group w-[212px] h-[78px] min-h-[78px] p-2 flex flex-col justify-between gap-1 text-left border-2 border-ink rounded-lg shadow-(--neo-card-shadow) cursor-pointer transition-[transform,box-shadow,opacity] duration-150 ease-out hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_var(--neo-shadow)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 select-none ${stickerBg} ${
                       dim ? "opacity-30" : "opacity-100"
                     }`}
                   />
@@ -154,15 +154,17 @@ function DisciplineNode({ data }: NodeProps<DisciplineFlowNode>) {
               />
             }
           >
-            <span className="flex items-center gap-1.5 w-full min-w-0">
-              <span className={`text-[11px] font-bold shrink-0 ${textColor}`}>
-                {d.code}
+            <span
+              className={`text-[11px] font-black leading-[1.25] line-clamp-2 ${textColor}`}
+              title={d.name}
+            >
+              {d.name}
+            </span>
+
+            <span className="flex items-center gap-1 w-full min-w-0">
+              <span className={`text-[11px] font-bold truncate ${metaColor}`}>
+                {d.code} • {d.workloadHours}h
               </span>
-              {isOptativa && (
-                <span className="text-[11px] font-black uppercase px-1.5 py-0.5 bg-neo-purple text-ink border-2 border-ink rounded-full shrink-0 shadow-none">
-                  Optativa
-                </span>
-              )}
               <span
                 className="ml-auto text-[11px] font-black px-1 py-px bg-paper border border-ink rounded text-black shrink-0"
                 title={d.level === 0 ? "Optativa de interesse" : `${d.level}º semestre sugerido`}
@@ -198,20 +200,12 @@ function DisciplineNode({ data }: NodeProps<DisciplineFlowNode>) {
                 {s.icon}
               </button>
             </span>
-
-            <span
-              className={`text-[11px] font-black leading-[1.25] line-clamp-2 ${textColor}`}
-              title={d.name}
-            >
-              {d.name}
-            </span>
-            <span className={`text-[11px] font-bold ${metaColor}`}>{d.workloadHours}h</span>
           </TooltipTrigger>
 
           <TooltipContent className="pointer-events-none text-left max-w-[260px]">
             <p className="font-black">{d.name}</p>
-            <p className="font-mono text-[11px] font-bold text-neutral-600 mb-1">
-              {d.code} · {d.workloadHours}h · {d.level === 0 ? "Optativa" : `${d.level}º semestre`} {isOptativa ? "· Optativa de interesse" : ""}
+            <p className="text-[11px] font-bold text-neutral-600 mb-1">
+              {d.code} • {d.workloadHours}h • {d.level === 0 ? "Optativa" : `${d.level}º semestre`} {isOptativa ? "• Optativa de interesse" : ""}
             </p>
             <p className="font-bold">
               {s.label}
@@ -239,12 +233,12 @@ function DisciplineNode({ data }: NodeProps<DisciplineFlowNode>) {
 
         <DropdownMenuContent side="bottom" align="start" className="w-64 p-1.5 shadow-(--neo-card-shadow) border-2 border-ink bg-paper">
           <div className="px-2 py-1.5 mb-1 border-b-2 border-ink/10">
-            <span className="font-mono text-[10px] font-black uppercase text-neutral-500">
-              {d.code} · {d.workloadHours}h
-            </span>
-            <p className="text-xs font-black text-black leading-tight line-clamp-2 mt-0.5">
+            <p className="text-xs font-black text-black leading-tight line-clamp-2">
               {d.name}
             </p>
+            <span className="text-[11px] font-medium text-neutral-600 mt-0.5 block">
+              {d.code} • {d.workloadHours}h
+            </span>
           </div>
 
           <DropdownMenuItem
