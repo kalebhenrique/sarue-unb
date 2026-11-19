@@ -15,6 +15,7 @@ import { AppBootSkeleton } from './components/boot/AppBootSkeleton';
 import { TooltipProvider, Toaster, ErrorBoundary } from '@/components/ui';
 import { useCredentials } from './hooks/useCredentials';
 import { useUpdateAvailable } from './hooks/useAppUpdater';
+import { useDesktopRuSidebar } from './hooks/useDesktopRuSidebar';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { SyncProvider, useSync } from './context/SyncContext';
 import { DeadlineProvider } from './context/DeadlineContext';
@@ -59,6 +60,7 @@ const AppShell: React.FC = () => {
 
   const [step, setStep] = useState<AppStep>('onboarding');
   const isMobile = useMediaQuery('(max-width: 767px)');
+  const { isHidden: isRuHiddenInDesktop } = useDesktopRuSidebar();
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [currentCalendar, setCurrentCalendar] = useState<AcademicCalendar | null>(null);
@@ -106,6 +108,15 @@ const AppShell: React.FC = () => {
   React.useEffect(() => {
     setOnboardingNotificationsBlocked(step === 'onboarding');
   }, [step]);
+
+  // Carteirinha é exclusiva do mobile; Cardápio RU pode ser ocultado na sidebar desktop
+  React.useEffect(() => {
+    if (!isMobile && currentTab === 'wallet') {
+      setCurrentTab('home');
+    } else if (!isMobile && isRuHiddenInDesktop && currentTab === 'ru') {
+      setCurrentTab('home');
+    }
+  }, [isMobile, isRuHiddenInDesktop, currentTab]);
 
   // Usuário recorrente pula o onboarding na abertura do app: credenciais salvas
   // (entra sincronizando) ou, como fallback, dados locais de uso anterior (modo
@@ -196,7 +207,7 @@ const AppShell: React.FC = () => {
             {currentTab === 'home' && <DashboardScreen />}
             {currentTab === 'courses' && <CoursesScreen />}
             {currentTab === 'ru' && <RuScreen />}
-            {currentTab === 'wallet' && <WalletScreen />}
+            {currentTab === 'wallet' && isMobile && <WalletScreen />}
             {currentTab === 'grade' && <GradeBuilderScreen />}
             {currentTab === 'calendar' && <CalendarScreen />}
             {currentTab === 'my-course' && <MyCourseScreen onOpenSettings={() => setCurrentTab('settings')} />}

@@ -15,6 +15,7 @@ export const STORAGE_KEYS = {
   AUTOSTART: 'sarue_autostart_enabled',
   BACKGROUND_RUN: 'sarue_background_run_enabled',
   SYNC_ONLY_ON_WIFI: 'sarue_sync_only_on_wifi',
+  HIDE_RU_DESKTOP_SIDEBAR: 'sarue_hide_ru_desktop_sidebar',
   NOTIFICATION_SETTINGS: 'sarue_notification_settings_v1',
   RU_NOTIFIED_MEALS: 'sarue_ru_notified_meals_v1',
   RU_SCHEDULED_NOTIF_IDS: 'sarue_ru_scheduled_notif_ids_v1',

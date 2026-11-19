@@ -45,6 +45,7 @@ import {
 import { useAppUpdater } from "../hooks/useAppUpdater";
 import { useAutostart } from "../hooks/useAutostart";
 import { useBackgroundRun } from "../hooks/useBackgroundRun";
+import { useDesktopRuSidebar } from "../hooks/useDesktopRuSidebar";
 import { useSyncOnlyOnWifi } from "../hooks/useSyncOnlyOnWifi";
 import { useNotificationSettings } from "../hooks/useNotificationSettings";
 import {
@@ -100,6 +101,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     toggle: toggleBackgroundRun,
     isLoading: isBackgroundRunLoading,
   } = useBackgroundRun();
+  const {
+    isHidden: isRuHiddenInDesktopSidebar,
+    setHidden: setRuHiddenInDesktopSidebar,
+  } = useDesktopRuSidebar();
   const {
     isEnabled: isSyncOnlyOnWifiEnabled,
     toggle: toggleSyncOnlyOnWifi,
@@ -268,8 +273,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                     Sincronizar apenas no Wi-Fi
                   </span>
                   <p className="text-xs font-semibold text-neutral-600 leading-snug mt-0.5">
-                    Pausa a atualização automática em segundo plano quando estiver
-                    usando dados móveis (4G/5G) ou roteador.
+                    Pausa a atualização automática em segundo plano quando
+                    estiver usando dados móveis (4G/5G) ou roteador.
                   </p>
                 </div>
                 <Switch
@@ -312,8 +317,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                     Rodar em segundo plano
                   </span>
                   <p className="text-xs font-semibold text-neutral-600 leading-snug mt-0.5">
-                    Mantém o Saruê ativo na bandeja para não perder prazos e sincroniza
-                    a cada 6 horas automaticamente.
+                    Mantém o Saruê ativo na bandeja para não perder prazos e
+                    sincroniza a cada 6 horas automaticamente.
                   </p>
                 </div>
                 <Switch
@@ -321,6 +326,26 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                   disabled={isBackgroundRunLoading}
                   onCheckedChange={toggleBackgroundRun}
                   aria-label="Rodar em segundo plano"
+                  className="shrink-0"
+                />
+              </div>
+            )}
+
+            {/* Ocultar Cardápio RU da barra lateral no desktop */}
+            {!isMobileDevice() && (
+              <div className="flex items-center justify-between gap-4 py-1">
+                <div className="max-w-md">
+                  <span className="text-xs font-black text-black block">
+                    Ocultar Cardápio RU
+                  </span>
+                  <p className="text-xs font-semibold text-neutral-600 leading-snug mt-0.5">
+                    Remove o atalho do Cardápio do RU da barra lateral.
+                  </p>
+                </div>
+                <Switch
+                  checked={isRuHiddenInDesktopSidebar}
+                  onCheckedChange={setRuHiddenInDesktopSidebar}
+                  aria-label="Ocultar Cardápio RU da barra lateral"
                   className="shrink-0"
                 />
               </div>
@@ -486,8 +511,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       {RU_MEAL_ORDER.map((meal: RuMealType) => {
-                        const checked =
-                          notificationSettings.ruMenu.meals[meal];
+                        const checked = notificationSettings.ruMenu.meals[meal];
                         const meta = MEAL_METADATA[meal];
                         const schedule = RU_MEAL_NOTIFICATION_TIMES[meal];
                         const MealIcon =
@@ -591,9 +615,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                         setZoomPercent(Array.isArray(value) ? value[0] : value);
                       }}
                       onValueCommitted={(value) => {
-                        const percent = Array.isArray(value)
-                          ? value[0]
-                          : value;
+                        const percent = Array.isArray(value) ? value[0] : value;
                         const next =
                           typeof percent === "number" ? percent / 100 : NaN;
                         if (Number.isFinite(next) && next !== uiZoom) {
@@ -671,11 +693,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         {/* Sobre: versão, patch notes, licença e redes, sem rótulo de seção */}
         <section>
           <div className="flex flex-col items-center text-center pt-2">
-            {isMobileDevice() && (
-              <div className="mb-6">
-                <FeedbackWidget screen="Configurações" variant="inline" />
-              </div>
-            )}
+            <div className="mb-6">
+              <FeedbackWidget screen="Configurações" variant="inline" />
+            </div>
 
             <img
               src="/sarue-sleep.png"
@@ -703,7 +723,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               GitHub.
             </p>
 
-             <Button
+            <Button
               type="button"
               variant="ghost"
               size="sm"
@@ -714,12 +734,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               <Heart className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Contribuidores</span>
             </Button>
-
-            {!isMobileDevice() && (
-              <div className="mt-4">
-                <FeedbackWidget screen="Configurações" variant="inline" />
-              </div>
-            )}
 
             <span className="text-xs font-bold text-neutral-600 mt-4">
               © {new Date().getFullYear()} Kaleb Henrique

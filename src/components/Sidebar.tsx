@@ -23,6 +23,7 @@ import { SyncStatusTooltip, SyncStatusSummaryDialog } from "./SyncStatusTooltip"
 import { DeadlineBell } from "./notifications/DeadlineBell";
 import { useDeadlines } from "../context/DeadlineContext";
 import { useUpdateAvailable } from "../hooks/useAppUpdater";
+import { useDesktopRuSidebar } from "../hooks/useDesktopRuSidebar";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import type { SyncStepInfo } from "../context/SyncContext";
 
@@ -74,6 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const hookHasUpdateAvailable = useUpdateAvailable();
   const hasUpdate = propHasUpdateAvailable ?? hookHasUpdateAvailable;
   const { badgeCount } = useDeadlines();
+  const { isHidden: isRuHiddenInDesktop } = useDesktopRuSidebar();
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [mobileSyncDialogOpen, setMobileSyncDialogOpen] = React.useState(false);
 
@@ -139,8 +141,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { id: "home" as NavTab, label: "Home", icon: Home },
     { id: "courses" as NavTab, label: "Disciplinas", icon: BookOpen },
-    { id: "ru" as NavTab, label: "Cardápio RU", icon: Utensils },
-    { id: "wallet" as NavTab, label: "Carteirinha", icon: IdCard },
     { id: "grade" as NavTab, label: "Montar Grade", icon: SquareKanban },
     { id: "calendar" as NavTab, label: "Calendário", icon: CalendarDays },
     {
@@ -149,6 +149,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: MessageSquareQuote,
     },
     { id: "my-course" as NavTab, label: "Meu Curso", icon: GraduationCap },
+    ...(!isRuHiddenInDesktop
+      ? [{ id: "ru" as NavTab, label: "Cardápio RU", icon: Utensils }]
+      : []),
     { id: "settings" as NavTab, label: "Configurações", icon: Settings },
   ];
 
