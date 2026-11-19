@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, IdCard } from 'lucide-react';
 import {
   formatCpfDisplay,
   formatValidityDisplay,
@@ -43,8 +43,6 @@ export const StudentCardModal: React.FC<StudentCardModalProps> = ({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [card, onClose]);
 
-  const ruQrValue =
-    wallet.ruCardCode || wallet.matricula || 'UNB-SEM-MATRICULA';
   const bceQrValue = wallet.cpfDigits || '';
 
   const modalTree = (
@@ -114,39 +112,43 @@ export const StudentCardModal: React.FC<StudentCardModalProps> = ({
               </div>
             ) : (
               <div className="flex-1 px-5 py-6 flex flex-col items-center justify-between gap-5 min-h-0 overflow-y-auto">
-                {/* Bloco QR Code Centralizado de Alto Contraste para Leitor Óptico */}
-                <div className="shrink-0 flex flex-col items-center justify-center gap-2 pt-1">
-                  <div className="p-4 bg-white border-2 border-ink rounded-2xl shadow-neo-sm flex items-center justify-center">
-                    {card === 'ru' ? (
-                      <QRCodeSVG
-                        value={ruQrValue}
-                        size={220}
-                        bgColor="#FFFFFF"
-                        fgColor="#000000"
-                        level="M"
-                      />
-                    ) : bceQrValue ? (
-                      <QRCodeSVG
-                        value={bceQrValue}
-                        size={220}
-                        bgColor="#FFFFFF"
-                        fgColor="#000000"
-                        level="M"
-                      />
-                    ) : (
-                      <div className="w-52 h-52 flex items-center justify-center text-center p-4">
-                        <p className="text-xs font-black text-ink">
-                          CPF não encontrado. Sincronize pela barra principal.
-                        </p>
-                      </div>
-                    )}
+                {/* Bloco Central: Empty State (Carteirinha Oficial sem PDF) ou QR Code de Alto Contraste (BCE) */}
+                {card === 'ru' ? (
+                  <div className="w-full py-6 px-4 rounded-2xl bg-pastel-blue border-2 border-ink flex flex-col items-center justify-center gap-2.5 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-paper border-2 border-ink flex items-center justify-center">
+                      <IdCard className="w-6 h-6 stroke-[2.5] text-blue-ink" />
+                    </div>
+                    <p className="text-sm font-black text-black">
+                      PDF oficial ainda não sincronizado
+                    </p>
+                    <p className="text-xs font-bold text-neutral-700 max-w-xs">
+                      Sincronize sua conta do SIGAA para emitir e visualizar o PDF oficial da carteirinha estudantil.
+                    </p>
                   </div>
-                  <span className="text-sm font-black font-mono text-black tracking-wider">
-                    {card === 'ru'
-                      ? wallet.ruCardCode || wallet.matricula
-                      : wallet.cpfDigits || 'CPF INDISPONÍVEL'}
-                  </span>
-                </div>
+                ) : (
+                  <div className="shrink-0 flex flex-col items-center justify-center gap-2 pt-1">
+                    <div className="p-4 bg-white border-2 border-ink rounded-2xl shadow-neo-sm flex items-center justify-center">
+                      {bceQrValue ? (
+                        <QRCodeSVG
+                          value={bceQrValue}
+                          size={220}
+                          bgColor="#FFFFFF"
+                          fgColor="#000000"
+                          level="M"
+                        />
+                      ) : (
+                        <div className="w-52 h-52 flex items-center justify-center text-center p-4">
+                          <p className="text-xs font-black text-ink">
+                            CPF não encontrado. Sincronize pela barra principal.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-sm font-black font-mono text-black tracking-wider">
+                      {wallet.cpfDigits || 'CPF INDISPONÍVEL'}
+                    </span>
+                  </div>
+                )}
 
                 {/* Dados do Discente empilhados verticalmente */}
                 <div className="w-full space-y-3 pt-4 border-t-2 border-black/15">

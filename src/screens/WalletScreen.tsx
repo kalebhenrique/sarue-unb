@@ -12,6 +12,7 @@ import {
   formatValidityDisplay,
   formatCurrencyBrl,
 } from "../hooks/useStudentWallet";
+import { useCredentials } from "../hooks/useCredentials";
 import { PageHeader } from "@/components/ui/page-header";
 import {
   StudentCardModal,
@@ -56,6 +57,8 @@ function toLandscapeCardDataUrl(dataUrl: string): Promise<string> {
 
 export const WalletScreen: React.FC = () => {
   const { wallet } = useStudentWallet();
+  const { hasCredentials } = useCredentials();
+  const isLoggedIn = Boolean(hasCredentials);
   const [expandedCard, setExpandedCard] = useState<WalletCardId | null>(null);
   const [landscapeCard, setLandscapeCard] = useState<{
     source: string;
@@ -82,13 +85,14 @@ export const WalletScreen: React.FC = () => {
       ? landscapeCard.dataUrl
       : wallet.renderedCardDataUrl;
 
-  const ruQrValue =
-    wallet.ruCardCode || wallet.matricula || "UNB-SEM-MATRICULA";
   const bceQrValue = wallet.cpfDigits || "";
   const hasOfficialPdf = Boolean(
     wallet.renderedCardDataUrl || wallet.ruCardPdfBase64,
   );
 
+  const interactiveCardClasses = isLoggedIn
+    ? "cursor-pointer transition-[transform,box-shadow] duration-150 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs md:hover:translate-x-[2px] md:hover:translate-y-[2px] md:hover:shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none md:active:translate-x-[4px] md:active:translate-y-[4px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue"
+    : "cursor-default";
 
   return (
     <div className="max-w-4xl mx-auto pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-12 space-y-5">
@@ -103,9 +107,10 @@ export const WalletScreen: React.FC = () => {
         {/* CARTÃO 1: Carteirinha Estudantil Oficial em PDF (SIGAA UnB / Cinema / RU) */}
         <button
           type="button"
-          onClick={() => setExpandedCard("ru")}
+          disabled={!isLoggedIn}
+          onClick={isLoggedIn ? () => setExpandedCard("ru") : undefined}
           aria-label="Abrir Carteirinha Estudantil Oficial em PDF em tela cheia"
-          className="cursor-pointer group relative w-full text-left bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo overflow-hidden flex flex-col justify-between transition-[transform,box-shadow] duration-150 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs md:hover:translate-x-[2px] md:hover:translate-y-[2px] md:hover:shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none md:active:translate-x-[4px] md:active:translate-y-[4px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue"
+          className={`group relative w-full text-left bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo overflow-hidden flex flex-col justify-between ${interactiveCardClasses}`}
         >
           {/* Faixa Superior Institucional UnB */}
           <div className="bg-neo-blue text-white px-4 py-2.5 border-b-2 border-ink flex items-center justify-between gap-2">
@@ -115,10 +120,12 @@ export const WalletScreen: React.FC = () => {
                 Carteirinha
               </span>
             </div>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-ink border-2 border-ink text-xs font-extrabold uppercase tracking-wide shrink-0">
-              <Maximize2 className="w-3 h-3 stroke-[2.5]" />
-              <span>Ampliar</span>
-            </span>
+            {isLoggedIn && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-ink border-2 border-ink text-xs font-extrabold uppercase tracking-wide shrink-0">
+                <Maximize2 className="w-3 h-3 stroke-[2.5]" />
+                <span>Ampliar</span>
+              </span>
+            )}
           </div>
 
           {/* Corpo: PDF Oficial do SIGAA deitado (landscape) no preview; no modal ele gira pra ficar em pé */}
@@ -140,69 +147,63 @@ export const WalletScreen: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="p-4 sm:p-5 flex items-center justify-between gap-4">
-              <div className="min-w-0 flex-1 space-y-2">
-                <div>
-                  <p className="text-xs font-extrabold uppercase tracking-wider text-neutral-500">
-                    Discente
-                  </p>
-                  <p className="text-sm sm:text-base font-black text-black leading-tight line-clamp-2">
-                    {wallet.studentName}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
+            <div className="h-52 p-4 flex flex-col justify-between gap-3">
+              <div className="flex items-start justify-between gap-3 min-w-0">
+                <div className="min-w-0 flex-1 space-y-2">
                   <div>
                     <p className="text-xs font-extrabold uppercase tracking-wider text-neutral-500">
-                      Matrícula
+                      Discente
                     </p>
-                    <p className="text-xs sm:text-sm font-black font-mono text-black">
-                      {wallet.matricula || "—"}
+                    <p className="text-sm sm:text-base font-black text-black leading-tight line-clamp-1">
+                      {wallet.studentName}
                     </p>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-xs font-extrabold uppercase tracking-wider text-neutral-500">
+                        Matrícula
+                      </p>
+                      <p className="text-xs sm:text-sm font-black font-mono text-black">
+                        {wallet.matricula || "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-extrabold uppercase tracking-wider text-neutral-500">
+                        Validade
+                      </p>
+                      <p className="text-xs sm:text-sm font-black text-black">
+                        {formatValidityDisplay(wallet.ruCardValidity)}
+                      </p>
+                    </div>
+                  </div>
+
                   <div>
                     <p className="text-xs font-extrabold uppercase tracking-wider text-neutral-500">
-                      Validade
+                      Curso • {wallet.level}
                     </p>
-                    <p className="text-xs sm:text-sm font-black text-black">
-                      {formatValidityDisplay(wallet.ruCardValidity)}
+                    <p className="text-xs font-extrabold text-neutral-700 truncate">
+                      {wallet.courseName}
                     </p>
                   </div>
                 </div>
 
-                <div>
-                  <p className="text-xs font-extrabold uppercase tracking-wider text-neutral-500">
-                    Curso • {wallet.level}
-                  </p>
-                  <p className="text-xs font-extrabold text-neutral-700 truncate">
-                    {wallet.courseName}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-neo-yellow text-ink border border-ink text-xs font-black">
-                    <FileText className="w-3 h-3 stroke-[2.5]" />
-                    <span>
-                      {hasOfficialPdf
-                        ? "PDF Oficial Disponível"
-                        : "Sincronize na barra lateral para baixar o PDF oficial"}
-                    </span>
-                  </span>
+                <div
+                  aria-hidden="true"
+                  className="w-14 h-14 rounded-xl bg-pastel-blue border-2 border-ink flex items-center justify-center shrink-0"
+                >
+                  <IdCard className="w-7 h-7 stroke-[2.25] text-blue-ink" />
                 </div>
               </div>
 
-              <div className="shrink-0 flex flex-col items-center gap-1">
-                <div className="p-4 bg-white border-2 border-ink rounded-xl shadow-neo-xs flex items-center justify-center">
-                  <QRCodeSVG
-                    value={ruQrValue}
-                    size={76}
-                    bgColor="#FFFFFF"
-                    fgColor="#000000"
-                    level="M"
-                  />
-                </div>
-                <span className="text-xs font-black font-mono text-neutral-500">
-                  {wallet.ruCardCode || "Acesso RU"}
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-neo-yellow text-ink border-2 border-ink text-xs font-black">
+                <FileText className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />
+                <span className="truncate">
+                  {hasOfficialPdf
+                    ? "PDF Oficial Disponível"
+                    : isLoggedIn
+                      ? "Sincronize para baixar o PDF oficial da carteirinha"
+                      : "Conecte o SIGAA em Configurações para emitir sua carteirinha"}
                 </span>
               </div>
             </div>
@@ -212,9 +213,10 @@ export const WalletScreen: React.FC = () => {
         {/* CARTÃO 2: Cartão Biblioteca Central (BCE UnB — QR Code CPF tipo texto) */}
         <button
           type="button"
-          onClick={() => setExpandedCard("bce")}
+          disabled={!isLoggedIn}
+          onClick={isLoggedIn ? () => setExpandedCard("bce") : undefined}
           aria-label="Abrir Cartão da Biblioteca Central BCE em tela cheia"
-          className="cursor-pointer group relative w-full text-left bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo overflow-hidden flex flex-col justify-between transition-[transform,box-shadow] duration-150 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs md:hover:translate-x-[2px] md:hover:translate-y-[2px] md:hover:shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none md:active:translate-x-[4px] md:active:translate-y-[4px] focus-visible:ring-2 focus-visible:ring-neo-blue"
+          className={`group relative w-full text-left bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo overflow-hidden flex flex-col justify-between ${interactiveCardClasses}`}
         >
           {/* Faixa Superior BCE */}
           <div className="bg-unb-green text-white px-4 py-2.5 border-b-2 border-ink flex items-center justify-between gap-2">
@@ -224,10 +226,12 @@ export const WalletScreen: React.FC = () => {
                 QR Code BCE
               </span>
             </div>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-ink border-2 border-ink text-xs font-extrabold uppercase tracking-wide shrink-0">
-              <Maximize2 className="w-3 h-3 stroke-[2.5]" />
-              <span>Ampliar</span>
-            </span>
+            {isLoggedIn && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-ink border-2 border-ink text-xs font-extrabold uppercase tracking-wide shrink-0">
+                <Maximize2 className="w-3 h-3 stroke-[2.5]" />
+                <span>Ampliar</span>
+              </span>
+            )}
           </div>
 
           {/* Corpo Horizontal do Cartão BCE */}
@@ -357,7 +361,7 @@ export const WalletScreen: React.FC = () => {
 
       {/* Modal Tela Cheia Vertical com Animação de Giro 90° (UnB e BCE) */}
       <StudentCardModal
-        card={expandedCard}
+        card={isLoggedIn ? expandedCard : null}
         wallet={wallet}
         onClose={() => setExpandedCard(null)}
       />
