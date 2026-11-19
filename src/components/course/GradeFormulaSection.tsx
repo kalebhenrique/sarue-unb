@@ -217,7 +217,7 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
           }}
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-ink/10 border-2 border-ink flex items-center justify-center text-blue-ink shrink-0 group-hover:bg-blue-ink/20 transition-colors">
+            <div className="w-9 h-9 rounded-lg bg-sticker-blue border-2 border-ink flex items-center justify-center text-ink shrink-0">
               <Calculator className="w-5 h-5 stroke-[2.5]" />
             </div>
             <h3 className="text-sm font-black text-black group-hover:text-blue-ink transition-colors">

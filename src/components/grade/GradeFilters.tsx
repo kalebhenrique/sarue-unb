@@ -73,7 +73,7 @@ export const GradeFilters: React.FC<GradeFiltersProps> = ({
       {/* Cabeçalho da seção de busca (desktop) */}
       <div className="hidden md:flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-blue-ink/10 border-2 border-ink flex items-center justify-center text-blue-ink shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-sticker-blue border-2 border-ink flex items-center justify-center text-ink shrink-0">
             <Search className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div className="min-w-0">

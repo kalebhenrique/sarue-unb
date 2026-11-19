@@ -273,7 +273,7 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
       {/* Header do Catálogo */}
       <div className="px-4 py-3 border-b-2 border-ink flex items-center justify-between gap-3 bg-paper">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-blue-ink/10 border-2 border-ink flex items-center justify-center text-blue-ink shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-neo-yellow border-2 border-ink flex items-center justify-center text-ink shrink-0">
             <LibraryBig className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div className="flex items-center gap-2">
@@ -379,7 +379,7 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
         </div>
       ) : filteredDisciplines.length === 0 ? (
         <div className="p-8 text-center bg-paper space-y-2">
-          <div className="w-10 h-10 mx-auto bg-pastel-blue border-2 border-ink rounded-xl shadow-[2px_2px_0px_0px_var(--neo-shadow)] flex items-center justify-center">
+          <div className="w-10 h-10 mx-auto bg-pastel-blue border-2 border-ink rounded-xl flex items-center justify-center">
             <Search className="w-4 h-4 stroke-[2.5] text-blue-ink" />
           </div>
           <p className="text-xs font-extrabold text-black">

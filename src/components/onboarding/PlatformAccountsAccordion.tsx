@@ -508,7 +508,7 @@ export const PlatformAccountsAccordion: React.FC<
                 className={`w-full flex items-center gap-3 p-4 text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 transition-colors duration-150 ${isLocked ? "cursor-not-allowed" : "cursor-pointer hover:bg-black/[0.03]"}`}
               >
                 <div
-                  className={`w-9 h-9 shrink-0 ${p.block} border-2 border-ink rounded-lg shadow-[2px_2px_0px_0px_var(--neo-shadow)] flex items-center justify-center`}
+                  className={`w-9 h-9 shrink-0 ${p.block} border-2 border-ink rounded-lg flex items-center justify-center`}
                 >
                   {p.icon}
                 </div>

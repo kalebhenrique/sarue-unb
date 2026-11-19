@@ -538,7 +538,7 @@
       {
         "name": "neo-xs",
         "value": "1px 1px 0px 0px var(--neo-shadow, #000)",
-        "purpose": "Micro-adesivo: checkbox, blocos de ícone, pills inline, badge de didática."
+        "purpose": "Micro-adesivo: checkbox, pills inline, badge de didática e micro-ações flutuantes."
       },
       {
         "name": "neo-sm",
@@ -866,7 +866,7 @@
       "Do usar Plus Jakarta Sans e ícones Lucide com stroke 2.5 (check de checkbox stroke 3); rótulos estruturais em uppercase bold 11–12px; códigos de disciplina em pill font-mono ou em texto corrido com o nome (\"CIC0004 - Nome\") nas listas do Fluxograma (A Regra do Código em Máquina).",
       "Do usar as cores de plataforma como identidade fixa (Sigaa verde #3B8748, Aprender 3 azul UnB #468AFB, Teams roxo Fluent #5B5FC7) em badges e filtros — tokens que não remapam no escuro.",
       "Do usar raio e sombra como affordance (A Regra dos Dois Adesivos): ação 12–16px + sombra 2px; conteúdo 8px + sombra 4px; painel de pausa/métrica 12px; campo 12px sem sombra.",
-      "Do usar Micro-adesivo 1px (neo-xs) em checkbox, blocos de ícone, pills inline, badge de didática e micro-ações flutuantes; badge fica sem sombra.",
+      "Do usar Micro-adesivo 1px (neo-xs) em checkbox, pills inline, badge de didática e micro-ações flutuantes; badges e blocos de ícone (plataformas, cards de métrica do Meu Curso, seções de Disciplinas e Montar Grade) ficam sem sombra e vestem o padrão colorido sólido vibrante com text-ink nos dois temas.",
       "Do usar o vocabulário fechado de status do Fluxograma (verde concluída, azul cursando, amarelo disponível, cinza bloqueada, lilás optativa) em mapa, lista e minimapa.",
       "Do vestir evento do Calendário com exatamente uma família (A Regra da Etiqueta da Família): Acadêmico azul #468AFB, Tarefa do Feed amarela #EAB308, Meu Evento verde #16A34A — o mesmo trio pastel + borda viva + tinta da Grade Horária, repetido no bloco do mês, no check do filtro e na Badge do card.",
       "Do dar som mecânico só com opt-in, nunca na navegação nem em elemento desabilitado (A Regra do Clique Mecânico).",
@@ -892,6 +892,7 @@
       "Don't colocar texto pequeno branco sobre Azul Caneta (#468AFB) ou Vermelho Correção (#FF6B6B) — são marca/borda/acento; fundo interativo sob texto branco é Azul Caneta Ação (#2563EB) ou Vermelho Correção Forte (#DC2626).",
       "Don't vestir conteúdo de botão (raio grande + sombra leve) ou botão de conteúdo (raio reto + sombra funda) — e hover nunca levanta o adesivo: sombra só cresce se o elemento for card clicável seguindo a escala 4px.",
       "Don't usar font-mono fora de códigos de disciplina e metadados de máquina — o código é carimbo, o nome é escrita à mão (A Regra do Código em Máquina).",
+      "Don't usar blocos de ícone monocromáticos translúcidos (bg-blue-ink/10), pastéis apagados ou com sombra em cabeçalhos de seção, cards de métrica ou gavetas de plataforma — todo bloco de ícone de seção/métrica é rounded-lg border-2 border-ink sem sombra, com cor sólida vibrante e text-ink nos dois temas.",
       "Don't criar elemento mobile <48px sem hit-area estendida, texto <12px, ou dropdown ancorado no mobile.",
       "Don't deixar card com sombra de 4px abaixo de md ou tapbar com rotulos de texto que apertem os alvos de 48px."
     ]

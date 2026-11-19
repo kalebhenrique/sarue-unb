@@ -67,7 +67,7 @@ export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
     <Card className={`p-4 space-y-4 ${inSheet ? "shadow-none! [&_[data-slot=button]]:shadow-none!" : ""}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-blue-ink/10 border-2 border-ink flex items-center justify-center text-blue-ink shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-neo-green border-2 border-ink flex items-center justify-center text-ink shrink-0">
             <BookMarked className="w-5 h-5 stroke-[2.5]" />
           </div>
           <h3 className="text-sm font-extrabold tracking-tight text-black">
