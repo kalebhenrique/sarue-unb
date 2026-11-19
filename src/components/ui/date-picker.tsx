@@ -14,6 +14,7 @@ export interface DatePickerProps {
   disabled?: boolean
   placeholder?: string
   className?: string
+  align?: "start" | "center" | "end"
 }
 
 function parseIsoDate(iso: string): Date | undefined {
@@ -49,6 +50,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   disabled = false,
   placeholder = "Selecionar data",
   className,
+  align = "start",
 }) => {
   const [open, setOpen] = React.useState(false)
   const selectedDate = React.useMemo(() => parseIsoDate(value), [value])
@@ -72,7 +74,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Positioner
           side="bottom"
-          align="start"
+          align={align}
           sideOffset={6}
           className="isolate z-50"
         >

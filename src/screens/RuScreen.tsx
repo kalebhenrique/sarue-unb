@@ -37,15 +37,11 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { DatePicker } from '@/components/ui/date-picker';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useRuMenu } from '../hooks/useRuMenu';
 import { useStudentWallet } from '../hooks/useStudentWallet';
+import { useCredentials } from '../hooks/useCredentials';
 import { PageContainer } from '@/components/ui/page-container';
 import { PageHeader } from '@/components/ui/page-header';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
@@ -241,7 +237,9 @@ const BentoGroupSection: React.FC<BentoGroupSectionProps> = ({ group }) => {
 export const RuScreen: React.FC = () => {
   const { campus, setCampus, menus, isLoading, error } = useRuMenu();
   const { wallet } = useStudentWallet();
+  const { hasCredentials } = useCredentials();
   const isMobile = useMediaQuery('(max-width: 767px)');
+  const showWalletFab = isMobile && Boolean(hasCredentials);
   const [cardModalOpen, setCardModalOpen] = useState(false);
 
   const todayIso = useMemo(() => getBrasiliaTodayIso(), []);
@@ -249,6 +247,7 @@ export const RuScreen: React.FC = () => {
   const [selectedMeal, setSelectedMeal] = useState<RuMealType>(initialSelection.meal);
   const [selectedDate, setSelectedDate] = useState<string>(initialSelection.targetDateIso);
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
+  const hasSnappedInitialDateRef = React.useRef(false);
 
   // Agrupa os dias disponíveis em semanas de até 7 dias (Seg..Dom)
   const weeks = useMemo(() => {
@@ -276,7 +275,8 @@ export const RuScreen: React.FC = () => {
   }, [menus]);
 
   useEffect(() => {
-    if (menus.length === 0) return;
+    if (menus.length === 0 || hasSnappedInitialDateRef.current) return;
+    hasSnappedInitialDateRef.current = true;
     const hasSelected = menus.some((m) => m.date === selectedDate);
     if (hasSelected) return;
 
@@ -300,15 +300,15 @@ export const RuScreen: React.FC = () => {
   const activeWeekDays = weeks[activeWeekIndex] ?? menus;
 
   const currentDayMenu = useMemo(
-    () => menus.find((m) => m.date === selectedDate) ?? activeWeekDays[0] ?? null,
-    [menus, selectedDate, activeWeekDays]
+    () => menus.find((m) => m.date === selectedDate) ?? null,
+    [menus, selectedDate]
   );
 
   const formattedMeal = useMemo(() => {
-    if (!currentDayMenu) return null;
-    const rawSections = currentDayMenu[selectedMeal] ?? [];
+    if (menus.length === 0) return null;
+    const rawSections = currentDayMenu?.[selectedMeal] ?? [];
     return formatMealMenu(selectedMeal, rawSections);
-  }, [currentDayMenu, selectedMeal]);
+  }, [menus.length, currentDayMenu, selectedMeal]);
 
   // Organiza os blocos do Bento Grid (2 colunas):
   // - Almoço/Jantar:
@@ -467,21 +467,21 @@ export const RuScreen: React.FC = () => {
   );
 
   return (
-    <PageContainer className="max-w-3xl pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-16">
+    <PageContainer className="pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-16">
       {/* PageHeader no padrão do sistema com horário da refeição como sufixo */}
       <PageHeader
         title="Cardápio RU"
         subtitle={formattedMeal ? `(${formattedMeal.hoursLabel})` : null}
       />
 
-      <div className="space-y-3">
-      {/* 1. CARD UNIFICADO: Local (Select) + Botão de Calendário + Segmented Control */}
+      <div className="space-y-3 md:space-y-4">
+      {/* 1. CARD UNIFICADO: Local (Select) + Seletor de Data + Segmented Control */}
       <section
         aria-label="Seleção de campus, dia e refeição"
-        className="bg-paper border-2 border-ink rounded-lg p-3 shadow-neo-sm md:shadow-neo space-y-2.5"
+        className="bg-paper border-2 border-ink rounded-lg p-3 md:p-4 shadow-neo-sm md:shadow-neo space-y-2.5 md:space-y-3"
       >
-        {/* Linha 1: Seletor de Campus + Botão que abre o seletor de dias */}
-        <div className="flex items-center gap-2">
+        {/* Linha 1: Seletor de Campus + Seletor de Dia (BottomSheet no mobile, DatePicker padrão no desktop) */}
+        <div className="flex items-center gap-2 md:gap-3">
           <div className="flex-1 min-w-0">
             <Select
               value={campus}
@@ -506,19 +506,30 @@ export const RuScreen: React.FC = () => {
             </Select>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setDayPickerOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={dayPickerOpen}
-            aria-label={`Selecionar dia do cardápio (atual: ${activeDateMeta.weekdayFull}, ${activeDateMeta.dateShort})`}
-            className="cursor-pointer shrink-0 h-12 px-3.5 bg-paper hover:bg-neutral-100 text-black border-2 border-ink rounded-xl shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 inline-flex items-center gap-2 text-xs sm:text-sm font-black transition-[transform,box-shadow,background-color] duration-150 ease-out"
-          >
-            <Calendar className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
-            <span className="tabular-nums">
-              {activeDateMeta.weekdayShort}, {activeDateMeta.dateShort}
-            </span>
-          </button>
+          {isMobile ? (
+            <button
+              type="button"
+              onClick={() => setDayPickerOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={dayPickerOpen}
+              aria-label={`Selecionar dia do cardápio (atual: ${activeDateMeta.weekdayFull}, ${activeDateMeta.dateShort})`}
+              className="cursor-pointer shrink-0 h-12 px-3.5 bg-paper hover:bg-neutral-100 text-black border-2 border-ink rounded-xl shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 inline-flex items-center gap-2 text-xs sm:text-sm font-black transition-[transform,box-shadow,background-color] duration-150 ease-out"
+            >
+              <Calendar className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
+              <span className="tabular-nums">
+                {activeDateMeta.weekdayShort}, {activeDateMeta.dateShort}
+              </span>
+            </button>
+          ) : (
+            <div className="shrink-0 w-44 lg:w-48">
+              <DatePicker
+                value={selectedDate}
+                onChange={setSelectedDate}
+                align="end"
+                className="h-12 px-3.5 text-xs sm:text-sm font-black"
+              />
+            </div>
+          )}
         </div>
 
         <SegmentedControl
@@ -530,8 +541,8 @@ export const RuScreen: React.FC = () => {
         />
       </section>
 
-      {/* Seletor de Dias: BottomSheet no mobile (< md) e Dialog no desktop (>= md) */}
-      {isMobile ? (
+      {/* Seletor de Dias no mobile (< md): BottomSheet */}
+      {isMobile && (
         <BottomSheet
           open={dayPickerOpen}
           onClose={() => setDayPickerOpen(false)}
@@ -554,18 +565,6 @@ export const RuScreen: React.FC = () => {
             {dayPickerGrid}
           </div>
         </BottomSheet>
-      ) : (
-        <Dialog open={!isMobile && dayPickerOpen} onOpenChange={setDayPickerOpen}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
-                <span>Selecionar dia</span>
-              </DialogTitle>
-            </DialogHeader>
-            {dayPickerGrid}
-          </DialogContent>
-        </Dialog>
       )}
 
       {error && menus.length === 0 && (
@@ -665,18 +664,23 @@ export const RuScreen: React.FC = () => {
       ) : null}
       </div>
 
-      <FloatingActionButton
-        onClick={() => setCardModalOpen(true)}
-        icon={IdCard}
-        aria-label="Abrir carteirinha estudantil ampliada"
-        title="Abrir Carteirinha Estudantil"
-      />
+      {showWalletFab && (
+        <>
+          <FloatingActionButton
+            onClick={() => setCardModalOpen(true)}
+            icon={IdCard}
+            aria-label="Abrir carteirinha estudantil ampliada"
+            title="Abrir Carteirinha Estudantil"
+            className="md:hidden"
+          />
 
-      <StudentCardModal
-        card={cardModalOpen ? 'ru' : null}
-        wallet={wallet}
-        onClose={() => setCardModalOpen(false)}
-      />
+          <StudentCardModal
+            card={cardModalOpen ? 'ru' : null}
+            wallet={wallet}
+            onClose={() => setCardModalOpen(false)}
+          />
+        </>
+      )}
     </PageContainer>
   );
 };
