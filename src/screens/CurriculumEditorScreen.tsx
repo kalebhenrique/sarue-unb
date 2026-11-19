@@ -10,12 +10,15 @@ import {
   Search,
   ChevronDown,
   MoreVertical,
+  Check,
+  X,
 } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import {
   PageContainer,
   PageHeader,
   Button,
+  BottomSheet,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -40,6 +43,7 @@ import {
   toast,
 } from "@/components/ui";
 import { useMyCourse } from "@/hooks/useMyCourse";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { getActiveGradePeriod } from "@/hooks/useGrade";
 import { useContainer } from "@/context/ContainerContext";
 import type { CurriculumDiscipline, CurriculumStructure } from "@/core";
@@ -215,9 +219,9 @@ const NatureSelect: React.FC<{
 );
 
 /**
- * Preenchimento rápido pelo catálogo da UnB: gatilho estilo Select e popup
- * com busca interna navegável por teclado (mesmo desenho do DepartmentSelect
- * da Grade). Escolher um item devolve code/name/hours ao formulário.
+ * Preenchimento rápido pelo catálogo da UnB: no desktop abre um Popover
+ * ancorado com busca interna navegável por teclado; no mobile abre um
+ * BottomSheet com busca (mesma receita de CourseSelect e DepartmentSelect).
  */
 const CatalogDisciplineSelect: React.FC<{
   items: CatalogItem[];
@@ -225,8 +229,16 @@ const CatalogDisciplineSelect: React.FC<{
   value: string | null;
   onPick: (item: CatalogItem) => void;
 }> = ({ items, status, value, onPick }) => {
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const [open, setOpen] = useState(false);
+  const [portalOpen, setPortalOpen] = useState(false);
+  const openRef = React.useRef(open);
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
   const [query, setQuery] = useState("");
+  const mobileSearchRef = React.useRef<HTMLInputElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -245,11 +257,177 @@ const CatalogDisciplineSelect: React.FC<{
     return base.slice(0, 50);
   }, [items, query]);
 
-  const pick = (item: CatalogItem) => {
-    onPick(item);
+  const closeSheet = React.useCallback(() => {
     setOpen(false);
     setQuery("");
+  }, []);
+
+  const pick = (item: CatalogItem) => {
+    onPick(item);
+    closeSheet();
+    if (!isMobile) {
+      setPortalOpen(false);
+    }
   };
+
+  const triggerLabel =
+    value ??
+    (status === "loading"
+      ? "Carregando catálogo da UnB…"
+      : status === "error"
+        ? "Catálogo indisponível — preencha manualmente"
+        : "Buscar pelo código ou nome (ex.: APC, Cálculo 1)…");
+
+  const triggerClasses =
+    "flex h-10 w-full min-w-0 box-border items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-black focus:outline-hidden focus:ring-2 focus:ring-neo-blue transition-[box-shadow,border-color,background-color] cursor-pointer select-none rounded-xl border-2 border-ink bg-paper dark:bg-neutral-200 dark:text-slate-50 dark:hover:bg-neutral-300 disabled:cursor-not-allowed disabled:opacity-50";
+
+  if (isMobile) {
+    return (
+      <Popover.Root
+        open={portalOpen}
+        onOpenChange={(next) => {
+          if (next) {
+            if (status !== "ready") return;
+            setOpen(true);
+            setPortalOpen(true);
+          } else {
+            closeSheet();
+          }
+        }}
+      >
+        <Popover.Trigger
+          disabled={status !== "ready"}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-label="Buscar disciplina no catálogo da UnB"
+          className={triggerClasses}
+        >
+          <span className="truncate text-left">{triggerLabel}</span>
+          <ChevronDown
+            className={`w-4 h-4 stroke-[2.5] shrink-0 transition-transform ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        </Popover.Trigger>
+
+        <Popover.Portal>
+          <Popover.Positioner
+            className="contents!"
+            style={{ position: "static", transform: "none", opacity: 1 }}
+          >
+            <Popover.Popup className="contents! outline-hidden">
+              <BottomSheet
+                open={open}
+                onClose={closeSheet}
+                onExitComplete={() => {
+                  if (!openRef.current) {
+                    setPortalOpen(false);
+                  }
+                }}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Catálogo da UnB"
+                backdrop
+                backdropClassName="z-[60] md:hidden"
+                className="fixed inset-x-0 bottom-0 w-full z-[70] md:hidden"
+                dragOnlyOnHandle
+              >
+                <div className="flex flex-col max-h-[80dvh] pb-[env(safe-area-inset-bottom)]">
+                  <div className="px-4 pb-3 border-b-2 border-ink/10 shrink-0">
+                    <h2 className="text-base font-extrabold tracking-tight text-black">
+                      Catálogo da UnB
+                    </h2>
+                  </div>
+
+                  <div className="px-4 pt-3 pb-2 shrink-0">
+                    <div className="relative">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 stroke-[2.5] pointer-events-none" />
+                      <input
+                        ref={mobileSearchRef}
+                        type="text"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Pesquisar disciplina…"
+                        aria-label="Pesquisar disciplina"
+                        className="w-full h-10 bg-paper pl-9 pr-9 text-sm font-semibold text-black rounded-xl border-2 border-ink focus:outline-hidden focus:ring-2 focus:ring-neo-blue placeholder:text-neutral-500"
+                      />
+                      {query ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuery("");
+                            mobileSearchRef.current?.focus();
+                          }}
+                          aria-label="Limpar busca de disciplina"
+                          className="cursor-pointer absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-neutral-500 hover:text-black focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue"
+                        >
+                          <X className="w-4 h-4 stroke-[2.5]" />
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div
+                    role="listbox"
+                    aria-label="Lista de disciplinas do catálogo"
+                    className="px-2 pb-4 overflow-y-auto space-y-0.5 flex-1 min-h-0"
+                  >
+                    {filtered.length === 0 ? (
+                      <p className="p-6 text-center text-sm font-semibold text-neutral-600">
+                        Nada encontrado no catálogo
+                      </p>
+                    ) : (
+                      filtered.map((item) => {
+                        const itemLabel = `${item.code} — ${item.name}`;
+                        const isSelected = value === itemLabel;
+                        return (
+                          <button
+                            key={item.code}
+                            type="button"
+                            role="option"
+                            aria-selected={isSelected}
+                            onClick={() => pick(item)}
+                            className={`relative flex w-full cursor-pointer select-none items-center justify-between gap-2 rounded-xl min-h-12 py-3 px-3.5 text-sm font-bold border-2 transition-colors text-left ${
+                              isSelected
+                                ? "bg-neo-blue text-white border-ink"
+                                : "bg-transparent text-black border-transparent hover:bg-neutral-100"
+                            }`}
+                          >
+                            <span className="truncate min-w-0">
+                              <span className="font-mono font-black">
+                                {item.code}
+                              </span>{" "}
+                              — {item.name}
+                            </span>
+                            <span className="flex items-center gap-2 shrink-0">
+                              {item.hours ? (
+                                <span
+                                  className={`text-xs font-bold ${
+                                    isSelected
+                                      ? "text-white/90"
+                                      : "text-neutral-500"
+                                  }`}
+                                >
+                                  {item.hours}h
+                                </span>
+                              ) : null}
+                              {isSelected ? (
+                                <Check className="w-4 h-4 stroke-[2.5] shrink-0" />
+                              ) : null}
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </BottomSheet>
+            </Popover.Popup>
+          </Popover.Positioner>
+        </Popover.Portal>
+      </Popover.Root>
+    );
+  }
 
   return (
     <Popover.Root
@@ -261,16 +439,9 @@ const CatalogDisciplineSelect: React.FC<{
     >
       <Popover.Trigger
         disabled={status !== "ready"}
-        className="flex h-10 w-full min-w-0 box-border items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-black focus:outline-hidden focus:ring-2 focus:ring-neo-blue transition-[box-shadow,border-color] cursor-pointer select-none rounded-xl border-2 border-ink bg-paper disabled:cursor-not-allowed disabled:opacity-50"
+        className={triggerClasses}
       >
-        <span className="truncate text-left">
-          {value ??
-            (status === "loading"
-              ? "Carregando catálogo da UnB…"
-              : status === "error"
-                ? "Catálogo indisponível — preencha manualmente"
-                : "Buscar pelo código ou nome (ex.: APC, Cálculo 1)…")}
-        </span>
+        <span className="truncate text-left">{triggerLabel}</span>
         <ChevronDown
           className={`w-4 h-4 stroke-[2.5] shrink-0 transition-transform ${
             open ? "rotate-180" : ""
@@ -642,22 +813,10 @@ export const CurriculumEditorScreen: React.FC<CurriculumEditorScreenProps> = ({
     if (!draft) return;
     setIsSaving(true);
     try {
-      await saveCustomCurriculum(draft);
-      setHasChanges(false);
-      toast.add({
-        title: "Currículo salvo",
-        description: "A matriz personalizada já está em vigor.",
-        type: "success",
-        timeout: 2500,
-      });
-    } catch (e) {
-      console.warn("Erro ao salvar currículo:", e);
-      toast.add({
-        title: "Não foi possível salvar",
-        description:
-          "Suas edições continuam no rascunho — tente salvar de novo.",
-        type: "error",
-      });
+      const saved = await saveCustomCurriculum(draft);
+      if (saved) {
+        setHasChanges(false);
+      }
     } finally {
       setIsSaving(false);
     }

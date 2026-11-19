@@ -450,24 +450,26 @@ export function useMyCourse() {
     }
   }, [useCases]);
 
-  const saveCustomCurriculum = useCallback(async (curr: CurriculumStructure) => {
+  const saveCustomCurriculum = useCallback(async (curr: CurriculumStructure): Promise<boolean> => {
     try {
       const updated = await useCases.manageAcademicProfile.saveCustomCurriculum(curr);
       cachedProfile = updated;
       setProfile(updated);
       notifyMyCourseListeners();
       toast.add({
-        title: 'Currículo atualizado',
-        description: 'Suas alterações no currículo foram salvas com sucesso.',
+        title: 'Currículo salvo',
+        description: 'A matriz personalizada já está em vigor.',
         type: 'success',
       });
+      return true;
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Erro ao salvar currículo';
       toast.add({
-        title: 'Erro ao salvar currículo',
+        title: 'Não foi possível salvar',
         description: msg,
         type: 'error',
       });
+      return false;
     }
   }, [useCases]);
 
