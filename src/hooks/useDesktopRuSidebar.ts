@@ -4,11 +4,13 @@ import { STORAGE_KEYS } from '@/lib/storage-keys';
 const listeners = new Set<() => void>();
 
 export function isRuHiddenInDesktopSidebar(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined') return true;
   try {
-    return localStorage.getItem(STORAGE_KEYS.HIDE_RU_DESKTOP_SIDEBAR) === 'true';
+    const raw = localStorage.getItem(STORAGE_KEYS.HIDE_RU_DESKTOP_SIDEBAR);
+    if (raw === null) return true;
+    return raw === 'true';
   } catch {
-    return false;
+    return true;
   }
 }
 
