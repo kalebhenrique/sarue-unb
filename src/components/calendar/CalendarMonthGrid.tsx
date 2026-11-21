@@ -97,15 +97,15 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
   }, [days]);
 
   return (
-    <div className="bg-paper border-2 border-ink rounded-xl p-2 sm:p-4 shadow-neo-sm sm:shadow-[4px_4px_0px_0px_var(--neo-shadow)] select-none">
+    <div className="bg-paper border-2 border-ink rounded-xl p-1.5 md:p-4 shadow-neo-sm md:shadow-[4px_4px_0px_0px_var(--neo-shadow)] select-none">
       {/* Cabeçalho dos Dias da Semana */}
-      <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-1.5 sm:mb-2 text-center">
+      <div className="grid grid-cols-7 gap-1 md:gap-2 mb-1 md:mb-2 text-center">
         {WEEKDAYS.map((day, idx) => {
           const isWeekend = idx === 0 || idx === 6;
           return (
             <div
               key={day}
-              className={`py-0.5 sm:py-1 text-[11px] sm:text-xs font-black uppercase tracking-wider ${
+              className={`py-0.5 md:py-1 text-[11px] md:text-xs font-black uppercase tracking-wider ${
                 isWeekend ? 'text-neutral-500' : 'text-neutral-700'
               }`}
             >
@@ -116,7 +116,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
       </div>
 
       {/* Grade de Semanas com Blocos Lineares de Eventos Contínuos */}
-      <div className="space-y-1 sm:space-y-2">
+      <div className="space-y-1 md:space-y-2">
         {weeks.map((weekDays, weekIdx) => {
           const weekStartDate = weekDays[0].date;
           const weekEndDate = weekDays[6].date;
@@ -238,13 +238,15 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
           return (
             <div key={`week-${weekIdx}`} className="relative">
               {/* Células base dos 7 dias da semana */}
-              <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-7 gap-1 md:gap-2">
                 {weekDays.map((cell, colIdx) => {
                   const isSelected = cell.date === selectedDate;
                   const hiddenCount = overflowByCol[colIdx];
                   const isInDrag = activeDragRange
                     ? cell.date >= activeDragRange.start && cell.date <= activeDragRange.end
                     : false;
+                  const mobileDots = cell.events.slice(0, 3);
+                  const hasMoreDots = cell.events.length > 3;
 
                   return (
                     <div
@@ -252,6 +254,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                       role="button"
                       tabIndex={0}
                       aria-label={`Dia ${cell.dayNumber}`}
+                      onClick={() => onSelectDate(cell.date)}
                       onDoubleClick={() => onAddEventOnDate(cell.date, cell.date)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -270,7 +273,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                           setDragHover(cell.date);
                         }
                       }}
-                      className={`group relative min-h-[76px] sm:min-h-[104px] p-1 sm:p-2 rounded-lg border-2 border-ink transition-colors cursor-pointer flex flex-col justify-between ${
+                      className={`group relative h-11 md:h-auto md:min-h-[104px] p-1 md:p-2 rounded-lg border-2 border-ink transition-colors cursor-pointer flex flex-col items-center justify-center gap-0.5 md:items-stretch md:justify-between md:gap-0 ${
                         !cell.isCurrentMonth
                           ? 'bg-neutral-100 dark:bg-neutral-950 hover:bg-neutral-200/80 dark:hover:bg-neutral-100'
                           : 'bg-paper hover:bg-neutral-100 dark:hover:bg-neutral-100'
@@ -282,15 +285,15 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                           : ''
                       }`}
                     >
-                      {/* Topo da Célula: Dia + Indicador de Hoje + Botão rápido "+" */}
-                      <div className="flex items-center justify-between mb-1">
+                      {/* Topo da Célula: Dia + Indicador de Hoje + Botão rápido "+" (desktop) */}
+                      <div className="flex items-center justify-center md:justify-between md:mb-1">
                         {cell.isToday ? (
-                          <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-neo-blue text-white font-black text-[11px] sm:text-xs flex items-center justify-center border-2 border-ink">
+                          <span className="w-5 h-5 md:w-6 md:h-6 rounded-md bg-neo-blue text-white font-black text-[11px] md:text-xs leading-none flex items-center justify-center border-2 border-ink">
                             {cell.dayNumber}
                           </span>
                         ) : (
                           <span
-                            className={`font-black text-xs sm:text-sm ${
+                            className={`font-black text-xs md:text-sm leading-none ${
                               cell.isCurrentMonth ? 'text-black' : 'text-neutral-400'
                             }`}
                           >
@@ -306,17 +309,31 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                             onAddEventOnDate(cell.date, cell.date);
                           }}
                           title={`Adicionar evento em ${cell.date}`}
-                          className="cursor-pointer opacity-0 group-hover:opacity-100 p-0.5 rounded-md border-2 border-ink bg-chalk-green hover:bg-chalk-green-hover text-black shadow-[1px_1px_0px_0px_var(--neo-shadow)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                          className="hidden md:inline-flex cursor-pointer opacity-0 group-hover:opacity-100 p-0.5 rounded-md border-2 border-ink bg-chalk-green hover:bg-chalk-green-hover text-black shadow-[1px_1px_0px_0px_var(--neo-shadow)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                         >
                           <Plus className="w-3 h-3 stroke-[3]" />
                         </button>
                       </div>
 
-                      {/* Espaçador central onde as trilhas de eventos repousam */}
-                      <div className="h-[46px] sm:h-[52px]" />
+                      {/* Mobile: Bolinhas por categoria (máx. 3 + "+") */}
+                      <div className="flex md:hidden items-center justify-center gap-0.5 h-2">
+                        {mobileDots.map((evt) => (
+                          <span
+                            key={evt.id}
+                            className="w-1.5 h-1.5 rounded-full shrink-0"
+                            style={{ backgroundColor: getCalendarEventColors(evt).hex }}
+                          />
+                        ))}
+                        {hasMoreDots && (
+                          <span className="text-[11px] font-black leading-none text-blue-ink">+</span>
+                        )}
+                      </div>
 
-                      {/* Rodapé da Célula: Overflow "+N mais" e indicador de prazo fatal */}
-                      <div className="flex items-center justify-between min-h-[12px] sm:min-h-[14px]">
+                      {/* Desktop: Espaçador central onde as trilhas de eventos repousam */}
+                      <div className="hidden md:block h-[52px]" />
+
+                      {/* Desktop: Rodapé da Célula (Overflow "+N mais" e indicador de prazo fatal) */}
+                      <div className="hidden md:flex items-center justify-between min-h-[14px]">
                         {hiddenCount > 0 ? (
                           <button
                             type="button"
@@ -339,7 +356,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                           <span
                             aria-label="Contém prazo importante"
                             title="Contém prazo ou trancamento importante"
-                            className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-correction-red border border-ink ml-auto shrink-0"
+                            className="w-2 h-2 rounded-full bg-correction-red border border-ink ml-auto shrink-0"
                           />
                         )}
                       </div>
@@ -348,9 +365,9 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                 })}
               </div>
 
-              {/* Camada Superior de Blocos Lineares de Eventos Contínuos */}
+              {/* Desktop: Camada Superior de Blocos Lineares de Eventos Contínuos */}
               <div
-                className="absolute top-[24px] sm:top-[34px] inset-x-0 grid grid-cols-7 gap-1 sm:gap-2 pointer-events-none"
+                className="hidden md:grid absolute top-[34px] inset-x-0 grid-cols-7 gap-2 pointer-events-none"
                 style={{
                   gridTemplateRows: 'repeat(2, 22px)',
                   rowGap: '4px',

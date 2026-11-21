@@ -60,9 +60,9 @@ export const CalendarDayAgenda: React.FC<CalendarDayAgendaProps> = ({
   const isToday = selectedDate === todayStr;
 
   return (
-    <div className="bg-paper border-2 border-ink rounded-xl p-4 shadow-[4px_4px_0px_0px_var(--neo-shadow)] flex flex-col h-full min-h-[480px]">
+    <div className="bg-paper border-2 border-ink rounded-xl p-3.5 md:p-4 shadow-neo-sm md:shadow-[4px_4px_0px_0px_var(--neo-shadow)] flex flex-col h-full md:min-h-[480px]">
       {/* Cabeçalho do Dia Selecionado */}
-      <div className="flex items-start justify-between gap-2 pb-4 border-b-2 border-black/10">
+      <div className="flex items-start justify-between gap-2 pb-3 md:pb-4 border-b-2 border-black/10">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-black uppercase tracking-wider text-neo-blue">
@@ -74,7 +74,7 @@ export const CalendarDayAgenda: React.FC<CalendarDayAgendaProps> = ({
               </Badge>
             )}
           </div>
-          <h2 className="text-xl font-black text-black tracking-tight mt-0.5">
+          <h2 className="text-lg md:text-xl font-black text-black tracking-tight mt-0.5">
             {d} de {monthName} <span className="text-neutral-500 font-bold">{y}</span>
           </h2>
         </div>
@@ -84,7 +84,7 @@ export const CalendarDayAgenda: React.FC<CalendarDayAgendaProps> = ({
           variant="outline"
           size="sm"
           onClick={() => onAddEvent(selectedDate)}
-          className="cursor-pointer flex items-center gap-1 text-xs font-black shrink-0"
+          className="hidden md:inline-flex cursor-pointer items-center gap-1 text-xs font-black shrink-0"
           title="Adicionar evento neste dia"
         >
           <Plus className="w-3.5 h-3.5 stroke-[3]" />
@@ -95,9 +95,9 @@ export const CalendarDayAgenda: React.FC<CalendarDayAgendaProps> = ({
       {/* Lista de Eventos do Dia */}
       <div className="flex-1 overflow-y-auto py-3 space-y-3">
         {events.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center p-6 h-full min-h-[220px] rounded-xl border-2 border-dashed border-black/20 bg-canvas/40">
-            <div className="w-12 h-12 rounded-xl bg-paper border-2 border-ink flex items-center justify-center mb-3">
-              <CalendarIcon className="w-6 h-6 text-neutral-400 stroke-[2.5]" />
+          <div className="flex flex-col items-center justify-center text-center p-4 md:p-6 h-full min-h-[140px] md:min-h-[220px] rounded-xl border-2 border-dashed border-black/20 bg-canvas/40">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-paper border-2 border-ink flex items-center justify-center mb-2.5 md:mb-3">
+              <CalendarIcon className="w-5 h-5 md:w-6 md:h-6 text-neutral-400 stroke-[2.5]" />
             </div>
             <p className="font-extrabold text-sm text-black">Nenhum evento neste dia</p>
             <p className="text-xs text-neutral-600 mt-1 max-w-[200px]">
@@ -108,7 +108,7 @@ export const CalendarDayAgenda: React.FC<CalendarDayAgendaProps> = ({
               variant="accent"
               size="sm"
               onClick={() => onAddEvent(selectedDate)}
-              className="mt-4 font-black text-xs cursor-pointer"
+              className="hidden md:inline-flex mt-4 font-black text-xs cursor-pointer"
             >
               + Adicionar Evento
             </Button>

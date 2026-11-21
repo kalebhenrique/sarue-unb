@@ -37,7 +37,7 @@ const VIEW_OPTIONS: ReadonlyArray<SegmentedOption<CalendarViewMode>> = [
     value: "month",
     label: (
       <>
-        <CalendarDays className="w-3.5 h-3.5 stroke-[2.5]" aria-hidden="true" />
+        <CalendarDays className="hidden md:block w-3.5 h-3.5 stroke-[2.5]" aria-hidden="true" />
         Mês
       </>
     ),
@@ -47,7 +47,7 @@ const VIEW_OPTIONS: ReadonlyArray<SegmentedOption<CalendarViewMode>> = [
     value: "agenda",
     label: (
       <>
-        <List className="w-3.5 h-3.5 stroke-[2.5]" aria-hidden="true" />
+        <List className="hidden md:block w-3.5 h-3.5 stroke-[2.5]" aria-hidden="true" />
         Lista
       </>
     ),
@@ -131,6 +131,7 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
 }) => {
   const monthIndex = currentDate.getMonth();
   const monthName = MONTH_NAMES[monthIndex];
+  const monthShortName = MONTH_SHORT_NAMES[monthIndex];
   const year = currentDate.getFullYear();
 
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
@@ -169,11 +170,11 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   };
 
   return (
-    <div className="bg-paper border-2 border-ink rounded-xl p-2.5 md:p-4 shadow-neo-sm md:shadow-[4px_4px_0px_0px_var(--neo-shadow)] md:space-y-4">
+    <div className="bg-paper border-2 border-ink rounded-xl p-2 md:p-4 shadow-neo-sm md:shadow-[4px_4px_0px_0px_var(--neo-shadow)] md:space-y-4">
       {/* Linha superior: Navegação de Mês/Ano + Hoje + Alternador Mês/Lista */}
-      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 md:gap-3">
+      <div className="flex flex-nowrap items-center justify-between gap-1.5 sm:gap-2 md:gap-3">
         {/* Navegador de Mês + Hoje */}
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
           <div className="flex items-center border-2 border-ink rounded-xl bg-canvas overflow-hidden shadow-[2px_2px_0px_0px_var(--neo-shadow)] min-w-0">
             <button
               type="button"
@@ -192,10 +193,12 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
                 type="button"
                 title="Selecionar mês e ano"
                 aria-label="Selecionar mês e ano"
-                className="cursor-pointer px-2 sm:px-4 py-1 sm:py-1.5 border-x-2 border-ink min-w-[116px] sm:min-w-[170px] text-center bg-paper hover:bg-neutral-100 dark:hover:bg-neutral-200 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neo-blue"
+                className="cursor-pointer px-1.5 sm:px-4 py-1 sm:py-1.5 border-x-2 border-ink min-w-[74px] sm:min-w-[170px] text-center bg-paper hover:bg-neutral-100 dark:hover:bg-neutral-200 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neo-blue"
               >
-                <span className="font-black text-sm sm:text-base tracking-tight text-black block capitalize truncate">
-                  {monthName} <span className="text-neo-blue">{year}</span>
+                <span className="font-black text-xs sm:text-base tracking-tight text-black block capitalize truncate">
+                  <span className="md:hidden">{monthShortName}</span>
+                  <span className="hidden md:inline">{monthName}</span>{" "}
+                  <span className="text-neo-blue">{year}</span>
                 </span>
               </PopoverPrimitive.Trigger>
               <PopoverPrimitive.Portal>
@@ -279,7 +282,7 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             variant="outline"
             size="sm"
             onClick={onGoToToday}
-            className="font-bold text-xs cursor-pointer h-8 sm:h-9 px-2.5 sm:px-3"
+            className="font-bold text-xs cursor-pointer h-8 sm:h-9 px-2 sm:px-3 shrink-0"
             title="Voltar para o dia de hoje"
           >
             Hoje
@@ -287,14 +290,14 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
         </div>
 
         {/* Lado Direito: Alternador Mês/Lista */}
-        <div className="flex items-center gap-2 shrink-0 ml-auto">
+        <div className="flex items-center gap-2 shrink-0">
           <SegmentedControl<CalendarViewMode>
             options={VIEW_OPTIONS}
             value={viewMode}
             onValueChange={onViewModeChange}
             ariaLabel="Modo de visualização do calendário"
             size="sm"
-            className="w-[124px] sm:w-40"
+            className="w-[96px] md:w-40 [&>button]:px-1.5 md:[&>button]:px-3 [&>button]:gap-0 md:[&>button]:gap-1.5"
           />
         </div>
       </div>
