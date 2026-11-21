@@ -142,6 +142,11 @@ export const IraCalculatorScreen: React.FC<IraCalculatorScreenProps> = ({ onBack
     return profile.ira - baseCalc.rawIra;
   }, [profile?.ira, realScenario]);
 
+  const baseCalculation = React.useMemo(
+    () => (realScenario ? IRA_CALCULATOR_INSTANCE.execute(realScenario, correctionOffset) : null),
+    [realScenario, correctionOffset],
+  );
+
   const calculation = React.useMemo(
     () => (scenario ? IRA_CALCULATOR_INSTANCE.execute(scenario, correctionOffset) : null),
     [scenario, correctionOffset],
@@ -378,18 +383,20 @@ export const IraCalculatorScreen: React.FC<IraCalculatorScreenProps> = ({ onBack
       <IraResultPanel
         calculation={calculation}
         sigaaIra={profile.ira}
+        baselineIra={baseCalculation?.ira ?? null}
         isSimulation={isSimulation}
         canRestore={hasSavedScenario && isSimulation}
         onRestore={handleRestore}
       />
 
       {/* Grade de semestres: 4 colunas no desktop (padrão lg da plataforma) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
-        {scenario.semesters.map((sem) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 items-start">
+        {scenario.semesters.map((sem, index) => (
           <IraSemesterCard
             key={sem.id}
             semester={sem}
             semesterIra={calculation.semesterIras[sem.id] ?? null}
+            defaultExpandedMobile={index === scenario.semesters.length - 1}
             onMentionChange={handleMentionChange}
             onRemoveDiscipline={handleRemoveDiscipline}
             onUpdateCredits={handleUpdateCredits}

@@ -7,6 +7,8 @@ export interface IraResultPanelProps {
   calculation: IraCalculation;
   /** IRA oficial vindo do SIGAA/histórico (pode não existir). */
   sigaaIra?: number;
+  /** IRA calculado no cenário real sem edições — usado para exibir variação (+/-) na simulação. */
+  baselineIra?: number | null;
   /** Cenário editado — o SIGAA continua refletindo o histórico real. */
   isSimulation: boolean;
   /** Existe cenário salvo que difere do histórico real (habilita restaurar). */
@@ -30,6 +32,7 @@ export function formatIra(value: number | null | undefined): string {
 export const IraResultPanel: React.FC<IraResultPanelProps> = ({
   calculation,
   sigaaIra,
+  baselineIra,
   isSimulation,
   canRestore,
   onRestore,
@@ -51,8 +54,76 @@ export const IraResultPanel: React.FC<IraResultPanelProps> = ({
   const deltaAbs = delta != null && Number.isFinite(delta) ? Math.abs(delta) : null;
   const hasDiscrepancy = deltaAbs != null && deltaAbs >= 0.05;
 
+  const simulationDelta =
+    isSimulation && hasResult && baselineIra != null && Number.isFinite(baselineIra)
+      ? calculation.ira! - baselineIra
+      : null;
+  const showSimulationDelta =
+    simulationDelta != null &&
+    Number.isFinite(simulationDelta) &&
+    Math.abs(simulationDelta) >= 0.005;
+
   return (
-    <div className="sticky top-6 z-10 bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo p-5">
+    <>
+      {/* Mobile HUD: barra sticky compacta de 1 linha no topo */}
+      <div className="md:hidden sticky top-0 z-20 bg-paper border-2 border-ink rounded-lg shadow-neo-sm px-3 py-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0" aria-live="polite">
+          <span className="text-[11px] font-black uppercase tracking-wider text-neutral-600 shrink-0">
+            IRA
+          </span>
+          <span className="text-xl font-black text-black tracking-tight tabular-nums leading-none">
+            {hasResult ? formatIra(calculation.ira) : "—"}
+          </span>
+          {showSimulationDelta && simulationDelta != null && (
+            <span
+              className={`inline-flex items-center rounded-full border border-ink px-1.5 py-0.5 text-[11px] font-black tabular-nums leading-none shrink-0 ${
+                simulationDelta > 0
+                  ? "bg-pastel-green text-black"
+                  : "bg-pastel-red text-black"
+              }`}
+              title="Variação em relação ao cenário real"
+            >
+              {simulationDelta > 0
+                ? `+${formatIra(simulationDelta)}`
+                : `-${formatIra(Math.abs(simulationDelta))}`}
+            </span>
+          )}
+          {canRestore && (
+            confirmingRestore ? (
+              <button
+                type="button"
+                onClick={onRestore}
+                className="ml-0.5 inline-flex items-center rounded-md border border-ink bg-pastel-red px-1.5 py-0.5 text-[11px] font-black text-black cursor-pointer shrink-0 active:translate-y-px"
+              >
+                Confirmar
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingRestore(true)}
+                aria-label="Restaurar histórico real"
+                title="Restaurar histórico real"
+                className="ml-0.5 inline-flex items-center justify-center w-7 h-7 rounded-md border border-ink bg-canvas hover:bg-neutral-100 text-black cursor-pointer shrink-0 active:translate-y-px"
+              >
+                <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
+            )
+          )}
+        </div>
+
+        <div className="text-right shrink-0">
+          <p className="text-xs font-black text-neutral-700 leading-tight tabular-nums">
+            SIGAA: {hasOfficialIra ? formatIra(sigaaIra) : "—"}
+          </p>
+          <p className="text-[11px] font-bold text-neutral-600 leading-tight tabular-nums">
+            {calculation?.mentionCount ?? 0} disc. •{" "}
+            {formatCredits(calculation?.creditsSum ?? 0)} cr.
+          </p>
+        </div>
+      </div>
+
+      {/* Desktop: card completo */}
+      <div className="hidden md:block sticky top-6 z-10 bg-paper border-2 border-ink rounded-lg shadow-neo p-5">
       <div className="flex flex-col lg:flex-row lg:items-center gap-5">
         {/* IRA calculado — região viva: muda a cada edição, o leitor de tela anuncia */}
         <div aria-live="polite">
@@ -152,7 +223,8 @@ export const IraResultPanel: React.FC<IraResultPanelProps> = ({
           </div>
         ) : null}
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
