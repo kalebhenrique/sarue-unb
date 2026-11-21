@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import {
   RU_CAMPUSES,
+  MEAL_METADATA,
   formatMealMenu,
   getBrasiliaTodayIso,
   resolveInitialMealAndDate,
@@ -27,6 +28,7 @@ import {
   type RuMealType,
   type FormattedCompositionGroup,
   type FormattedDishVariation,
+  type FormattedMealMenu,
 } from '@/core';
 import { SegmentedControl, type SegmentedOption } from '@/components/ui/segmented';
 import {
@@ -57,6 +59,8 @@ const FULL_WEEKDAYS = [
   'Sexta',
   'Sábado',
 ];
+
+const ALL_MEALS: ReadonlyArray<RuMealType> = ['breakfast', 'lunch', 'dinner'];
 
 function parseIsoLocal(iso: string): Date {
   const [y, m, d] = iso.split('-').map(Number);
@@ -135,6 +139,29 @@ function getDietStyle(diet: FormattedDishVariation['diet']) {
         rowSurface: 'bg-pastel-green dark:bg-paper',
         badgeStyle: 'bg-unb-green text-white border-ink',
         darkRibbon: 'bg-unb-green',
+      };
+  }
+}
+
+function getMealHeaderConfig(meal: RuMealType) {
+  switch (meal) {
+    case 'breakfast':
+      return {
+        Icon: Coffee,
+        iconBoxClass: 'bg-neo-yellow text-ink',
+        variationHeading: 'Complementos principais',
+      };
+    case 'lunch':
+      return {
+        Icon: Utensils,
+        iconBoxClass: 'bg-sticker-blue text-ink',
+        variationHeading: 'Pratos principais',
+      };
+    case 'dinner':
+      return {
+        Icon: Soup,
+        iconBoxClass: 'bg-neo-purple text-ink',
+        variationHeading: 'Pratos principais',
       };
   }
 }
@@ -234,6 +261,114 @@ const BentoGroupSection: React.FC<BentoGroupSectionProps> = ({ group }) => {
   );
 };
 
+interface DesktopMealColumnProps {
+  meal: RuMealType;
+  formatted: FormattedMealMenu;
+  isCurrentTargetMeal: boolean;
+  isTodaySelected: boolean;
+}
+
+const DesktopMealColumn: React.FC<DesktopMealColumnProps> = ({
+  meal,
+  formatted,
+  isCurrentTargetMeal,
+  isTodaySelected,
+}) => {
+  const { Icon: MealIcon, iconBoxClass } = getMealHeaderConfig(meal);
+  const meta = MEAL_METADATA[meal];
+
+  return (
+    <article
+      aria-label={`Cardápio de ${meta.title}`}
+      className="min-w-0 bg-paper border-2 border-ink rounded-lg shadow-neo flex flex-col overflow-hidden"
+    >
+      {/* Cabeçalho da coluna de refeição */}
+      <header className="p-4 border-b-2 border-ink flex items-center justify-between gap-2.5 bg-paper">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div
+            aria-hidden="true"
+            className={`w-9 h-9 rounded-lg border-2 border-ink flex items-center justify-center shrink-0 ${iconBoxClass}`}
+          >
+            <MealIcon className="w-4 h-4 stroke-[2.5]" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-sm font-black text-black leading-tight truncate">
+              {meta.title}
+            </h2>
+            <p className="text-xs font-bold text-neutral-500 tabular-nums leading-tight mt-0.5">
+              {meta.hoursLabel}
+            </p>
+          </div>
+        </div>
+
+        {isCurrentTargetMeal && (
+          <span className="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full border-2 border-ink bg-neo-yellow text-ink text-[11px] font-black uppercase tracking-wide">
+            {isTodaySelected ? 'Refeição do turno' : 'Próxima'}
+          </span>
+        )}
+      </header>
+
+      {formatted.isEmpty ? (
+        <div className="flex-1 p-6 flex flex-col items-center justify-center text-center bg-canvas/40">
+          <p className="text-xs font-bold text-neutral-600 max-w-[14rem]">
+            Cardápio de {meta.title.toLowerCase()} não publicado para esta data.
+          </p>
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col divide-y-2 divide-ink">
+          {/* Variações de Prato Principal / Complemento */}
+          {formatted.variations.length > 0 && (
+            <div
+              aria-label={`Pratos principais do ${meta.title.toLowerCase()}`}
+              className="divide-y-2 divide-ink"
+            >
+              {formatted.variations.map((variation) => {
+                const style = getDietStyle(variation.diet);
+                const DietIcon = style.Icon;
+
+                return (
+                  <div
+                    key={variation.diet}
+                    className={`relative px-4 py-3 flex items-center justify-between gap-3 ${style.rowSurface}`}
+                  >
+                    {/* Fita lateral no canto: APENAS no dark mode */}
+                    <div
+                      aria-hidden="true"
+                      className={`hidden dark:block absolute inset-y-0 left-0 w-1.5 ${style.darkRibbon}`}
+                    />
+
+                    <span
+                      className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border-2 text-xs font-black uppercase tracking-wide dark:ml-1 ${style.badgeStyle}`}
+                    >
+                      <DietIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>{style.shortLabel}</span>
+                    </span>
+
+                    <p className="min-w-0 flex-1 text-right text-sm font-black text-black leading-snug">
+                      {variation.items.join(' • ')}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Composição da refeição em lista vertical organizada */}
+          {formatted.composition.length > 0 && (
+            <div className="p-4 space-y-3.5 divide-y-2 divide-black/10 flex-1 bg-paper">
+              {formatted.composition.map((group, idx) => (
+                <div key={group.id} className={idx > 0 ? 'pt-3.5' : ''}>
+                  <BentoGroupSection group={group} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </article>
+  );
+};
+
 export const RuScreen: React.FC = () => {
   const { campus, setCampus, menus, isLoading, error } = useRuMenu();
   const { wallet } = useStudentWallet();
@@ -310,12 +445,25 @@ export const RuScreen: React.FC = () => {
     return formatMealMenu(selectedMeal, rawSections);
   }, [menus.length, currentDayMenu, selectedMeal]);
 
-  // Organiza os blocos do Bento Grid (2 colunas):
-  // - Almoço/Jantar:
-  //   Col 1 Linha 1: Saladas | Col 2 Linha 1: Acompanhamentos
-  //   Col 1 Linha 2: Guarnição (+ Sopa se houver) | Col 2 Linha 2: Sobremesa + Bebida empilhados no mesmo card
-  // - Desjejum:
-  //   Col 1: Panificação | Col 2: Bebidas + Fruta / Extra empilhados
+  const allFormattedMeals = useMemo(() => {
+    if (menus.length === 0) return null;
+    return {
+      breakfast: formatMealMenu('breakfast', currentDayMenu?.breakfast ?? []),
+      lunch: formatMealMenu('lunch', currentDayMenu?.lunch ?? []),
+      dinner: formatMealMenu('dinner', currentDayMenu?.dinner ?? []),
+    };
+  }, [menus.length, currentDayMenu]);
+
+  const isEntireDayEmpty = useMemo(() => {
+    if (!allFormattedMeals) return false;
+    return (
+      allFormattedMeals.breakfast.isEmpty &&
+      allFormattedMeals.lunch.isEmpty &&
+      allFormattedMeals.dinner.isEmpty
+    );
+  }, [allFormattedMeals]);
+
+  // Organiza os blocos do Bento Grid (2 colunas) no mobile:
   const bentoCells = useMemo(() => {
     if (!formattedMeal) return [] as FormattedCompositionGroup[][];
     const comp = formattedMeal.composition;
@@ -466,202 +614,379 @@ export const RuScreen: React.FC = () => {
     </div>
   );
 
+  const headerSubtitle = isMobile
+    ? formattedMeal
+      ? `(${formattedMeal.hoursLabel})`
+      : null
+    : `(${activeDateMeta.weekdayFull}, ${activeDateMeta.dateShort})`;
+
   return (
     <PageContainer className="pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-16">
-      {/* PageHeader no padrão do sistema com horário da refeição como sufixo */}
-      <PageHeader
-        title="Cardápio RU"
-        subtitle={formattedMeal ? `(${formattedMeal.hoursLabel})` : null}
-      />
+      <PageHeader title="Cardápio RU" subtitle={headerSubtitle} />
 
-      <div className="space-y-3 md:space-y-4">
-      {/* 1. CARD UNIFICADO: Local (Select) + Seletor de Data + Segmented Control */}
-      <section
-        aria-label="Seleção de campus, dia e refeição"
-        className="bg-paper border-2 border-ink rounded-lg p-3 md:p-4 shadow-neo-sm md:shadow-neo space-y-2.5 md:space-y-3"
-      >
-        {/* Linha 1: Seletor de Campus + Seletor de Dia (BottomSheet no mobile, DatePicker padrão no desktop) */}
-        <div className="flex items-center gap-2 md:gap-3">
-          <div className="flex-1 min-w-0">
-            <Select
-              value={campus}
-              onValueChange={(val) => {
-                if (val) setCampus(val as RuCampus);
-              }}
-            >
-              <SelectTrigger
-                aria-label="Selecionar campus do RU"
-                className="h-12 text-xs sm:text-sm font-black"
-              >
-                <MapPin className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
-                <SelectValue>Campus {campus}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {RU_CAMPUSES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    Campus {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {isMobile ? (
-            <button
-              type="button"
-              onClick={() => setDayPickerOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={dayPickerOpen}
-              aria-label={`Selecionar dia do cardápio (atual: ${activeDateMeta.weekdayFull}, ${activeDateMeta.dateShort})`}
-              className="cursor-pointer shrink-0 h-12 px-3.5 bg-paper hover:bg-neutral-100 text-black border-2 border-ink rounded-xl shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 inline-flex items-center gap-2 text-xs sm:text-sm font-black transition-[transform,box-shadow,background-color] duration-150 ease-out"
-            >
-              <Calendar className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
-              <span className="tabular-nums">
-                {activeDateMeta.weekdayShort}, {activeDateMeta.dateShort}
-              </span>
-            </button>
-          ) : (
-            <div className="shrink-0 w-44 lg:w-48">
-              <DatePicker
-                value={selectedDate}
-                onChange={setSelectedDate}
-                align="end"
-                className="h-12 px-3.5 text-xs sm:text-sm font-black"
-              />
-            </div>
-          )}
-        </div>
-
-        <SegmentedControl
-          ariaLabel="Selecionar refeição"
-          options={MEAL_SEGMENT_OPTIONS}
-          value={selectedMeal}
-          onValueChange={setSelectedMeal}
-          size="lg"
-        />
-      </section>
-
-      {/* Seletor de Dias no mobile (< md): BottomSheet */}
-      {isMobile && (
-        <BottomSheet
-          open={dayPickerOpen}
-          onClose={() => setDayPickerOpen(false)}
-          backdrop
-          backdropClassName="md:hidden z-40"
-          id="ru-day-picker-sheet"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Selecionar dia do cardápio"
-          className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
-          portal
-        >
-          <div className="flex items-center gap-2 px-4 pb-3 border-b-2 border-black/15">
-            <Calendar className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
-            <h2 className="text-base font-black text-black">
-              Selecionar dia
-            </h2>
-          </div>
-          <div className="px-3 pt-3.5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
-            {dayPickerGrid}
-          </div>
-        </BottomSheet>
-      )}
-
-      {error && menus.length === 0 && (
-        <div className="bg-paper border-2 border-ink rounded-lg p-3.5 shadow-neo-sm md:shadow-neo flex items-start gap-2.5">
-          <AlertCircle className="w-4 h-4 text-neo-danger shrink-0 mt-0.5 stroke-[2.5]" />
-          <p className="text-xs font-bold text-black">{error}</p>
-        </div>
-      )}
-
-      {isLoading && !formattedMeal ? (
-        <div className="space-y-3">
-          <div className="h-32 bg-neutral-200 rounded animate-pulse" />
-          <div className="grid grid-cols-2 gap-3">
-            <div className="h-32 bg-neutral-200 rounded animate-pulse" />
-            <div className="h-32 bg-neutral-200 rounded animate-pulse" />
-            <div className="h-32 bg-neutral-200 rounded animate-pulse" />
-            <div className="h-32 bg-neutral-200 rounded animate-pulse" />
-          </div>
-        </div>
-      ) : formattedMeal ? (
-        formattedMeal.isEmpty ? (
-          <div className="bg-paper border-2 border-ink rounded-lg p-6 text-center shadow-neo-sm md:shadow-neo">
-            <img
-              src="/sarue-doubt.png"
-              alt=""
-              aria-hidden="true"
-              className="w-24 h-24 mx-auto mb-1.5 object-contain select-none pointer-events-none"
-            />
-            <p className="text-sm font-black text-black">
-              Cardápio não publicado para {formattedMeal.title.toLowerCase()} nesta data
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {/* 2. PRATOS PRINCIPAIS UNIFICADOS EM UM ÚNICO CARD */}
-            {formattedMeal.variations.length > 0 && (
-              <section
-                aria-label="Pratos principais"
-                className="border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo overflow-hidden divide-y-2 divide-ink bg-paper"
-              >
-                {formattedMeal.variations.map((variation) => {
-                  const style = getDietStyle(variation.diet);
-                  const DietIcon = style.Icon;
-
-                  return (
-                    <div
-                      key={variation.diet}
-                      className={`relative px-3.5 py-3 flex items-center justify-between gap-3 ${style.rowSurface}`}
-                    >
-                      {/* Fita lateral no canto: APENAS no dark mode (no modo claro a linha toda tem a cor) */}
-                      <div
-                        aria-hidden="true"
-                        className={`hidden dark:block absolute inset-y-0 left-0 w-1.5 ${style.darkRibbon}`}
-                      />
-
-                      <span
-                        className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border-2 text-xs font-black uppercase tracking-wide dark:ml-1 ${style.badgeStyle}`}
-                      >
-                        <DietIcon className="w-3.5 h-3.5 stroke-[2.5]" />
-                        <span>{style.shortLabel}</span>
-                      </span>
-
-                      <p className="min-w-0 flex-1 text-right text-sm sm:text-base font-black text-black leading-snug">
-                        {variation.items.join(' • ')}
-                      </p>
-                    </div>
-                  );
-                })}
-              </section>
-            )}
-
-            {/* 3. BENTO GRID (2 COLUNAS) PARA O RESTANTE DO CARDÁPIO */}
-            {bentoCells.length > 0 && (
-              <section
-                aria-label="Composição da refeição"
-                className="grid grid-cols-2 gap-2.5 sm:gap-3"
-              >
-                {bentoCells.map((cellGroups, cellIdx) => (
-                  <article
-                    key={cellGroups.map((g) => g.id).join('-') || cellIdx}
-                    className="min-w-0 bg-paper border-2 border-ink rounded-lg p-3 sm:p-3.5 shadow-neo-sm md:shadow-neo flex flex-col justify-between divide-y-2 divide-black/15"
+      <div className="space-y-3 md:space-y-5">
+        {/* 1. CARD UNIFICADO DE CONTROLES */}
+        {isMobile ? (
+          <section
+            aria-label="Seleção de campus, dia e refeição"
+            className="bg-paper border-2 border-ink rounded-lg p-3 shadow-neo-sm space-y-2.5"
+          >
+            <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <Select
+                  value={campus}
+                  onValueChange={(val) => {
+                    if (val) setCampus(val as RuCampus);
+                  }}
+                >
+                  <SelectTrigger
+                    aria-label="Selecionar campus do RU"
+                    className="h-12 text-xs sm:text-sm font-black"
                   >
-                    {cellGroups.map((group, gIdx) => (
-                      <div
-                        key={group.id}
-                        className={gIdx > 0 ? 'pt-3 mt-3' : ''}
-                      >
-                        <BentoGroupSection group={group} />
-                      </div>
+                    <MapPin className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
+                    <SelectValue>Campus {campus}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RU_CAMPUSES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        Campus {c}
+                      </SelectItem>
                     ))}
-                  </article>
-                ))}
-              </section>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDayPickerOpen(true)}
+                aria-haspopup="dialog"
+                aria-expanded={dayPickerOpen}
+                aria-label={`Selecionar dia do cardápio (atual: ${activeDateMeta.weekdayFull}, ${activeDateMeta.dateShort})`}
+                className="cursor-pointer shrink-0 h-12 px-3.5 bg-paper hover:bg-neutral-100 text-black border-2 border-ink rounded-xl shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 inline-flex items-center gap-2 text-xs sm:text-sm font-black transition-[transform,box-shadow,background-color] duration-150 ease-out"
+              >
+                <Calendar className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
+                <span className="tabular-nums">
+                  {activeDateMeta.weekdayShort}, {activeDateMeta.dateShort}
+                </span>
+              </button>
+            </div>
+
+            <SegmentedControl
+              ariaLabel="Selecionar refeição"
+              options={MEAL_SEGMENT_OPTIONS}
+              value={selectedMeal}
+              onValueChange={setSelectedMeal}
+              size="lg"
+            />
+          </section>
+        ) : (
+          /* TOOLBAR DESKTOP: Campus + Tira Semanal de 7 dias + DatePicker */
+          <section
+            aria-label="Seleção de campus e dia da semana"
+            className="bg-paper border-2 border-ink rounded-lg p-4 shadow-neo flex flex-col xl:flex-row xl:items-center justify-between gap-3.5"
+          >
+            <div className="flex items-center gap-3 w-full xl:w-auto shrink-0">
+              <div className="flex-1 xl:w-56 min-w-0">
+                <Select
+                  value={campus}
+                  onValueChange={(val) => {
+                    if (val) setCampus(val as RuCampus);
+                  }}
+                >
+                  <SelectTrigger
+                    aria-label="Selecionar campus do RU"
+                    className="h-10 text-xs font-black"
+                  >
+                    <MapPin className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
+                    <SelectValue>Campus {campus}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RU_CAMPUSES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        Campus {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="shrink-0 w-40">
+                <DatePicker
+                  value={selectedDate}
+                  onChange={setSelectedDate}
+                  align="end"
+                  className="h-10 px-3 text-xs font-black"
+                />
+              </div>
+            </div>
+
+            {activeWeekDays.length > 0 && (
+              <div className="flex-1 flex items-center xl:justify-end gap-2 min-w-0">
+                {weeks.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleShiftWeek(-1)}
+                    disabled={activeWeekIndex === 0}
+                    aria-label="Semana anterior"
+                    title="Semana anterior"
+                    className="cursor-pointer w-10 h-10 shrink-0 flex items-center justify-center rounded-xl border-2 border-ink bg-paper hover:bg-neutral-100 text-black shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-35 disabled:cursor-not-allowed transition-[transform,box-shadow,background-color] duration-150 ease-out focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2"
+                  >
+                    <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                )}
+
+                <div
+                  role="listbox"
+                  aria-label="Dias disponíveis do cardápio"
+                  className="flex-1 xl:max-w-xl grid grid-cols-7 gap-1.5"
+                >
+                  {activeWeekDays.map((dayMenu) => {
+                    const info = formatDayMeta(dayMenu.date);
+                    const isSelected = currentDayMenu?.date === dayMenu.date;
+                    const isToday = dayMenu.date === todayIso;
+
+                    return (
+                      <button
+                        key={dayMenu.date}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        aria-label={`${info.weekdayFull}, ${info.dateShort}${isToday ? ' (Hoje)' : ''}`}
+                        onClick={() => setSelectedDate(dayMenu.date)}
+                        className={`cursor-pointer h-10 px-1.5 rounded-xl border-2 border-ink flex items-center justify-center gap-1 transition-[transform,box-shadow,background-color] duration-150 ease-out select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 ${
+                          isSelected
+                            ? 'bg-neo-blue text-white shadow-neo-sm hover:bg-neo-blueHover hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
+                            : isToday
+                              ? 'bg-neo-yellow text-ink shadow-neo-sm hover:bg-neo-yellowHover hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
+                              : 'bg-paper text-black hover:bg-neutral-100 shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
+                        }`}
+                      >
+                        <span
+                          className={`text-xs uppercase font-extrabold leading-none ${
+                            isSelected
+                              ? 'text-white/90'
+                              : isToday
+                                ? 'text-ink/80'
+                                : 'text-neutral-500'
+                          }`}
+                        >
+                          {info.weekdayShort}
+                        </span>
+                        <span className="text-xs font-black tabular-nums leading-none">
+                          {info.dayNum}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {weeks.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleShiftWeek(1)}
+                    disabled={activeWeekIndex >= weeks.length - 1}
+                    aria-label="Próxima semana"
+                    title="Próxima semana"
+                    className="cursor-pointer w-10 h-10 shrink-0 flex items-center justify-center rounded-xl border-2 border-ink bg-paper hover:bg-neutral-100 text-black shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-35 disabled:cursor-not-allowed transition-[transform,box-shadow,background-color] duration-150 ease-out focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2"
+                  >
+                    <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                )}
+              </div>
             )}
+          </section>
+        )}
+
+        {/* Seletor de Dias no mobile (< md): BottomSheet */}
+        {isMobile && (
+          <BottomSheet
+            open={dayPickerOpen}
+            onClose={() => setDayPickerOpen(false)}
+            backdrop
+            backdropClassName="md:hidden z-40"
+            id="ru-day-picker-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Selecionar dia do cardápio"
+            className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
+            portal
+          >
+            <div className="flex items-center gap-2 px-4 pb-3 border-b-2 border-black/15">
+              <Calendar className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
+              <h2 className="text-base font-black text-black">
+                Selecionar dia
+              </h2>
+            </div>
+            <div className="px-3 pt-3.5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+              {dayPickerGrid}
+            </div>
+          </BottomSheet>
+        )}
+
+        {error && menus.length === 0 && (
+          <div className="bg-paper border-2 border-ink rounded-lg p-3.5 shadow-neo-sm md:shadow-neo flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 text-neo-danger shrink-0 mt-0.5 stroke-[2.5]" />
+            <p className="text-xs font-bold text-black">{error}</p>
           </div>
-        )
-      ) : null}
+        )}
+
+        {isLoading && !formattedMeal ? (
+          isMobile ? (
+            <div className="space-y-3">
+              <div className="h-32 bg-neutral-200 rounded animate-pulse" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="h-32 bg-neutral-200 rounded animate-pulse" />
+                <div className="h-32 bg-neutral-200 rounded animate-pulse" />
+                <div className="h-32 bg-neutral-200 rounded animate-pulse" />
+                <div className="h-32 bg-neutral-200 rounded animate-pulse" />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {[0, 1, 2].map((colIdx) => (
+                <div
+                  key={colIdx}
+                  className="bg-paper border-2 border-ink rounded-lg p-4 shadow-neo space-y-4"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 bg-neutral-200 rounded animate-pulse shrink-0" />
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-4 w-24 bg-neutral-200 rounded animate-pulse" />
+                      <div className="h-3 w-16 bg-neutral-200 rounded animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="space-y-2.5">
+                    <div className="h-14 bg-neutral-200 rounded animate-pulse" />
+                    <div className="h-14 bg-neutral-200 rounded animate-pulse" />
+                    <div className="h-14 bg-neutral-200 rounded animate-pulse" />
+                  </div>
+                  <div className="space-y-2.5 pt-2">
+                    <div className="h-16 bg-neutral-200 rounded animate-pulse" />
+                    <div className="h-16 bg-neutral-200 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        ) : isMobile ? (
+          formattedMeal ? (
+            formattedMeal.isEmpty ? (
+              <div className="bg-paper border-2 border-ink rounded-lg p-6 text-center shadow-neo-sm md:shadow-neo">
+                <img
+                  src="/sarue-doubt.png"
+                  alt=""
+                  aria-hidden="true"
+                  className="w-24 h-24 mx-auto mb-1.5 object-contain select-none pointer-events-none"
+                />
+                <p className="text-sm font-black text-black">
+                  Cardápio não publicado para {formattedMeal.title.toLowerCase()} nesta data
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* 2. PRATOS PRINCIPAIS UNIFICADOS EM UM ÚNICO CARD */}
+                {formattedMeal.variations.length > 0 && (
+                  <section
+                    aria-label="Pratos principais"
+                    className="border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo overflow-hidden divide-y-2 divide-ink bg-paper"
+                  >
+                    {formattedMeal.variations.map((variation) => {
+                      const style = getDietStyle(variation.diet);
+                      const DietIcon = style.Icon;
+
+                      return (
+                        <div
+                          key={variation.diet}
+                          className={`relative px-3.5 py-3 flex items-center justify-between gap-3 ${style.rowSurface}`}
+                        >
+                          {/* Fita lateral no canto: APENAS no dark mode (no modo claro a linha toda tem a cor) */}
+                          <div
+                            aria-hidden="true"
+                            className={`hidden dark:block absolute inset-y-0 left-0 w-1.5 ${style.darkRibbon}`}
+                          />
+
+                          <span
+                            className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border-2 text-xs font-black uppercase tracking-wide dark:ml-1 ${style.badgeStyle}`}
+                          >
+                            <DietIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>{style.shortLabel}</span>
+                          </span>
+
+                          <p className="min-w-0 flex-1 text-right text-sm sm:text-base font-black text-black leading-snug">
+                            {variation.items.join(' • ')}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </section>
+                )}
+
+                {/* 3. BENTO GRID (2 COLUNAS) PARA O RESTANTE DO CARDÁPIO */}
+                {bentoCells.length > 0 && (
+                  <section
+                    aria-label="Composição da refeição"
+                    className="grid grid-cols-2 gap-2.5 sm:gap-3"
+                  >
+                    {bentoCells.map((cellGroups, cellIdx) => (
+                      <article
+                        key={cellGroups.map((g) => g.id).join('-') || cellIdx}
+                        className="min-w-0 bg-paper border-2 border-ink rounded-lg p-3 sm:p-3.5 shadow-neo-sm md:shadow-neo flex flex-col justify-between divide-y-2 divide-black/15"
+                      >
+                        {cellGroups.map((group, gIdx) => (
+                          <div
+                            key={group.id}
+                            className={gIdx > 0 ? 'pt-3 mt-3' : ''}
+                          >
+                            <BentoGroupSection group={group} />
+                          </div>
+                        ))}
+                      </article>
+                    ))}
+                  </section>
+                )}
+              </div>
+            )
+          ) : null
+        ) : allFormattedMeals ? (
+          isEntireDayEmpty ? (
+            <div className="bg-paper border-2 border-ink rounded-xl p-8 text-center shadow-neo">
+              <img
+                src="/sarue-doubt.png"
+                alt=""
+                aria-hidden="true"
+                className="w-36 h-36 mx-auto mb-2 object-contain select-none pointer-events-none"
+              />
+              <p className="text-base font-black text-black">
+                Cardápio não publicado para esta data
+              </p>
+              <p className="text-xs font-bold text-neutral-600 mt-1 max-w-md mx-auto">
+                Nenhuma refeição foi disponibilizada pelo Restaurante Universitário para{' '}
+                {activeDateMeta.weekdayFull.toLowerCase()}, {activeDateMeta.dateShort}.
+              </p>
+            </div>
+          ) : (
+            <section
+              aria-label="Refeições do dia"
+              className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch"
+            >
+              {ALL_MEALS.map((mealKey) => {
+                const isTargetDay = currentDayMenu?.date === initialSelection.targetDateIso;
+                const isCurrentTargetMeal =
+                  isTargetDay && initialSelection.meal === mealKey;
+
+                return (
+                  <DesktopMealColumn
+                    key={mealKey}
+                    meal={mealKey}
+                    formatted={allFormattedMeals[mealKey]}
+                    isCurrentTargetMeal={isCurrentTargetMeal}
+                    isTodaySelected={currentDayMenu?.date === todayIso}
+                  />
+                );
+              })}
+            </section>
+          )
+        ) : null}
       </div>
 
       {showWalletFab && (
