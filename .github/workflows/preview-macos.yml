@@ -1,0 +1,72 @@
+name: "Preview Build (macOS)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Arquitetura alvo do macOS'
+        required: true
+        default: 'aarch64-apple-darwin'
+        type: choice
+        options:
+          - aarch64-apple-darwin
+          - x86_64-apple-darwin
+          - both
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos-preview:
+    name: "Build macOS Preview (${{ matrix.target }})"
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ github.event.inputs.target == 'both' && fromJSON('["aarch64-apple-darwin", "x86_64-apple-darwin"]') || fromJSON(format('["{0}"]', github.event.inputs.target || 'aarch64-apple-darwin')) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build macOS Preview DMG
+        run: pnpm macos:preview --target ${{ matrix.target }}
+
+      - name: Verify macOS bundle code signature
+        run: |
+          APP_PATH="src-tauri/target/${{ matrix.target }}/release/bundle/macos/Saruê UnB (Preview).app"
+          codesign -dv --verbose=4 "$APP_PATH"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          spctl --assess --type execute -vv "$APP_PATH" || true
+
+      - name: Upload macOS Preview DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarue-unb-preview-${{ matrix.target }}
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+          retention-days: 14

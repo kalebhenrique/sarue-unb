@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Saruê UnB (Preview)",
+  "identifier": "br.unb.sarue.preview",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Saruê UnB (Preview)"
+      }
+    ]
+  },
+  "bundle": {
+    "targets": ["app", "dmg"],
+    "createUpdaterArtifacts": false,
+    "icon": [
+      "icons/macos-preview/32x32.png",
+      "icons/macos-preview/128x128.png",
+      "icons/macos-preview/128x128@2x.png",
+      "icons/macos-preview/icon.icns"
+    ]
+  }
+}

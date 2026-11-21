@@ -22,6 +22,7 @@
     "tauri": "node scripts/tauri-cli.mjs",
     "tauri:dev": "node scripts/tauri-cli.mjs dev",
     "tauri:store": "node scripts/tauri-cli.mjs build --config src-tauri/tauri.microsoftstore.conf.json",
+    "macos:preview": "node scripts/tauri-cli.mjs build --config src-tauri/tauri.macos-preview.conf.json",
     "dev:app": "node scripts/tauri-cli.mjs dev",
     "android:init": "node scripts/tauri-cli.mjs android init",
     "android:dev": "node scripts/tauri-cli.mjs android dev",
