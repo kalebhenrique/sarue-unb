@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { Bell, BellOff, ExternalLink } from 'lucide-react';
 import { Badge, Card, Checkbox, PageContainer, PageHeader } from '@/components/ui';
+import { NotificationsSkeleton } from '@/components/notifications/NotificationsSkeleton';
 import { useDeadlines } from '@/context/DeadlineContext';
 import { useSync } from '@/context/SyncContext';
 import { useContainer } from '@/context/ContainerContext';
 import { cn, openExternalUrl } from '@/lib/utils';
-import type { DeadlineEntry, Discipline } from '@/core';
+import type { DeadlineEntry } from '@/core';
 
 const PLATFORM_LABELS: Record<string, string> = {
   aprender3: 'Aprender 3',
@@ -120,27 +121,15 @@ const NotificationRow: React.FC<{
 };
 
 export const NotificationsScreen: React.FC = () => {
-  const { entries, refresh } = useDeadlines();
+  const { entries, disciplines, isLoading, hasLoadedOnce, refresh } = useDeadlines();
   const { lastSyncedAt } = useSync();
   const { useCases } = useContainer();
 
-  const [disciplines, setDisciplines] = React.useState<Discipline[]>([]);
   const [pendingDone, setPendingDone] = React.useState<ReadonlySet<string>>(
     new Set(),
   );
 
-  React.useEffect(() => {
-    let active = true;
-    useCases
-      .getCourses.getDisciplines()
-      .then((result) => {
-        if (active) setDisciplines(result.disciplines);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [useCases]);
+  const isInitialLoad = isLoading && !hasLoadedOnce;
 
   const handleComplete = async (id: string) => {
     setPendingDone((prev) => new Set(prev).add(id));
@@ -169,14 +158,17 @@ export const NotificationsScreen: React.FC = () => {
       <PageHeader
         icon={Bell}
         title="Notificações"
-        count={entries.length > 0 ? entries.length : null}
+        count={hasLoadedOnce && entries.length > 0 ? entries.length : null}
         subtitle={
-          entries.length > 0
+          hasLoadedOnce && entries.length > 0
             ? `(${entries.length} pendência${entries.length > 1 ? "s" : ""})`
             : null
         }
       />
 
+      {isInitialLoad ? (
+        <NotificationsSkeleton />
+      ) : (
       <Card className="p-0 overflow-hidden">
         {entries.length === 0 ? (
           <div className="px-6 py-12 text-center space-y-3">
@@ -228,6 +220,7 @@ export const NotificationsScreen: React.FC = () => {
           </div>
         )}
       </Card>
+      )}
     </PageContainer>
   );
 };

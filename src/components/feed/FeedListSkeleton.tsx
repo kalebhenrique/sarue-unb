@@ -33,7 +33,7 @@ export const FeedListSkeleton: React.FC<FeedListSkeletonProps> = ({ rows = 8 }) 
           {/* Título + meta */}
           <div className="min-w-0 flex-1">
             <Skeleton className={`h-3 ${row.title}`} />
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2">
               <Skeleton className="h-6 w-20 shrink-0 rounded-full" />
               <Skeleton className={`h-6 shrink-0 rounded-full ${row.meta}`} />
               <Skeleton className="h-2 w-32 rounded-full" />

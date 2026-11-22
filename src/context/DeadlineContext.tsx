@@ -4,16 +4,20 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { useContainer } from './ContainerContext';
 import { subscribeToFeedUpdates } from '../hooks/useFeed';
 import { subscribeToSyncComplete } from './SyncContext';
-import type { DeadlineEntry } from '@/core';
+import type { DeadlineEntry, Discipline } from '@/core';
 
 interface DeadlineContextValue {
   entries: DeadlineEntry[];
   badgeCount: number;
+  disciplines: Discipline[];
+  isLoading: boolean;
+  hasLoadedOnce: boolean;
   refresh: () => Promise<void>;
 }
 
@@ -30,14 +34,31 @@ export const DeadlineProvider: React.FC<{ children: React.ReactNode }> = ({
   const { useCases } = useContainer();
   const [entries, setEntries] = useState<DeadlineEntry[]>([]);
   const [badgeCount, setBadgeCount] = useState<number>(0);
+  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
+  const hasLoadedOnceRef = useRef(false);
 
   const refresh = useCallback(async () => {
+    if (!hasLoadedOnceRef.current) {
+      setIsLoading(true);
+    }
     try {
-      const result = await useCases.evaluateDeadlines.execute();
+      const [result, disciplinesResult] = await Promise.all([
+        useCases.evaluateDeadlines.execute(),
+        useCases.getCourses.getDisciplines().catch(() => null),
+      ]);
       setEntries(result.entries);
       setBadgeCount(result.badgeCount);
+      if (disciplinesResult) {
+        setDisciplines(disciplinesResult.disciplines);
+      }
     } catch (err) {
       console.error('Erro ao avaliar prazos:', err);
+    } finally {
+      hasLoadedOnceRef.current = true;
+      setHasLoadedOnce(true);
+      setIsLoading(false);
     }
   }, [useCases]);
 
@@ -54,8 +75,15 @@ export const DeadlineProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [refresh]);
 
   const value = useMemo(
-    () => ({ entries, badgeCount, refresh }),
-    [entries, badgeCount, refresh],
+    () => ({
+      entries,
+      badgeCount,
+      disciplines,
+      isLoading,
+      hasLoadedOnce,
+      refresh,
+    }),
+    [entries, badgeCount, disciplines, isLoading, hasLoadedOnce, refresh],
   );
 
   return (

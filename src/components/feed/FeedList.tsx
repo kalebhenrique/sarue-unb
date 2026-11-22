@@ -124,7 +124,7 @@ export const FeedList: React.FC<FeedListProps> = ({
                 ? (e) => onToggleSelect(item.id, e.shiftKey)
                 : undefined
             }
-            className={`flex items-center gap-3 px-4 md:px-5 py-4 transition-colors duration-150 ${
+            className={`cv-row flex items-center gap-3 px-4 md:px-5 py-4 transition-colors duration-150 ${
               isSelected
                 ? "bg-pastel-blue"
                 : item.isCompleted

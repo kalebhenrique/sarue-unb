@@ -271,6 +271,13 @@ input::-ms-clear {
   display: none;
 }
 
+/* Otimização de scroll em listas longas (Blink/Android WebView):
+   pula layout e paint de itens fora da viewport mantendo altura estimada. */
+.cv-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 68px;
+}
+
 @keyframes sarue-toast-progress {
   from {
     transform: scaleX(0);
