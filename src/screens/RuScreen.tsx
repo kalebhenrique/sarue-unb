@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Utensils,
   Coffee,
@@ -17,7 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   IdCard,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   RU_CAMPUSES,
   MEAL_METADATA,
@@ -29,41 +29,44 @@ import {
   type FormattedCompositionGroup,
   type FormattedDishVariation,
   type FormattedMealMenu,
-} from '@/core';
-import { SegmentedControl, type SegmentedOption } from '@/components/ui/segmented';
+} from "@/core";
+import {
+  SegmentedControl,
+  type SegmentedOption,
+} from "@/components/ui/segmented";
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from '@/components/ui/select';
-import { BottomSheet } from '@/components/ui/bottom-sheet';
-import { DatePicker } from '@/components/ui/date-picker';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useRuMenu } from '../hooks/useRuMenu';
-import { useStudentWallet } from '../hooks/useStudentWallet';
-import { useCredentials } from '../hooks/useCredentials';
-import { PageContainer } from '@/components/ui/page-container';
-import { PageHeader } from '@/components/ui/page-header';
-import { FloatingActionButton } from '@/components/ui/floating-action-button';
-import { StudentCardModal } from '@/components/wallet/StudentCardModal';
+} from "@/components/ui/select";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { DatePicker } from "@/components/ui/date-picker";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useRuMenu } from "../hooks/useRuMenu";
+import { useStudentWallet } from "../hooks/useStudentWallet";
+import { useCredentials } from "../hooks/useCredentials";
+import { PageContainer } from "@/components/ui/page-container";
+import { PageHeader } from "@/components/ui/page-header";
+import { FloatingActionButton } from "@/components/ui/floating-action-button";
+import { StudentCardModal } from "@/components/wallet/StudentCardModal";
 
-const SHORT_WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const SHORT_WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const FULL_WEEKDAYS = [
-  'Domingo',
-  'Segunda',
-  'Terça',
-  'Quarta',
-  'Quinta',
-  'Sexta',
-  'Sábado',
+  "Domingo",
+  "Segunda",
+  "Terça",
+  "Quarta",
+  "Quinta",
+  "Sexta",
+  "Sábado",
 ];
 
-const ALL_MEALS: ReadonlyArray<RuMealType> = ['breakfast', 'lunch', 'dinner'];
+const ALL_MEALS: ReadonlyArray<RuMealType> = ["breakfast", "lunch", "dinner"];
 
 function parseIsoLocal(iso: string): Date {
-  const [y, m, d] = iso.split('-').map(Number);
+  const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, (m || 1) - 1, d || 1);
 }
 
@@ -75,35 +78,35 @@ function formatDayMeta(iso: string): {
 } {
   const dt = parseIsoLocal(iso);
   const w = dt.getDay();
-  const dd = String(dt.getDate()).padStart(2, '0');
-  const mm = String(dt.getMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
   return {
-    weekdayShort: SHORT_WEEKDAYS[w] ?? 'Dia',
-    weekdayFull: FULL_WEEKDAYS[w] ?? 'Dia',
+    weekdayShort: SHORT_WEEKDAYS[w] ?? "Dia",
+    weekdayFull: FULL_WEEKDAYS[w] ?? "Dia",
     dayNum: dd,
     dateShort: `${dd}/${mm}`,
   };
 }
 
-function getCategoryIcon(category: FormattedCompositionGroup['category']) {
+function getCategoryIcon(category: FormattedCompositionGroup["category"]) {
   switch (category) {
-    case 'salads':
+    case "salads":
       return Salad;
-    case 'side_dish':
-    case 'accompaniments':
+    case "side_dish":
+    case "accompaniments":
       return Utensils;
-    case 'soup':
+    case "soup":
       return Soup;
-    case 'bakery':
+    case "bakery":
       return Croissant;
-    case 'dessert':
-    case 'fruit':
+    case "dessert":
+    case "fruit":
       return Apple;
-    case 'drink':
+    case "drink":
       return CupSoda;
-    case 'hot_drink':
+    case "hot_drink":
       return Coffee;
-    case 'extra':
+    case "extra":
     default:
       return Sparkles;
   }
@@ -114,88 +117,65 @@ function getCategoryIcon(category: FormattedCompositionGroup['category']) {
  * - No modo claro, a linha/card inteiro recebe a cor da dieta (sem fita lateral no canto).
  * - No modo escuro (dark:), o fundo é bg-paper e a fita lateral colorida é exibida no canto esquerdo.
  */
-function getDietStyle(diet: FormattedDishVariation['diet']) {
+function getDietStyle(diet: FormattedDishVariation["diet"]) {
   switch (diet) {
-    case 'standard':
+    case "standard":
       return {
-        shortLabel: 'PADRÃO',
+        shortLabel: "PADRÃO",
         Icon: Drumstick,
-        rowSurface: 'bg-pastel-blue dark:bg-paper',
-        badgeStyle: 'bg-neo-blue text-white border-ink',
-        darkRibbon: 'bg-neo-blue',
+        rowSurface: "bg-pastel-blue dark:bg-paper",
+        badgeStyle: "bg-neo-blue text-white border-ink",
+        darkRibbon: "bg-neo-blue",
       };
-    case 'ovolacto':
+    case "ovolacto":
       return {
-        shortLabel: 'OVOLACTO',
+        shortLabel: "OVOLACTO",
         Icon: Egg,
-        rowSurface: 'bg-pastel-yellow dark:bg-paper',
-        badgeStyle: 'bg-neo-yellow text-ink border-ink',
-        darkRibbon: 'bg-neo-yellow',
+        rowSurface: "bg-pastel-yellow dark:bg-paper",
+        badgeStyle: "bg-neo-yellow text-ink border-ink",
+        darkRibbon: "bg-neo-yellow",
       };
-    case 'vegan':
+    case "vegan":
       return {
-        shortLabel: 'VEGANO',
+        shortLabel: "VEGANO",
         Icon: Leaf,
-        rowSurface: 'bg-pastel-green dark:bg-paper',
-        badgeStyle: 'bg-unb-green text-white border-ink',
-        darkRibbon: 'bg-unb-green',
-      };
-  }
-}
-
-function getMealHeaderConfig(meal: RuMealType) {
-  switch (meal) {
-    case 'breakfast':
-      return {
-        Icon: Coffee,
-        iconBoxClass: 'bg-neo-yellow text-ink',
-        variationHeading: 'Complementos principais',
-      };
-    case 'lunch':
-      return {
-        Icon: Utensils,
-        iconBoxClass: 'bg-sticker-blue text-ink',
-        variationHeading: 'Pratos principais',
-      };
-    case 'dinner':
-      return {
-        Icon: Soup,
-        iconBoxClass: 'bg-neo-purple text-ink',
-        variationHeading: 'Pratos principais',
+        rowSurface: "bg-pastel-green dark:bg-paper",
+        badgeStyle: "bg-unb-green text-white border-ink",
+        darkRibbon: "bg-unb-green",
       };
   }
 }
 
 const MEAL_SEGMENT_OPTIONS: ReadonlyArray<SegmentedOption<RuMealType>> = [
   {
-    value: 'breakfast',
+    value: "breakfast",
     label: (
       <>
         <Coffee className="w-4 h-4 stroke-[2.5]" />
         <span>Desjejum</span>
       </>
     ),
-    title: 'Cardápio do Desjejum (7h - 9h30)',
+    title: "Cardápio do Desjejum (7h - 9h30)",
   },
   {
-    value: 'lunch',
+    value: "lunch",
     label: (
       <>
         <Utensils className="w-4 h-4 stroke-[2.5]" />
         <span>Almoço</span>
       </>
     ),
-    title: 'Cardápio do Almoço (11h - 14h30)',
+    title: "Cardápio do Almoço (11h - 14h30)",
   },
   {
-    value: 'dinner',
+    value: "dinner",
     label: (
       <>
         <Soup className="w-4 h-4 stroke-[2.5]" />
         <span>Jantar</span>
       </>
     ),
-    title: 'Cardápio do Jantar (17h - 19h30)',
+    title: "Cardápio do Jantar (17h - 19h30)",
   },
 ];
 
@@ -208,7 +188,7 @@ const BentoGroupSection: React.FC<BentoGroupSectionProps> = ({ group }) => {
 
   // Saladas mantém a badge amarela de molho; demais grupos (ex.: Panificação/Bebidas)
   // renderizam todas as opções e complementos como lista simples com marcador "•".
-  const keepSubGroupAsBadge = group.id === 'salads';
+  const keepSubGroupAsBadge = group.id === "salads";
   const listItems = [
     ...group.items.flatMap((alternatives) => alternatives),
     ...(!keepSubGroupAsBadge && group.subGroup ? group.subGroup.chips : []),
@@ -245,18 +225,20 @@ const BentoGroupSection: React.FC<BentoGroupSectionProps> = ({ group }) => {
       </ul>
 
       {/* Sub-badge de destaque exclusiva para molhos de salada */}
-      {keepSubGroupAsBadge && group.subGroup && group.subGroup.chips.length > 0 && (
-        <div className="pt-1 flex flex-wrap items-center gap-1.5">
-          {group.subGroup.chips.map((chip, chipIdx) => (
-            <span
-              key={`${group.id}-sub-${chipIdx}`}
-              className="inline-flex items-center px-2 py-0.5 rounded-lg bg-neo-yellow text-ink border-2 border-ink text-xs font-extrabold leading-tight"
-            >
-              {chip}
-            </span>
-          ))}
-        </div>
-      )}
+      {keepSubGroupAsBadge &&
+        group.subGroup &&
+        group.subGroup.chips.length > 0 && (
+          <div className="pt-1 flex flex-wrap items-center gap-1.5">
+            {group.subGroup.chips.map((chip, chipIdx) => (
+              <span
+                key={`${group.id}-sub-${chipIdx}`}
+                className="inline-flex items-center px-2 py-0.5 rounded-lg bg-neo-yellow text-ink border-2 border-ink text-xs font-extrabold leading-tight"
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+        )}
     </div>
   );
 };
@@ -274,7 +256,6 @@ const DesktopMealColumn: React.FC<DesktopMealColumnProps> = ({
   isCurrentTargetMeal,
   isTodaySelected,
 }) => {
-  const { Icon: MealIcon, iconBoxClass } = getMealHeaderConfig(meal);
   const meta = MEAL_METADATA[meal];
 
   return (
@@ -285,12 +266,6 @@ const DesktopMealColumn: React.FC<DesktopMealColumnProps> = ({
       {/* Cabeçalho da coluna de refeição */}
       <header className="p-4 border-b-2 border-ink flex items-center justify-between gap-2.5 bg-paper">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div
-            aria-hidden="true"
-            className={`w-9 h-9 rounded-lg border-2 border-ink flex items-center justify-center shrink-0 ${iconBoxClass}`}
-          >
-            <MealIcon className="w-4 h-4 stroke-[2.5]" />
-          </div>
           <div className="min-w-0">
             <h2 className="text-sm font-black text-black leading-tight truncate">
               {meta.title}
@@ -303,7 +278,7 @@ const DesktopMealColumn: React.FC<DesktopMealColumnProps> = ({
 
         {isCurrentTargetMeal && (
           <span className="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full border-2 border-ink bg-neo-yellow text-ink text-[11px] font-black uppercase tracking-wide">
-            {isTodaySelected ? 'Refeição do turno' : 'Próxima'}
+            {isTodaySelected ? "Refeição do turno" : "Próxima"}
           </span>
         )}
       </header>
@@ -345,7 +320,7 @@ const DesktopMealColumn: React.FC<DesktopMealColumnProps> = ({
                     </span>
 
                     <p className="min-w-0 flex-1 text-right text-sm font-black text-black leading-snug">
-                      {variation.items.join(' • ')}
+                      {variation.items.join(" • ")}
                     </p>
                   </div>
                 );
@@ -357,7 +332,7 @@ const DesktopMealColumn: React.FC<DesktopMealColumnProps> = ({
           {formatted.composition.length > 0 && (
             <div className="p-4 space-y-3.5 divide-y-2 divide-black/10 flex-1 bg-paper">
               {formatted.composition.map((group, idx) => (
-                <div key={group.id} className={idx > 0 ? 'pt-3.5' : ''}>
+                <div key={group.id} className={idx > 0 ? "pt-3.5" : ""}>
                   <BentoGroupSection group={group} />
                 </div>
               ))}
@@ -373,22 +348,26 @@ export const RuScreen: React.FC = () => {
   const { campus, setCampus, menus, isLoading, error } = useRuMenu();
   const { wallet } = useStudentWallet();
   const { hasCredentials } = useCredentials();
-  const isMobile = useMediaQuery('(max-width: 767px)');
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const showWalletFab = isMobile && Boolean(hasCredentials);
   const [cardModalOpen, setCardModalOpen] = useState(false);
 
   const todayIso = useMemo(() => getBrasiliaTodayIso(), []);
   const initialSelection = useMemo(() => resolveInitialMealAndDate(), []);
-  const [selectedMeal, setSelectedMeal] = useState<RuMealType>(initialSelection.meal);
-  const [selectedDate, setSelectedDate] = useState<string>(initialSelection.targetDateIso);
+  const [selectedMeal, setSelectedMeal] = useState<RuMealType>(
+    initialSelection.meal,
+  );
+  const [selectedDate, setSelectedDate] = useState<string>(
+    initialSelection.targetDateIso,
+  );
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const hasSnappedInitialDateRef = React.useRef(false);
 
   // Agrupa os dias disponíveis em semanas de até 7 dias (Seg..Dom)
   const weeks = useMemo(() => {
-    if (menus.length === 0) return [] as typeof menus[];
+    if (menus.length === 0) return [] as (typeof menus)[];
     const sorted = [...menus].sort((a, b) => a.date.localeCompare(b.date));
-    const chunks: typeof menus[] = [];
+    const chunks: (typeof menus)[] = [];
     let currentChunk: typeof menus = [];
 
     for (const item of sorted) {
@@ -423,7 +402,9 @@ export const RuScreen: React.FC = () => {
     }
 
     const nextAvailable = menus.find((m) => m.date >= target);
-    setSelectedDate(nextAvailable ? nextAvailable.date : menus[menus.length - 1].date);
+    setSelectedDate(
+      nextAvailable ? nextAvailable.date : menus[menus.length - 1].date,
+    );
   }, [menus, selectedDate, initialSelection.targetDateIso]);
 
   const activeWeekIndex = useMemo(() => {
@@ -436,7 +417,7 @@ export const RuScreen: React.FC = () => {
 
   const currentDayMenu = useMemo(
     () => menus.find((m) => m.date === selectedDate) ?? null,
-    [menus, selectedDate]
+    [menus, selectedDate],
   );
 
   const formattedMeal = useMemo(() => {
@@ -448,9 +429,9 @@ export const RuScreen: React.FC = () => {
   const allFormattedMeals = useMemo(() => {
     if (menus.length === 0) return null;
     return {
-      breakfast: formatMealMenu('breakfast', currentDayMenu?.breakfast ?? []),
-      lunch: formatMealMenu('lunch', currentDayMenu?.lunch ?? []),
-      dinner: formatMealMenu('dinner', currentDayMenu?.dinner ?? []),
+      breakfast: formatMealMenu("breakfast", currentDayMenu?.breakfast ?? []),
+      lunch: formatMealMenu("lunch", currentDayMenu?.lunch ?? []),
+      dinner: formatMealMenu("dinner", currentDayMenu?.dinner ?? []),
     };
   }, [menus.length, currentDayMenu]);
 
@@ -469,13 +450,15 @@ export const RuScreen: React.FC = () => {
     const comp = formattedMeal.composition;
     const byId = new Map(comp.map((g) => [g.id, g]));
 
-    if (selectedMeal === 'breakfast') {
+    if (selectedMeal === "breakfast") {
       const cells: FormattedCompositionGroup[][] = [];
-      const bakery = byId.get('bakery');
-      const hotDrink = byId.get('hot_drink') ?? byId.get('drink');
-      const fruitAndExtra = [byId.get('fruit'), byId.get('dessert'), byId.get('extra')].filter(
-        (g): g is FormattedCompositionGroup => Boolean(g)
-      );
+      const bakery = byId.get("bakery");
+      const hotDrink = byId.get("hot_drink") ?? byId.get("drink");
+      const fruitAndExtra = [
+        byId.get("fruit"),
+        byId.get("dessert"),
+        byId.get("extra"),
+      ].filter((g): g is FormattedCompositionGroup => Boolean(g));
 
       if (bakery) cells.push([bakery]);
       if (hotDrink && fruitAndExtra.length > 0) {
@@ -488,16 +471,18 @@ export const RuScreen: React.FC = () => {
     }
 
     const cells: FormattedCompositionGroup[][] = [];
-    const salads = byId.get('salads');
-    const accomp = byId.get('accompaniments');
-    const sideAndSoup = [byId.get('side_dish'), byId.get('soup'), byId.get('toast')].filter(
-      (g): g is FormattedCompositionGroup => Boolean(g)
-    );
+    const salads = byId.get("salads");
+    const accomp = byId.get("accompaniments");
+    const sideAndSoup = [
+      byId.get("side_dish"),
+      byId.get("soup"),
+      byId.get("toast"),
+    ].filter((g): g is FormattedCompositionGroup => Boolean(g));
     const dessertAndDrink = [
-      byId.get('dessert'),
-      byId.get('fruit'),
-      byId.get('drink'),
-      byId.get('hot_drink'),
+      byId.get("dessert"),
+      byId.get("fruit"),
+      byId.get("drink"),
+      byId.get("hot_drink"),
     ].filter((g): g is FormattedCompositionGroup => Boolean(g));
 
     if (salads) cells.push([salads]);
@@ -528,9 +513,11 @@ export const RuScreen: React.FC = () => {
     : formatDayMeta(selectedDate);
 
   const weekRangeLabel = useMemo(() => {
-    if (activeWeekDays.length === 0) return '';
+    if (activeWeekDays.length === 0) return "";
     const first = formatDayMeta(activeWeekDays[0].date).dateShort;
-    const last = formatDayMeta(activeWeekDays[activeWeekDays.length - 1].date).dateShort;
+    const last = formatDayMeta(
+      activeWeekDays[activeWeekDays.length - 1].date,
+    ).dateShort;
     return first === last ? first : `${first} – ${last}`;
   }, [activeWeekDays]);
 
@@ -580,26 +567,26 @@ export const RuScreen: React.FC = () => {
               type="button"
               role="option"
               aria-selected={isSelected}
-              aria-label={`${info.weekdayFull}, ${info.dateShort}${isToday ? ' (Hoje)' : ''}`}
+              aria-label={`${info.weekdayFull}, ${info.dateShort}${isToday ? " (Hoje)" : ""}`}
               onClick={() => {
                 setSelectedDate(dayMenu.date);
                 setDayPickerOpen(false);
               }}
               className={`cursor-pointer min-h-[54px] py-2 px-0.5 rounded-xl border-2 border-ink flex flex-col items-center justify-center transition-[transform,box-shadow,background-color] duration-150 ease-out select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 ${
                 isSelected
-                  ? 'bg-neo-blue text-white shadow-neo-sm hover:bg-neo-blueHover hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
+                  ? "bg-neo-blue text-white shadow-neo-sm hover:bg-neo-blueHover hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                   : isToday
-                    ? 'bg-neo-yellow text-ink shadow-neo-sm hover:bg-neo-yellowHover hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
-                    : 'bg-paper text-black hover:bg-neutral-100 shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
+                    ? "bg-neo-yellow text-ink shadow-neo-sm hover:bg-neo-yellowHover hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    : "bg-paper text-black hover:bg-neutral-100 shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
               }`}
             >
               <span
                 className={`text-xs uppercase leading-none font-extrabold ${
                   isSelected
-                    ? 'text-white/90'
+                    ? "text-white/90"
                     : isToday
-                      ? 'text-ink/80'
-                      : 'text-neutral-500'
+                      ? "text-ink/80"
+                      : "text-neutral-500"
                 }`}
               >
                 {info.weekdayShort}
@@ -751,23 +738,23 @@ export const RuScreen: React.FC = () => {
                         type="button"
                         role="option"
                         aria-selected={isSelected}
-                        aria-label={`${info.weekdayFull}, ${info.dateShort}${isToday ? ' (Hoje)' : ''}`}
+                        aria-label={`${info.weekdayFull}, ${info.dateShort}${isToday ? " (Hoje)" : ""}`}
                         onClick={() => setSelectedDate(dayMenu.date)}
                         className={`cursor-pointer h-10 px-1.5 rounded-xl border-2 border-ink flex items-center justify-center gap-1 transition-[transform,box-shadow,background-color] duration-150 ease-out select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 ${
                           isSelected
-                            ? 'bg-neo-blue text-white shadow-neo-sm hover:bg-neo-blueHover hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
+                            ? "bg-neo-blue text-white shadow-neo-sm hover:bg-neo-blueHover hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                             : isToday
-                              ? 'bg-neo-yellow text-ink shadow-neo-sm hover:bg-neo-yellowHover hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
-                              : 'bg-paper text-black hover:bg-neutral-100 shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none'
+                              ? "bg-neo-yellow text-ink shadow-neo-sm hover:bg-neo-yellowHover hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                              : "bg-paper text-black hover:bg-neutral-100 shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                         }`}
                       >
                         <span
                           className={`text-xs uppercase font-extrabold leading-none ${
                             isSelected
-                              ? 'text-white/90'
+                              ? "text-white/90"
                               : isToday
-                                ? 'text-ink/80'
-                                : 'text-neutral-500'
+                                ? "text-ink/80"
+                                : "text-neutral-500"
                           }`}
                         >
                           {info.weekdayShort}
@@ -879,7 +866,8 @@ export const RuScreen: React.FC = () => {
                   className="w-24 h-24 mx-auto mb-1.5 object-contain select-none pointer-events-none"
                 />
                 <p className="text-sm font-black text-black">
-                  Cardápio não publicado para {formattedMeal.title.toLowerCase()} nesta data
+                  Cardápio não publicado para{" "}
+                  {formattedMeal.title.toLowerCase()} nesta data
                 </p>
               </div>
             ) : (
@@ -913,7 +901,7 @@ export const RuScreen: React.FC = () => {
                           </span>
 
                           <p className="min-w-0 flex-1 text-right text-sm sm:text-base font-black text-black leading-snug">
-                            {variation.items.join(' • ')}
+                            {variation.items.join(" • ")}
                           </p>
                         </div>
                       );
@@ -929,13 +917,13 @@ export const RuScreen: React.FC = () => {
                   >
                     {bentoCells.map((cellGroups, cellIdx) => (
                       <article
-                        key={cellGroups.map((g) => g.id).join('-') || cellIdx}
+                        key={cellGroups.map((g) => g.id).join("-") || cellIdx}
                         className="min-w-0 bg-paper border-2 border-ink rounded-lg p-3 sm:p-3.5 shadow-neo-sm md:shadow-neo flex flex-col justify-between divide-y-2 divide-black/15"
                       >
                         {cellGroups.map((group, gIdx) => (
                           <div
                             key={group.id}
-                            className={gIdx > 0 ? 'pt-3 mt-3' : ''}
+                            className={gIdx > 0 ? "pt-3 mt-3" : ""}
                           >
                             <BentoGroupSection group={group} />
                           </div>
@@ -960,8 +948,9 @@ export const RuScreen: React.FC = () => {
                 Cardápio não publicado para esta data
               </p>
               <p className="text-xs font-bold text-neutral-600 mt-1 max-w-md mx-auto">
-                Nenhuma refeição foi disponibilizada pelo Restaurante Universitário para{' '}
-                {activeDateMeta.weekdayFull.toLowerCase()}, {activeDateMeta.dateShort}.
+                Nenhuma refeição foi disponibilizada pelo Restaurante
+                Universitário para {activeDateMeta.weekdayFull.toLowerCase()},{" "}
+                {activeDateMeta.dateShort}.
               </p>
             </div>
           ) : (
@@ -970,7 +959,8 @@ export const RuScreen: React.FC = () => {
               className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch"
             >
               {ALL_MEALS.map((mealKey) => {
-                const isTargetDay = currentDayMenu?.date === initialSelection.targetDateIso;
+                const isTargetDay =
+                  currentDayMenu?.date === initialSelection.targetDateIso;
                 const isCurrentTargetMeal =
                   isTargetDay && initialSelection.meal === mealKey;
 
@@ -1000,7 +990,7 @@ export const RuScreen: React.FC = () => {
           />
 
           <StudentCardModal
-            card={cardModalOpen ? 'ru' : null}
+            card={cardModalOpen ? "ru" : null}
             wallet={wallet}
             onClose={() => setCardModalOpen(false)}
           />

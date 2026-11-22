@@ -72,10 +72,7 @@ export const GradeFilters: React.FC<GradeFiltersProps> = ({
     <Card className="p-3 md:p-4 space-y-2.5 md:space-y-4">
       {/* Cabeçalho da seção de busca (desktop) */}
       <div className="hidden md:flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-lg bg-sticker-blue border-2 border-ink flex items-center justify-center text-ink shrink-0">
-            <Search className="w-5 h-5 stroke-[2.5]" />
-          </div>
+        <div className="flex items-center min-w-0">
           <div className="min-w-0">
             <h3 className="text-sm font-extrabold tracking-tight text-black">
               Filtrar turmas da UnB
@@ -88,9 +85,7 @@ export const GradeFilters: React.FC<GradeFiltersProps> = ({
       <div className="flex flex-col lg:flex-row lg:items-end gap-3">
         {/* Semestre letivo: contexto dos dados, vindo do scraping */}
         <div className="flex flex-col gap-1.5 shrink-0">
-          <span className="text-xs font-bold text-neutral-700">
-            Semestre
-          </span>
+          <span className="text-xs font-bold text-neutral-700">Semestre</span>
           <Select
             value={`${year}-${period}`}
             items={semesterOptions}

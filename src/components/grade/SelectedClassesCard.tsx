@@ -2,7 +2,11 @@ import React from "react";
 import { Card, Button, Badge, FilterSelect } from "@/components/ui";
 import { BookMarked, Trash2, Sparkles, Save } from "lucide-react";
 import type { ScrapedClass } from "@/core";
-import { SHIFT_OPTIONS, DISCIPLINE_COLORS, type DisciplineColor } from "./types";
+import {
+  SHIFT_OPTIONS,
+  DISCIPLINE_COLORS,
+  type DisciplineColor,
+} from "./types";
 
 export interface SelectedClassesCardProps {
   selectedClasses: ScrapedClass[];
@@ -64,12 +68,11 @@ export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
     onClearGrade();
   };
   return (
-    <Card className={`p-4 space-y-4 ${inSheet ? "shadow-none! [&_[data-slot=button]]:shadow-none!" : ""}`}>
+    <Card
+      className={`p-4 space-y-4 ${inSheet ? "shadow-none! [&_[data-slot=button]]:shadow-none!" : ""}`}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-lg bg-neo-green border-2 border-ink flex items-center justify-center text-ink shrink-0">
-            <BookMarked className="w-5 h-5 stroke-[2.5]" />
-          </div>
           <h3 className="text-sm font-extrabold tracking-tight text-black">
             Minha grade
           </h3>
@@ -141,7 +144,6 @@ export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
             <Save className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Salvar grade</span>
           </Button>
-
         </div>
       </div>
 
@@ -151,8 +153,8 @@ export const SelectedClassesCard: React.FC<SelectedClassesCardProps> = ({
             Sua grade está vazia
           </p>
           <p className="text-[11px] font-semibold text-neutral-600">
-            Expanda uma disciplina no catálogo acima e adicione a turma que
-            quer cursar.
+            Expanda uma disciplina no catálogo acima e adicione a turma que quer
+            cursar.
           </p>
         </div>
       ) : (

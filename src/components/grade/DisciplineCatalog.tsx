@@ -271,18 +271,14 @@ export const DisciplineCatalog: React.FC<DisciplineCatalogProps> = ({
   return (
     <Card className="overflow-hidden p-0">
       {/* Header do Catálogo */}
-      <div className="px-4 py-3 border-b-2 border-ink flex items-center justify-between gap-3 bg-paper">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-lg bg-neo-yellow border-2 border-ink flex items-center justify-center text-ink shrink-0">
-            <LibraryBig className="w-5 h-5 stroke-[2.5]" />
-          </div>
+      <div className="px-4 py-3 flex items-center justify-between gap-3 bg-paper">
+        <div className="flex items-center min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-extrabold tracking-tight text-black whitespace-nowrap">
               Catálogo de disciplinas
             </h3>
           </div>
         </div>
-
       </div>
 
       {/* Alerta de fallback quando disciplina não foi achada no departamento escolhido */}
