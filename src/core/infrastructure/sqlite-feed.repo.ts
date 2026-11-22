@@ -57,6 +57,28 @@ const inMemoryCourses = new Map<string, Course>();
 const inMemoryAssociations = new Map<string, CourseAssociation>();
 
 
+const SQLITE_HOUSEKEEPING_KEY = 'sarue_sqlite_housekeeping_v2';
+const SQLITE_BATCH_CHUNK_SIZE = 25;
+
+function hasCompletedHousekeeping(): boolean {
+  try {
+    return (
+      typeof window !== 'undefined' &&
+      window.localStorage?.getItem(SQLITE_HOUSEKEEPING_KEY) === '1'
+    );
+  } catch {
+    return false;
+  }
+}
+
+function markHousekeepingCompleted(): void {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(SQLITE_HOUSEKEEPING_KEY, '1');
+    }
+  } catch {}
+}
+
 export async function getDatabase(): Promise<Database | null> {
   if (!isTauriEnvironment()) return null;
 
@@ -67,59 +89,62 @@ export async function getDatabase(): Promise<Database | null> {
         const { SQLITE_DB_NAME } = await import('./db-config');
         const db = await Database.load(SQLITE_DB_NAME);
 
-        try { await db.execute('PRAGMA busy_timeout = 5000;'); } catch {}
-
-        // Garante compatibilidade transparente com bases locais legadas pré-migrações
-        try { await db.execute('ALTER TABLE courses ADD COLUMN url TEXT;'); } catch {}
-        try { await db.execute('ALTER TABLE courses ADD COLUMN turma TEXT;'); } catch {}
-        try { await db.execute('ALTER TABLE courses ADD COLUMN absences INTEGER;'); } catch {}
-        try { await db.execute('ALTER TABLE courses ADD COLUMN max_absences INTEGER;'); } catch {}
-        try { await db.execute('ALTER TABLE feed_items ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0;'); } catch {}
-        try { await db.execute('ALTER TABLE feed_items ADD COLUMN external_url TEXT;'); } catch {}
         try {
-          const ruCols = await db.select<{ name: string }[]>(
-            'PRAGMA table_info(ru_menus);'
-          );
-          if (ruCols.length > 0 && !ruCols.some((c) => c.name === 'payload')) {
-            await db.execute('DROP TABLE IF EXISTS ru_menus;');
-          }
-          await db.execute(`CREATE TABLE IF NOT EXISTS ru_menus (
-            campus TEXT NOT NULL,
-            date TEXT NOT NULL,
-            payload TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            PRIMARY KEY (campus, date)
-          );`);
-
-          const walletCols = await db.select<{ name: string }[]>(
-            'PRAGMA table_info(student_wallet);'
-          );
-          if (
-            walletCols.length > 0 &&
-            !walletCols.some((c) => c.name === 'payload')
-          ) {
-            await db.execute('DROP TABLE IF EXISTS student_wallet;');
-          }
-          await db.execute(`CREATE TABLE IF NOT EXISTS student_wallet (
-            id TEXT PRIMARY KEY,
-            payload TEXT NOT NULL,
-            updated_at TEXT NOT NULL
-          );`);
+          await db.execute('PRAGMA busy_timeout = 5000;');
+          await db.execute('PRAGMA journal_mode = WAL;');
+          await db.execute('PRAGMA synchronous = NORMAL;');
         } catch {}
 
-        // Remove dados legados do MoodleMat (plataforma descontinuada)
-        try {
-          await db.execute("DELETE FROM courses WHERE platform = 'moodlemat';");
-          await db.execute("DELETE FROM feed_items WHERE platform = 'moodlemat';");
-        } catch (e) {
-          console.warn('Erro ao limpar dados legados do MoodleMat no SQLite:', e);
+        if (!hasCompletedHousekeeping()) {
+          // Garante compatibilidade transparente com bases locais legadas pré-migrações (roda 1x por versão)
+          try { await db.execute('ALTER TABLE courses ADD COLUMN url TEXT;'); } catch {}
+          try { await db.execute('ALTER TABLE courses ADD COLUMN turma TEXT;'); } catch {}
+          try { await db.execute('ALTER TABLE courses ADD COLUMN absences INTEGER;'); } catch {}
+          try { await db.execute('ALTER TABLE courses ADD COLUMN max_absences INTEGER;'); } catch {}
+          try { await db.execute('ALTER TABLE feed_items ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0;'); } catch {}
+          try { await db.execute('ALTER TABLE feed_items ADD COLUMN external_url TEXT;'); } catch {}
+          try {
+            const ruCols = await db.select<{ name: string }[]>(
+              'PRAGMA table_info(ru_menus);'
+            );
+            if (ruCols.length > 0 && !ruCols.some((c) => c.name === 'payload')) {
+              await db.execute('DROP TABLE IF EXISTS ru_menus;');
+            }
+            await db.execute(`CREATE TABLE IF NOT EXISTS ru_menus (
+              campus TEXT NOT NULL,
+              date TEXT NOT NULL,
+              payload TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              PRIMARY KEY (campus, date)
+            );`);
+
+            const walletCols = await db.select<{ name: string }[]>(
+              'PRAGMA table_info(student_wallet);'
+            );
+            if (
+              walletCols.length > 0 &&
+              !walletCols.some((c) => c.name === 'payload')
+            ) {
+              await db.execute('DROP TABLE IF EXISTS student_wallet;');
+            }
+            await db.execute(`CREATE TABLE IF NOT EXISTS student_wallet (
+              id TEXT PRIMARY KEY,
+              payload TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );`);
+          } catch {}
+
+          // Remove dados legados do MoodleMat (plataforma descontinuada) e banners antigos do Teams
+          try {
+            await db.execute("DELETE FROM courses WHERE platform = 'moodlemat';");
+            await db.execute("DELETE FROM feed_items WHERE platform = 'moodlemat';");
+            await db.execute("DELETE FROM courses WHERE platform = 'teams' AND (name LIKE '%language%' OR name LIKE '%restart%' OR name LIKE '%notifica%' OR name LIKE '%announcement%' OR name LIKE '%join or create%' OR name LIKE '%classes%' OR name LIKE '%equipes%' OR name = 'TEAMS');");
+            await db.execute("DELETE FROM feed_items WHERE platform = 'teams' AND (title LIKE '%desktop notifications%' OR title LIKE '%Apply and restart%' OR title LIKE '%Stay in the know%' OR title LIKE '%restart for change language%' OR content LIKE '%Stay in the know%' OR title LIKE '%Aviso: OAC Prof Ricardo Jacobi%');");
+            markHousekeepingCompleted();
+          } catch (e) {
+            console.warn('Erro ao limpar dados legados no SQLite:', e);
+          }
         }
-
-        // Remove banners de notificação, botões de sistema ou idioma do Teams salvos por versões anteriores
-        try {
-          await db.execute("DELETE FROM courses WHERE platform = 'teams' AND (name LIKE '%language%' OR name LIKE '%restart%' OR name LIKE '%notifica%' OR name LIKE '%announcement%' OR name LIKE '%join or create%' OR name LIKE '%classes%' OR name LIKE '%equipes%' OR name = 'TEAMS');");
-          await db.execute("DELETE FROM feed_items WHERE platform = 'teams' AND (title LIKE '%desktop notifications%' OR title LIKE '%Apply and restart%' OR title LIKE '%Stay in the know%' OR title LIKE '%restart for change language%' OR content LIKE '%Stay in the know%' OR title LIKE '%Aviso: OAC Prof Ricardo Jacobi%');");
-        } catch {}
 
         return db;
       } catch (err) {
@@ -272,13 +297,37 @@ export class SqliteFeedRepository implements IFeedRepository {
     }
 
     const db = await getDatabase();
-    if (db) {
+    if (db && newItems.length > 0) {
       try {
-        for (const item of newItems) {
+        for (let i = 0; i < newItems.length; i += SQLITE_BATCH_CHUNK_SIZE) {
+          const chunk = newItems.slice(i, i + SQLITE_BATCH_CHUNK_SIZE);
+          const params: (string | number | null)[] = [];
+          const valuesPlaceholders = chunk
+            .map((item) => {
+              const base = params.length;
+              params.push(
+                item.id,
+                item.platform,
+                item.title,
+                item.content,
+                item.courseName,
+                item.courseCode || item.courseName || '',
+                item.author ?? null,
+                item.itemType,
+                item.createdAt,
+                item.dueDate ?? null,
+                item.isCompleted ? 1 : 0,
+                item.isArchived ? 1 : 0,
+                item.externalUrl ?? null
+              );
+              return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13})`;
+            })
+            .join(', ');
+
           await db.execute(
             `INSERT INTO feed_items (
               id, platform, title, content, course_name, course_code, author, item_type, created_at, due_date, is_completed, is_hidden, external_url
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            ) VALUES ${valuesPlaceholders}
             ON CONFLICT(id) DO UPDATE SET
               title = excluded.title,
               content = excluded.content,
@@ -290,21 +339,7 @@ export class SqliteFeedRepository implements IFeedRepository {
               due_date = excluded.due_date,
               is_completed = MAX(feed_items.is_completed, excluded.is_completed),
               external_url = excluded.external_url;`,
-            [
-              item.id,
-              item.platform,
-              item.title,
-              item.content,
-              item.courseName,
-              item.courseCode || item.courseName || '',
-              item.author ?? null,
-              item.itemType,
-              item.createdAt,
-              item.dueDate ?? null,
-              item.isCompleted ? 1 : 0,
-              item.isArchived ? 1 : 0,
-              item.externalUrl ?? null,
-            ]
+            params
           );
         }
       } catch (e) {
@@ -410,27 +445,37 @@ export class SqliteFeedRepository implements IFeedRepository {
         if (hasTeamsCourses) {
           await db.execute("DELETE FROM courses WHERE platform = 'teams';");
         }
-        for (const course of newCourses) {
+        for (let i = 0; i < newCourses.length; i += SQLITE_BATCH_CHUNK_SIZE) {
+          const chunk = newCourses.slice(i, i + SQLITE_BATCH_CHUNK_SIZE);
+          const params: (string | number | null)[] = [];
+          const valuesPlaceholders = chunk
+            .map((course) => {
+              const base = params.length;
+              params.push(
+                course.id,
+                course.code,
+                course.name,
+                course.semester,
+                course.platform,
+                course.professor ?? null,
+                course.classroom ?? null,
+                course.schedule ?? null,
+                course.turma ?? null,
+                course.unreadCount ?? 0,
+                course.pendingAssignmentsCount ?? 0,
+                course.url ?? null,
+                course.absences ?? null,
+                course.maxAbsences ?? null
+              );
+              return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13}, $${base + 14})`;
+            })
+            .join(', ');
+
           await db.execute(
             `INSERT OR REPLACE INTO courses (
               id, code, name, semester, platform, professor, classroom, schedule, turma, unread_count, pending_assignments_count, url, absences, max_absences
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
-            [
-              course.id,
-              course.code,
-              course.name,
-              course.semester,
-              course.platform,
-              course.professor ?? null,
-              course.classroom ?? null,
-              course.schedule ?? null,
-              course.turma ?? null,
-              course.unreadCount ?? 0,
-              course.pendingAssignmentsCount ?? 0,
-              course.url ?? null,
-              course.absences ?? null,
-              course.maxAbsences ?? null,
-            ]
+            ) VALUES ${valuesPlaceholders}`,
+            params
           );
         }
       } catch (e) {

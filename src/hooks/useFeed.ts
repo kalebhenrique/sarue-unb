@@ -11,6 +11,19 @@ import type {
 // Notificador global entre instâncias ativas do hook useFeed
 const feedListeners = new Set<() => void>();
 
+interface FeedSessionSnapshot {
+  items: FeedItem[];
+  totalItems: number;
+  courses: Course[];
+  disciplines: Discipline[];
+  unmatchedCourses: Course[];
+  otherCourses: Course[];
+}
+
+// Cache de sessão em memória (padrão useMyCourse): evita exibir o skeleton
+// novamente a cada troca de aba entre Início e Disciplinas após a 1ª carga.
+let cachedFeedSnapshot: FeedSessionSnapshot | null = null;
+
 export function notifyFeedListeners() {
   feedListeners.forEach((fn) => fn());
 }
@@ -25,15 +38,31 @@ export function subscribeToFeedUpdates(listener: () => void): () => void {
 
 export function useFeed() {
   const { useCases } = useContainer();
-  const [items, setItems] = useState<FeedItem[]>([]);
+  const [items, setItems] = useState<FeedItem[]>(
+    () => cachedFeedSnapshot?.items ?? [],
+  );
   // Contagem absoluta do feed ativo (sem filtros): alimenta o título da página
-  const [totalItems, setTotalItems] = useState<number>(0);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
-  const [unmatchedCourses, setUnmatchedCourses] = useState<Course[]>([]);
-  const [otherCourses, setOtherCourses] = useState<Course[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
+  const [totalItems, setTotalItems] = useState<number>(
+    () => cachedFeedSnapshot?.totalItems ?? 0,
+  );
+  const [courses, setCourses] = useState<Course[]>(
+    () => cachedFeedSnapshot?.courses ?? [],
+  );
+  const [disciplines, setDisciplines] = useState<Discipline[]>(
+    () => cachedFeedSnapshot?.disciplines ?? [],
+  );
+  const [unmatchedCourses, setUnmatchedCourses] = useState<Course[]>(
+    () => cachedFeedSnapshot?.unmatchedCourses ?? [],
+  );
+  const [otherCourses, setOtherCourses] = useState<Course[]>(
+    () => cachedFeedSnapshot?.otherCourses ?? [],
+  );
+  const [isLoading, setIsLoading] = useState<boolean>(
+    () => cachedFeedSnapshot === null,
+  );
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(
+    () => cachedFeedSnapshot !== null,
+  );
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [syncErrors, setSyncErrors] = useState<Partial<
@@ -49,7 +78,9 @@ export function useFeed() {
   const [showArchived, setShowArchived] = useState<boolean>(false);
 
   const loadFeed = useCallback(async () => {
-    setIsLoading(true);
+    if (!cachedFeedSnapshot) {
+      setIsLoading(true);
+    }
     try {
       const [feedItems, absoluteItems, courseList, disciplinesResult] =
         await Promise.all([
@@ -73,6 +104,21 @@ export function useFeed() {
       setDisciplines(disciplinesResult.disciplines);
       setUnmatchedCourses(disciplinesResult.unmatchedCourses);
       setOtherCourses(disciplinesResult.otherCourses);
+
+      const isDefaultFilter =
+        selectedPlatform === "all" &&
+        selectedType === "all" &&
+        !debouncedSearchQuery &&
+        !showArchived;
+
+      cachedFeedSnapshot = {
+        items: isDefaultFilter ? feedItems : absoluteItems,
+        totalItems: absoluteItems.length,
+        courses: courseList,
+        disciplines: disciplinesResult.disciplines,
+        unmatchedCourses: disciplinesResult.unmatchedCourses,
+        otherCourses: disciplinesResult.otherCourses,
+      };
     } catch (err) {
       console.error("Erro ao carregar dados do feed e disciplinas:", err);
     } finally {
@@ -115,6 +161,15 @@ export function useFeed() {
       setUnmatchedCourses(disciplinesResult.unmatchedCourses);
       setOtherCourses(disciplinesResult.otherCourses);
 
+      cachedFeedSnapshot = {
+        items: result.items,
+        totalItems: result.items.length,
+        courses: result.courses,
+        disciplines: disciplinesResult.disciplines,
+        unmatchedCourses: disciplinesResult.unmatchedCourses,
+        otherCourses: disciplinesResult.otherCourses,
+      };
+
       if (result.errors && Object.keys(result.errors).length > 0) {
         setSyncErrors(result.errors);
       }
@@ -132,11 +187,13 @@ export function useFeed() {
     setIsLoading(true);
     try {
       await useCases.getFeed.clear();
+      cachedFeedSnapshot = null;
       setItems([]);
       setTotalItems(0);
       setCourses([]);
       setDisciplines([]);
       setUnmatchedCourses([]);
+      setOtherCourses([]);
       setLastSyncedAt(null);
       notifyFeedListeners();
     } catch (err) {

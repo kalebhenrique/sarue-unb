@@ -27,6 +27,12 @@ import { parseSavedGradeClassesJson } from "./persistence-codec";
 
 const inMemorySavedGrades = new Map<string, SavedGrade>();
 let inMemoryLatestGrade: SavedGrade | null = null;
+let cachedDepartments: Department[] | null = null;
+let cachedProfessors: ScrapedProfessor[] | null = null;
+let cachedCoursesCatalog: CourseCatalogItem[] | null = null;
+const cachedCurriculaByCourse = new Map<string, CurriculumStructure[]>();
+const cachedClassesByScope = new Map<string, ScrapedDiscipline[]>();
+
 export class TauriGradeRepository implements IGradeRepository {
   private fallbackRepo = new InMemoryGradeRepository();
 
@@ -37,6 +43,9 @@ export class TauriGradeRepository implements IGradeRepository {
   }
 
   async getDepartments(): Promise<Department[]> {
+    if (cachedDepartments && cachedDepartments.length > 0) {
+      return cachedDepartments;
+    }
     try {
       const { commands } = await import("@/core/infrastructure/bindings");
       const response = await commands.getSigaaDepartments();
@@ -44,7 +53,8 @@ export class TauriGradeRepository implements IGradeRepository {
         throw new Error(response.error);
       }
       if (response.data && response.data.length > 0) {
-        return response.data as Department[];
+        cachedDepartments = response.data as Department[];
+        return cachedDepartments;
       }
     } catch {
       // Degradação elegante com fallback
@@ -57,6 +67,9 @@ export class TauriGradeRepository implements IGradeRepository {
   }
 
   async getProfessors(): Promise<ScrapedProfessor[]> {
+    if (cachedProfessors && cachedProfessors.length > 0) {
+      return cachedProfessors;
+    }
     try {
       const { commands } = await import("@/core/infrastructure/bindings");
       const response = await commands.getSigaaProfessors();
@@ -64,7 +77,7 @@ export class TauriGradeRepository implements IGradeRepository {
         throw new Error(response.error);
       }
       if (response.data && response.data.length > 0) {
-        return response.data.map((p) => ({
+        cachedProfessors = response.data.map((p) => ({
           id: p.id,
           siape: p.siape ?? undefined,
           name: p.name,
@@ -74,6 +87,7 @@ export class TauriGradeRepository implements IGradeRepository {
           disciplineCodes: p.discipline_codes || [],
           photoUrl: p.photo_url ?? undefined,
         }));
+        return cachedProfessors;
       }
     } catch {
       // Fallback
@@ -82,6 +96,9 @@ export class TauriGradeRepository implements IGradeRepository {
   }
 
   async getCoursesCatalog(): Promise<CourseCatalogItem[]> {
+    if (cachedCoursesCatalog && cachedCoursesCatalog.length > 0) {
+      return cachedCoursesCatalog;
+    }
     try {
       const { commands } = await import("@/core/infrastructure/bindings");
       const response = await commands.getCoursesCatalog();
@@ -89,7 +106,7 @@ export class TauriGradeRepository implements IGradeRepository {
         throw new Error(response.error);
       }
       if (response.data && response.data.length > 0) {
-        return response.data.map((c) => ({
+        cachedCoursesCatalog = response.data.map((c) => ({
           id: c.id,
           name: c.name,
           degree: c.degree,
@@ -99,6 +116,7 @@ export class TauriGradeRepository implements IGradeRepository {
           coordinator: c.coordinator ?? undefined,
           curriculaIds: c.curricula_ids || [],
         }));
+        return cachedCoursesCatalog;
       }
     } catch {
       // Fallback
@@ -107,6 +125,10 @@ export class TauriGradeRepository implements IGradeRepository {
   }
 
   async getCourseCurriculum(courseId: string): Promise<CurriculumStructure[]> {
+    const cached = cachedCurriculaByCourse.get(courseId);
+    if (cached && cached.length > 0) {
+      return cached;
+    }
     try {
       const { commands } = await import("@/core/infrastructure/bindings");
       const response = await commands.getCourseCurriculum(courseId);
@@ -114,7 +136,9 @@ export class TauriGradeRepository implements IGradeRepository {
         throw new Error(response.error);
       }
       if (response.data && response.data.length > 0) {
-        return mapCurriculaDtos(response.data);
+        const mapped = mapCurriculaDtos(response.data);
+        cachedCurriculaByCourse.set(courseId, mapped);
+        return mapped;
       }
     } catch {
       // Fallback
@@ -127,6 +151,25 @@ export class TauriGradeRepository implements IGradeRepository {
     year: string,
     period: string,
   ): Promise<ScrapedDiscipline[]> {
+    const normDept = !deptId || deptId.toUpperCase() === "ALL" || deptId === "*" ? "ALL" : deptId;
+    const scopeKey = `${year}.${period}:${normDept}`;
+    const cachedScope = cachedClassesByScope.get(scopeKey);
+    if (cachedScope && cachedScope.length > 0) {
+      return cachedScope;
+    }
+
+    // Se o catálogo completo "ALL" já está na memória JS, filtra localmente sem novo roundtrip IPC
+    if (normDept !== "ALL") {
+      const allCached = cachedClassesByScope.get(`${year}.${period}:ALL`);
+      if (allCached && allCached.length > 0) {
+        const filtered = allCached.filter((d) => d.departmentId === normDept);
+        if (filtered.length > 0) {
+          cachedClassesByScope.set(scopeKey, filtered);
+          return filtered;
+        }
+      }
+    }
+
     try {
       const { commands } = await import("@/core/infrastructure/bindings");
       const response = await commands.scrapeSigaaClasses(deptId, year, period);
@@ -137,7 +180,7 @@ export class TauriGradeRepository implements IGradeRepository {
 
       if (rawDisciplines && rawDisciplines.length > 0) {
         // Mapeia snake_case para camelCase
-        return rawDisciplines.map((d) => {
+        const mapped = rawDisciplines.map((d) => {
           const gen = generateAcronyms(d.name);
           return {
             code: d.code,
@@ -172,6 +215,8 @@ export class TauriGradeRepository implements IGradeRepository {
             })),
           };
         });
+        cachedClassesByScope.set(scopeKey, mapped);
+        return mapped;
       }
     } catch {
       // Degradação elegante com fallback

@@ -12,11 +12,22 @@ import {
   type RawRuDailyMenu,
 } from '@/core';
 
+const cachedRuSession = new Map<
+  RuCampus,
+  { menus: RawRuDailyMenu[]; lastUpdatedAt: string | null }
+>();
+
 export function useRuMenu() {
   const [campus, setCampusState] = useState<RuCampus>(() => getSavedRuCampus());
-  const [menus, setMenus] = useState<RawRuDailyMenu[]>([]);
-  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [menus, setMenus] = useState<RawRuDailyMenu[]>(
+    () => cachedRuSession.get(campus)?.menus ?? [],
+  );
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(
+    () => cachedRuSession.get(campus)?.lastUpdatedAt ?? null,
+  );
+  const [isLoading, setIsLoading] = useState<boolean>(
+    () => !cachedRuSession.has(campus),
+  );
   const [error, setError] = useState<string | null>(null);
 
   const setCampus = useCallback((next: RuCampus) => {
@@ -35,6 +46,10 @@ export function useRuMenu() {
     const hasCurrentOrFutureMenu = cached.menus.some((m) => m.date >= todayIso);
 
     if (cached.menus.length > 0) {
+      cachedRuSession.set(targetCampus, {
+        menus: cached.menus,
+        lastUpdatedAt: cached.lastUpdatedAt,
+      });
       setMenus(cached.menus);
       setLastUpdatedAt(cached.lastUpdatedAt);
       setIsLoading(false);
@@ -42,6 +57,10 @@ export function useRuMenu() {
       if (!hasCurrentOrFutureMenu) {
         try {
           const fresh = await fetchAndCacheRuMenus(targetCampus);
+          cachedRuSession.set(targetCampus, {
+            menus: fresh.menus,
+            lastUpdatedAt: fresh.updatedAt,
+          });
           setMenus(fresh.menus);
           setLastUpdatedAt(fresh.updatedAt);
         } catch {
@@ -55,6 +74,10 @@ export function useRuMenu() {
     setError(null);
     try {
       const fresh = await fetchAndCacheRuMenus(targetCampus);
+      cachedRuSession.set(targetCampus, {
+        menus: fresh.menus,
+        lastUpdatedAt: fresh.updatedAt,
+      });
       setMenus(fresh.menus);
       setLastUpdatedAt(fresh.updatedAt);
     } catch (e) {

@@ -34,6 +34,15 @@ export interface CalendarDayCell {
   hasFeedTask: boolean;
 }
 
+interface CalendarSessionSnapshot {
+  events: UnifiedCalendarEvent[];
+  courses: Course[];
+  disciplines: Discipline[];
+  academicCalendar: AcademicCalendar | null;
+}
+
+let cachedCalendarSnapshot: CalendarSessionSnapshot | null = null;
+
 export function useCalendar() {
   const { useCases } = useContainer();
 
@@ -50,11 +59,19 @@ export function useCalendar() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Dados
-  const [events, setEvents] = useState<UnifiedCalendarEvent[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
-  const [academicCalendar, setAcademicCalendar] = useState<AcademicCalendar | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [events, setEvents] = useState<UnifiedCalendarEvent[]>(
+    () => cachedCalendarSnapshot?.events ?? [],
+  );
+  const [courses, setCourses] = useState<Course[]>(
+    () => cachedCalendarSnapshot?.courses ?? [],
+  );
+  const [disciplines, setDisciplines] = useState<Discipline[]>(
+    () => cachedCalendarSnapshot?.disciplines ?? [],
+  );
+  const [academicCalendar, setAcademicCalendar] = useState<AcademicCalendar | null>(
+    () => cachedCalendarSnapshot?.academicCalendar ?? null,
+  );
+  const [isLoading, setIsLoading] = useState(() => cachedCalendarSnapshot === null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Modal de criação/edição
@@ -69,7 +86,9 @@ export function useCalendar() {
   const [eventToDelete, setEventToDelete] = useState<UnifiedCalendarEvent | null>(null);
 
   const loadData = useCallback(async () => {
-    setIsLoading(true);
+    if (!cachedCalendarSnapshot) {
+      setIsLoading(true);
+    }
     try {
       const [allEvents, disciplinesResult, calendars] = await Promise.all([
         useCases.getUnifiedCalendarEvents.execute({
@@ -133,10 +152,18 @@ export function useCalendar() {
       setDisciplines(disciplinesResult.disciplines);
       setCourses(unifiedCourses);
 
+      let resolvedCalendar: AcademicCalendar | null = null;
       if (calendars.length > 0) {
-        const current = calendars.find((c) => c.isCurrent) || calendars[0];
-        setAcademicCalendar(current);
+        resolvedCalendar = calendars.find((c) => c.isCurrent) || calendars[0];
+        setAcademicCalendar(resolvedCalendar);
       }
+
+      cachedCalendarSnapshot = {
+        events: normalizedEvents,
+        courses: unifiedCourses,
+        disciplines: disciplinesResult.disciplines,
+        academicCalendar: resolvedCalendar,
+      };
     } catch (err) {
       console.error('Falha ao carregar dados do calendário:', err);
       toast.add({

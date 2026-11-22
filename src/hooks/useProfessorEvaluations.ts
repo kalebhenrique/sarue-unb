@@ -15,23 +15,40 @@ import type {
   ProfessorEvaluationSortBy,
 } from "@/core";
 
+interface EvaluationsSessionSnapshot {
+  summaries: ProfessorSummary[];
+  disciplineSummaries: DisciplineSummary[];
+  unfilteredSummaries: ProfessorSummary[];
+  unfilteredDisciplineSummaries: DisciplineSummary[];
+}
+
+let cachedEvalSnapshot: EvaluationsSessionSnapshot | null = null;
+
 export function useProfessorEvaluations() {
   const { useCases } = useContainer();
 
-  const [summaries, setSummaries] = useState<ProfessorSummary[]>([]);
+  const [summaries, setSummaries] = useState<ProfessorSummary[]>(
+    () => cachedEvalSnapshot?.summaries ?? [],
+  );
   const [disciplineSummaries, setDisciplineSummaries] = useState<
     DisciplineSummary[]
-  >([]);
+  >(() => cachedEvalSnapshot?.disciplineSummaries ?? []);
   // Agregados SEM filtro: base fixa para contagem absoluta (título, barra
   // "N de M") e drill-downs, imune a busca/filtros.
   const [unfilteredSummaries, setUnfilteredSummaries] = useState<
     ProfessorSummary[]
-  >([]);
+  >(() => cachedEvalSnapshot?.unfilteredSummaries ?? []);
   const [unfilteredDisciplineSummaries, setUnfilteredDisciplineSummaries] =
-    useState<DisciplineSummary[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
-  const hasLoadedOnceRef = useRef<boolean>(false);
+    useState<DisciplineSummary[]>(
+      () => cachedEvalSnapshot?.unfilteredDisciplineSummaries ?? [],
+    );
+  const [isLoading, setIsLoading] = useState<boolean>(
+    () => cachedEvalSnapshot === null,
+  );
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(
+    () => cachedEvalSnapshot !== null,
+  );
+  const hasLoadedOnceRef = useRef<boolean>(cachedEvalSnapshot !== null);
   const [error, setError] = useState<boolean>(false);
 
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -88,6 +105,12 @@ export function useProfessorEvaluations() {
           setDisciplineSummaries(disciplineSummaryList);
           setUnfilteredSummaries(unfilteredSummaryList);
           setUnfilteredDisciplineSummaries(unfilteredDisciplineSummaryList);
+          cachedEvalSnapshot = {
+            summaries: unfilteredSummaryList,
+            disciplineSummaries: unfilteredDisciplineSummaryList,
+            unfilteredSummaries: unfilteredSummaryList,
+            unfilteredDisciplineSummaries: unfilteredDisciplineSummaryList,
+          };
         } else {
           // Em mudanças de filtro/busca, recalcula apenas os agregados filtrados
           const [summaryList, disciplineSummaryList] = await Promise.all([
