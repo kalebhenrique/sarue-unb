@@ -22,6 +22,14 @@ export interface PatchNotesEntry {
 
 export const PATCH_NOTES: PatchNotesEntry[] = [
   {
+    version: "0.5.1",
+    date: "22/11/2026",
+    title: "Hotfix: Carregamento do Cardápio do RU",
+    items: [
+      "Correção no carregamento do cardápio do RU pelo CDN no Android e Desktop.",
+    ],
+  },
+  {
     version: "0.5.0",
     date: "22/11/2026",
     title: "Saruê no Android, RU Completo e Muito Mais Rápido",
