@@ -514,6 +514,44 @@ pub async fn validate_aprender3_credentials(cpf: String, senha: String) -> Resul
     ))
 }
 
+const RU_MENUS_CDN_URLS: &[&str] = &[
+    "https://kalebhenrique.github.io/sarue-unb/data/ru-menus.json",
+    "https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/ru-menus.json",
+];
+
+#[command]
+#[specta::specta]
+pub async fn fetch_ru_menus_cdn() -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .user_agent("Sarue-UnB/0.5.0 (Tauri)")
+        .build()
+        .map_err(|e| format!("Falha ao inicializar cliente HTTP: {}", e))?;
+
+    let mut last_err = String::new();
+    for url in RU_MENUS_CDN_URLS {
+        match client.get(*url).send().await {
+            Ok(resp) if resp.status().is_success() => match resp.text().await {
+                Ok(text) if !text.trim().is_empty() => return Ok(text),
+                Ok(_) => last_err = "CDN retornou JSON vazio.".to_string(),
+                Err(e) => last_err = format!("Falha ao ler resposta do CDN: {}", e),
+            },
+            Ok(resp) => {
+                last_err = format!("CDN retornou status HTTP {}", resp.status());
+            }
+            Err(e) => {
+                last_err = format!("Falha de rede ao acessar CDN: {}", e);
+            }
+        }
+    }
+
+    Err(if last_err.is_empty() {
+        "Não foi possível baixar o cardápio do RU pelo CDN.".to_string()
+    } else {
+        last_err
+    })
+}
+
 #[command]
 #[specta::specta]
 pub async fn fetch_student_wallet(

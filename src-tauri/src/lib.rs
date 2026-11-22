@@ -79,6 +79,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         commands::show_main_window,
         commands::prepare_for_update,
         commands::cancel_prepare_for_update,
+        commands::fetch_ru_menus_cdn,
         commands::fetch_student_wallet,
         commands::set_max_brightness,
         commands::share_image,

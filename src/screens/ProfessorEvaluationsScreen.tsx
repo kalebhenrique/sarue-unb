@@ -425,7 +425,7 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
         count={unfilteredSummaries.length > 0 ? unfilteredSummaries.length : null}
         subtitle={
           unfilteredSummaries.length > 0
-            ? `(${unfilteredSummaries.length} ${unfilteredSummaries.length === 1 ? "professor" : "professores"})`
+            ? `(${unfilteredSummaries.length} ${unfilteredSummaries.length === 1 ? "docente" : "docentes"})`
             : null
         }
         mobileActions={

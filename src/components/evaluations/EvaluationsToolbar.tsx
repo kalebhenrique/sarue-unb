@@ -125,7 +125,7 @@ export const EvaluationsToolbar: React.FC<EvaluationsToolbarProps> = ({
                 label: (
                   <>
                     <Users className="w-3.5 h-3.5 stroke-[2.5]" />
-                    Professores
+                    Docentes
                   </>
                 ),
               },
@@ -327,7 +327,7 @@ export const EvaluationsToolbar: React.FC<EvaluationsToolbarProps> = ({
                 label: (
                   <>
                     <Users className="w-3.5 h-3.5 stroke-[2.5]" />
-                    Professores
+                    Docentes
                   </>
                 ),
               },

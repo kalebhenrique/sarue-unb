@@ -392,9 +392,32 @@ const RU_MENUS_CDN_URLS = [
   'https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/ru-menus.json',
 ];
 
+function extractCampusMenusFromPayload(
+  payload: { campuses?: Partial<Record<RuCampus, RawRuDailyMenu[]>> } | null,
+  campus: RuCampus
+): RawRuDailyMenu[] | null {
+  const campusMenus = payload?.campuses?.[campus];
+  if (Array.isArray(campusMenus) && campusMenus.length > 0) {
+    return campusMenus;
+  }
+  return null;
+}
+
 async function fetchRuMenusFromCdn(
   campus: RuCampus
 ): Promise<RawRuDailyMenu[] | null> {
+  if (isTauriRuntime()) {
+    const { commands } = await import('./bindings');
+    const res = await commands.fetchRuMenusCdn();
+    if (res.status === 'error') {
+      throw new Error(res.error);
+    }
+    const parsed = JSON.parse(res.data) as {
+      campuses?: Partial<Record<RuCampus, RawRuDailyMenu[]>>;
+    };
+    return extractCampusMenusFromPayload(parsed, campus);
+  }
+
   const todayIso = getBrasiliaTodayIso();
   let staleFallback: RawRuDailyMenu[] | null = null;
 
@@ -411,8 +434,8 @@ async function fetchRuMenusFromCdn(
       const data = (await res.json()) as {
         campuses?: Partial<Record<RuCampus, RawRuDailyMenu[]>>;
       };
-      const campusMenus = data?.campuses?.[campus];
-      if (Array.isArray(campusMenus) && campusMenus.length > 0) {
+      const campusMenus = extractCampusMenusFromPayload(data, campus);
+      if (campusMenus) {
         if (campusMenus.some((m) => m.date >= todayIso)) {
           return campusMenus;
         }

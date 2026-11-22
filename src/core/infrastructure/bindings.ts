@@ -44,6 +44,7 @@ export const commands = {
 	showMainWindow: () => typedError<null, string>(__TAURI_INVOKE("show_main_window")),
 	prepareForUpdate: () => typedError<null, string>(__TAURI_INVOKE("prepare_for_update")),
 	cancelPrepareForUpdate: () => typedError<null, string>(__TAURI_INVOKE("cancel_prepare_for_update")),
+	fetchRuMenusCdn: () => typedError<string, string>(__TAURI_INVOKE("fetch_ru_menus_cdn")),
 	fetchStudentWallet: (matricula: string, senha: string) => typedError<StudentWalletSyncPayload, string>(__TAURI_INVOKE("fetch_student_wallet", { matricula, senha })),
 	setMaxBrightness: (enable: boolean) => typedError<null, string>(__TAURI_INVOKE("set_max_brightness", { enable })),
 	shareImage: (base64Png: string, filename: string, title: string | null) => typedError<boolean, string>(__TAURI_INVOKE("share_image", { base64Png, filename, title })),
