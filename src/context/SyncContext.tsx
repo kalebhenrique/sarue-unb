@@ -95,7 +95,7 @@ const INITIAL_STEPS: Record<SyncStepId, SyncStepInfo> = {
   },
   planilha: {
     id: "planilha",
-    label: "Planilha de Avaliações",
+    label: "Dados de Docentes",
     sublabel: "Relatos da comunidade",
     status: "idle",
     message: "Pronto para sincronizar",

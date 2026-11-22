@@ -39,7 +39,7 @@ const SCREEN_LABELS: Record<NavTab, string> = {
   wallet: 'Carteirinha',
   grade: 'Montar Grade',
   calendar: 'Calendário',
-  evaluations: 'Avaliações',
+  evaluations: 'Docentes',
   'my-course': 'Meu Curso',
   notifications: 'Notificações',
   settings: 'Configurações',

@@ -145,7 +145,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "calendar" as NavTab, label: "Calendário", icon: CalendarDays },
     {
       id: "evaluations" as NavTab,
-      label: "Avaliar Professor",
+      label: "Docentes",
       icon: MessageSquareQuote,
     },
     { id: "my-course" as NavTab, label: "Meu Curso", icon: GraduationCap },
@@ -161,7 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "grade" as NavTab, label: "Montar Grade", icon: SquareKanban },
     {
       id: "evaluations" as NavTab,
-      label: "Avaliar Professor",
+      label: "Docentes",
       icon: MessageSquareQuote,
     },
     { id: "my-course" as NavTab, label: "Meu Curso", icon: GraduationCap },

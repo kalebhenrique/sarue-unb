@@ -280,7 +280,7 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
   if (isLoading && !hasLoadedOnce) {
     return (
       <PageContainer>
-        <PageHeader icon={MessageSquareQuote} title="Avaliação de Professores" />
+        <PageHeader icon={MessageSquareQuote} title="Docentes" />
         <div role="status" aria-busy="true">
           <span className="sr-only">
             Carregando avaliações de professores...
@@ -312,7 +312,7 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
   if (error && !hasLoadedOnce) {
     return (
       <PageContainer>
-        <PageHeader icon={MessageSquareQuote} title="Avaliação de Professores" />
+        <PageHeader icon={MessageSquareQuote} title="Docentes" />
         <EmptyState
           title="Não conseguimos carregar os relatos"
           description="Ocorreu um problema ao buscar as avaliações da comunidade. Verifique sua conexão e tente de novo."
@@ -421,7 +421,7 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
     <PageContainer>
       <PageHeader
         icon={MessageSquareQuote}
-        title="Avaliação de Professores"
+        title="Docentes"
         count={unfilteredSummaries.length > 0 ? unfilteredSummaries.length : null}
         subtitle={
           unfilteredSummaries.length > 0
@@ -635,8 +635,8 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
       <FloatingActionButton
         variant="primary"
         icon={MessageSquarePlus}
-        aria-label="Avaliar Professor"
-        title="Avaliar Professor"
+        aria-label="Enviar relato"
+        title="Enviar relato"
         onClick={() => openExternalUrl(PROFESSOR_EVALUATIONS_FORM_URL)}
         className="md:hidden"
       />
