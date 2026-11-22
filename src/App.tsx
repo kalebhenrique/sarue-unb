@@ -62,6 +62,7 @@ const AppShell: React.FC = () => {
   const isMobile = useMediaQuery('(max-width: 767px)');
   const { isHidden: isRuHiddenInDesktop } = useDesktopRuSidebar();
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
+  const mainRef = React.useRef<HTMLElement | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [currentCalendar, setCurrentCalendar] = useState<AcademicCalendar | null>(null);
   // Indica se o app já foi usado antes: perfil acadêmico salvo ou cursos no
@@ -143,6 +144,25 @@ const AppShell: React.FC = () => {
     }
   }, [isCheckingAuth, hasLocalData, hasCredentials]);
 
+  // Reseta o scroll do container <main> antes do paint sempre que a aba muda
+  React.useLayoutEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [currentTab, step]);
+
+  const handleSelectTab = React.useCallback(
+    (tab: NavTab) => {
+      if (tab === currentTab) {
+        mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      setCurrentTab(tab);
+    },
+    [currentTab],
+  );
+
   // Navegação disparada por componentes fora da árvore de tabs (ex.: sino de prazos)
   React.useEffect(() => {
     const handler = (event: Event) => {
@@ -191,7 +211,7 @@ const AppShell: React.FC = () => {
       {/* Sidebar Colapsável com Botão de Sincronização no Canto Inferior */}
       <Sidebar
         currentTab={currentTab}
-        onSelectTab={setCurrentTab}
+        onSelectTab={handleSelectTab}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         isSyncing={isSyncing}
@@ -206,7 +226,7 @@ const AppShell: React.FC = () => {
 
       {/* Área Central de Conteúdo (Sem Header global, títulos direto no corpo) */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <main className="flex-1 overflow-y-auto px-2.5 pt-3 pb-6 md:px-4 md:py-8">
+        <main ref={mainRef} className="flex-1 overflow-y-auto px-2.5 pt-3 pb-6 md:px-4 md:py-8">
           <ErrorBoundary key={currentTab} onReset={() => setCurrentTab('home')}>
             {currentTab === 'home' && <DashboardScreen />}
             {currentTab === 'courses' && <CoursesScreen />}
