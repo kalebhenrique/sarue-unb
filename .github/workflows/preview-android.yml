@@ -1,0 +1,103 @@
+name: "Preview Build (Android)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Arquitetura alvo do Android'
+        required: true
+        default: 'aarch64'
+        type: choice
+        options:
+          - aarch64
+          - armv7
+          - x86_64
+          - i686
+
+permissions:
+  contents: read
+
+jobs:
+  build-android-preview:
+    name: "Build Android Preview (${{ inputs.target || 'aarch64' }})"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK (API 37 & NDK)
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-37" "build-tools;35.0.0" "ndk;26.1.10909125"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> "$GITHUB_ENV"
+
+      - name: Ensure Android debug keystore exists
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair -v \
+              -keystore ~/.android/debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Android Preview APK
+        run: node scripts/tauri-cli.mjs android build --preview --apk --target ${{ inputs.target || 'aarch64' }}
+
+      - name: Prepare Preview APK artifact
+        run: |
+          APK_SRC="src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk"
+          APK_DST="src-tauri/gen/android/app/build/outputs/apk/universal/release/sarue-unb-preview-${{ inputs.target || 'aarch64' }}.apk"
+          cp "$APK_SRC" "$APK_DST"
+          ls -lh "$APK_DST"
+
+      - name: Upload Android Preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarue-unb-preview-android-${{ inputs.target || 'aarch64' }}
+          path: src-tauri/gen/android/app/build/outputs/apk/universal/release/sarue-unb-preview-*.apk
+          if-no-files-found: error
+          retention-days: 14

@@ -100,12 +100,18 @@ function setupAndroidEnvironment() {
       process.env.RANLIB = llvmRanlib;
 
       // Garante que proc-macros do host (ex.: sqlx-macros -> libsqlite3-sys em aarch64-apple-darwin)
-      // usem o ar/ranlib nativo do macOS em vez do llvm-ar do NDK (evita mis-aligned LINKEDIT no dylib).
+      // usem o ar/ranlib nativo do host em vez do llvm-ar do NDK.
       if (process.platform === 'darwin') {
         for (const hostPrefix of ['aarch64_apple_darwin', 'AARCH64_APPLE_DARWIN', 'x86_64_apple_darwin', 'X86_64_APPLE_DARWIN']) {
           process.env[`AR_${hostPrefix}`] = '/usr/bin/ar';
           process.env[`RANLIB_${hostPrefix}`] = '/usr/bin/ranlib';
           process.env[`CC_${hostPrefix}`] = '/usr/bin/clang';
+        }
+      } else if (process.platform === 'linux') {
+        for (const hostPrefix of ['x86_64_unknown_linux_gnu', 'X86_64_UNKNOWN_LINUX_GNU']) {
+          process.env[`AR_${hostPrefix}`] = '/usr/bin/ar';
+          process.env[`RANLIB_${hostPrefix}`] = '/usr/bin/ranlib';
+          process.env[`CC_${hostPrefix}`] = '/usr/bin/cc';
         }
       }
 
