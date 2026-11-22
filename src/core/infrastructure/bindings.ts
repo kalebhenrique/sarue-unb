@@ -44,7 +44,6 @@ export const commands = {
 	showMainWindow: () => typedError<null, string>(__TAURI_INVOKE("show_main_window")),
 	prepareForUpdate: () => typedError<null, string>(__TAURI_INVOKE("prepare_for_update")),
 	cancelPrepareForUpdate: () => typedError<null, string>(__TAURI_INVOKE("cancel_prepare_for_update")),
-	fetchRuMenu: (campus: string) => typedError<RuDailyMenu[], string>(__TAURI_INVOKE("fetch_ru_menu", { campus })),
 	fetchStudentWallet: (matricula: string, senha: string) => typedError<StudentWalletSyncPayload, string>(__TAURI_INVOKE("fetch_student_wallet", { matricula, senha })),
 	setMaxBrightness: (enable: boolean) => typedError<null, string>(__TAURI_INVOKE("set_max_brightness", { enable })),
 	shareImage: (base64Png: string, filename: string, title: string | null) => typedError<boolean, string>(__TAURI_INVOKE("share_image", { base64Png, filename, title })),
@@ -154,19 +153,6 @@ export type PlatformType = "sigaa" | "aprender3" | "teams";
 export type RenderedStudentCardDto = {
 	croppedDataUrl: string,
 	fullPageDataUrl: string,
-};
-
-export type RuDailyMenu = {
-	date: string,
-	breakfast: RuMenuSection[],
-	lunch: RuMenuSection[],
-	dinner: RuMenuSection[],
-};
-
-export type RuMenuSection = {
-	key: string,
-	label: string,
-	items: string[],
 };
 
 export type RuStatementEntry = {

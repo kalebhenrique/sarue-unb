@@ -516,12 +516,6 @@ pub async fn validate_aprender3_credentials(cpf: String, senha: String) -> Resul
 
 #[command]
 #[specta::specta]
-pub async fn fetch_ru_menu(campus: String) -> Result<Vec<crate::models::RuDailyMenu>, String> {
-    crate::ru::fetch_ru_menu(campus.trim()).await
-}
-
-#[command]
-#[specta::specta]
 pub async fn fetch_student_wallet(
     matricula: String,
     senha: String,

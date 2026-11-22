@@ -76,6 +76,10 @@ const DEFAULT_WALLET_STATE: StudentWalletState = {
 
 let cachedWalletState: StudentWalletState | null = null;
 
+export function resetStudentWalletCache(): void {
+  cachedWalletState = null;
+}
+
 export function useStudentWallet() {
   const { useCases } = useContainer();
   const [wallet, setWallet] = useState<StudentWalletState>(
@@ -142,10 +146,11 @@ export function useStudentWallet() {
         const nextCpf = cpfDigits ?? prev.cpfDigits;
 
         const hasExistingWallet =
-          prev.updatedAt !== null ||
-          prev.renderedCardDataUrl !== null ||
-          prev.ruCardPdfBase64 !== null ||
-          prev.ruCardCode !== null;
+          cachedWalletState !== null &&
+          (prev.updatedAt !== null ||
+            prev.renderedCardDataUrl !== null ||
+            prev.ruCardPdfBase64 !== null ||
+            prev.ruCardCode !== null);
 
         if (!cached.payload && hasExistingWallet) {
           const preserved = {
@@ -161,17 +166,20 @@ export function useStudentWallet() {
           return preserved;
         }
 
+        const fallbackBase =
+          cachedWalletState === null ? DEFAULT_WALLET_STATE : prev;
+
         const nextPdfBase64 =
-          cached.payload?.ruCardPdfBase64 ?? prev.ruCardPdfBase64 ?? null;
+          cached.payload?.ruCardPdfBase64 ?? fallbackBase.ruCardPdfBase64 ?? null;
         const nextRenderedCard =
           renderedCardDataUrl ??
-          (nextPdfBase64 && nextPdfBase64 === prev.ruCardPdfBase64
-            ? prev.renderedCardDataUrl
+          (nextPdfBase64 && nextPdfBase64 === fallbackBase.ruCardPdfBase64
+            ? fallbackBase.renderedCardDataUrl
             : null);
         const nextFullPage =
           renderedFullPageDataUrl ??
-          (nextPdfBase64 && nextPdfBase64 === prev.ruCardPdfBase64
-            ? prev.renderedFullPageDataUrl
+          (nextPdfBase64 && nextPdfBase64 === fallbackBase.ruCardPdfBase64
+            ? fallbackBase.renderedFullPageDataUrl
             : null);
 
         const nextState: StudentWalletState = {
@@ -181,23 +189,24 @@ export function useStudentWallet() {
           level: nextLevel,
           shift: nextShift,
           cpfDigits: nextCpf,
-          ruCardCode: cached.payload?.ruToken ?? prev.ruCardCode ?? null,
+          ruCardCode: cached.payload?.ruToken ?? fallbackBase.ruCardCode ?? null,
           ruCardValidity:
-            cached.payload?.ruValidUntil ?? prev.ruCardValidity ?? null,
+            cached.payload?.ruValidUntil ?? fallbackBase.ruCardValidity ?? null,
           ruCardPdfBase64: nextPdfBase64,
           renderedCardDataUrl: nextRenderedCard,
           renderedFullPageDataUrl: nextFullPage,
-          ruBalance: formatCurrencyBrl(cached.payload?.ruBalance) ?? prev.ruBalance,
+          ruBalance:
+            formatCurrencyBrl(cached.payload?.ruBalance) ?? fallbackBase.ruBalance,
           ruGroup:
             cached.payload?.ruGroup !== null &&
             cached.payload?.ruGroup !== undefined
               ? `Grupo ${cached.payload.ruGroup}`
-              : prev.ruGroup,
+              : fallbackBase.ruGroup,
           statement:
             cached.payload?.ruEntries && cached.payload.ruEntries.length > 0
               ? cached.payload.ruEntries
-              : prev.statement,
-          updatedAt: cached.updatedAt ?? prev.updatedAt,
+              : fallbackBase.statement,
+          updatedAt: cached.updatedAt ?? fallbackBase.updatedAt,
         };
         cachedWalletState = nextState;
         return nextState;

@@ -1,6 +1,7 @@
 import {
   RU_CAMPUSES,
   getBrasiliaDateParts,
+  getBrasiliaTodayIso,
   type RuCampus,
   type RawRuDailyMenu,
 } from '../domain/utils/ru-menu-formatter';
@@ -386,22 +387,53 @@ export async function loadCachedRuMenus(
   return { menus: [], lastUpdatedAt: null };
 }
 
+const RU_MENUS_CDN_URLS = [
+  'https://kalebhenrique.github.io/sarue-unb/data/ru-menus.json',
+  'https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/ru-menus.json',
+];
+
+async function fetchRuMenusFromCdn(
+  campus: RuCampus
+): Promise<RawRuDailyMenu[] | null> {
+  const todayIso = getBrasiliaTodayIso();
+  let staleFallback: RawRuDailyMenu[] | null = null;
+
+  for (const url of RU_MENUS_CDN_URLS) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(url, {
+        cache: 'no-cache',
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!res.ok) continue;
+      const data = (await res.json()) as {
+        campuses?: Partial<Record<RuCampus, RawRuDailyMenu[]>>;
+      };
+      const campusMenus = data?.campuses?.[campus];
+      if (Array.isArray(campusMenus) && campusMenus.length > 0) {
+        if (campusMenus.some((m) => m.date >= todayIso)) {
+          return campusMenus;
+        }
+        staleFallback ??= campusMenus;
+      }
+    } catch {
+      // Tenta próximo mirror do CDN
+    }
+  }
+  return staleFallback;
+}
+
 export async function fetchAndCacheRuMenus(
   campus: RuCampus
 ): Promise<{ menus: RawRuDailyMenu[]; updatedAt: string }> {
-  let fetched: RawRuDailyMenu[];
+  let fetched: RawRuDailyMenu[] | null = await fetchRuMenusFromCdn(campus);
 
-  if (isTauriRuntime()) {
-    const { commands } = await import('./bindings');
-    const res = await commands.fetchRuMenu(campus);
-    if (res.status === 'ok' && res.data && res.data.length > 0) {
-      fetched = res.data;
-    } else if (res.status === 'error') {
-      throw new Error(res.error);
-    } else {
-      throw new Error('Nenhum cardápio retornado pelo site do RU.');
+  if (!fetched) {
+    if (isTauriRuntime()) {
+      throw new Error('Não foi possível baixar o cardápio do RU pelo CDN.');
     }
-  } else {
     fetched = buildFallbackWeekMenus();
   }
 
@@ -476,6 +508,21 @@ export async function saveCachedStudentWallet(
     notifyStudentWalletListeners();
   }
   return nowIso;
+}
+
+export async function clearCachedStudentWallet(): Promise<void> {
+  inMemoryWalletPayload = null;
+  inMemoryWalletUpdatedAt = null;
+
+  const db = await getDatabase();
+  if (db) {
+    try {
+      await db.execute('DELETE FROM student_wallet;');
+    } catch (e) {
+      console.warn('[ru-wallet.service] Falha ao limpar carteira no SQLite:', e);
+    }
+  }
+  notifyStudentWalletListeners();
 }
 
 export async function fetchAndCacheStudentWallet(

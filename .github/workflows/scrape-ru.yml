@@ -1,0 +1,51 @@
+name: Scrape RU UnB (Cardápio)
+
+on:
+  schedule:
+    # Diariamente às 09:00 UTC (06:00 BRT) e 14:00 UTC (11:00 BRT)
+    - cron: '0 9,14 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: scrape-sigaa-data
+  cancel-in-progress: false
+
+jobs:
+  scrape-and-publish:
+    name: Scrape RU UnB e Publicar em gh-pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Executar scraping do cardápio do RU UnB
+        run: pnpm run scrape:ru -- --out ./dist-data/ru-menus.json
+
+      - name: Publicar dados estáticos na branch órfã gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./dist-data
+          destination_dir: data
+          keep_files: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'chore(data): atualizar cardápio do RU UnB [skip ci]'

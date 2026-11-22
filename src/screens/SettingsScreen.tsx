@@ -22,6 +22,7 @@ import { useFeed } from "../hooks/useFeed";
 import { useScrollRestore } from "../hooks/useScrollRestore";
 import { resetMyCourseCache } from "../hooks/useMyCourse";
 import { resetGradeCache } from "../hooks/useGrade";
+import { resetStudentWalletCache } from "../hooks/useStudentWallet";
 import { useContainer } from "../context/ContainerContext";
 import { useOptionalSync } from "../context/SyncContext";
 import {
@@ -53,6 +54,7 @@ import {
   RU_MEAL_NOTIFICATION_TIMES,
   RU_MEAL_ORDER,
   WEEKDAY_OPTIONS,
+  clearCachedStudentWallet,
   getSavedRuCampus,
   syncRuMenuNotifications,
   type RuMealType,
@@ -198,9 +200,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       await useCases.manageIraScenario.clear();
       await repos.deadlineNotificationRepo.clear();
       await repos.osNotifier.setBadgeCount(0);
-      // 5. Apaga perfil acadêmico e histórico escolar (Meu Curso) + cache de avaliações
+      // 5. Apaga perfil acadêmico e histórico escolar (Meu Curso), carteira estudantil e cache de avaliações
       await useCases.manageAcademicProfile.clearProfile();
       resetMyCourseCache();
+      resetStudentWalletCache();
+      await clearCachedStudentWallet();
       await useCases.getProfessorEvaluations.clearCache();
       // 6. Limpa preferências auxiliares e caches dinâmicos do localStorage
       try {

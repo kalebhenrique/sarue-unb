@@ -42,7 +42,6 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { DatePicker } from "@/components/ui/date-picker";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useRuMenu } from "../hooks/useRuMenu";
 import { useStudentWallet } from "../hooks/useStudentWallet";
@@ -349,7 +348,8 @@ export const RuScreen: React.FC = () => {
   const { wallet } = useStudentWallet();
   const { hasCredentials } = useCredentials();
   const isMobile = useMediaQuery("(max-width: 767px)");
-  const showWalletFab = isMobile && Boolean(hasCredentials);
+  const isPlaceholderWallet = !hasCredentials && !wallet.renderedCardDataUrl;
+  const showWalletFab = isMobile;
   const [cardModalOpen, setCardModalOpen] = useState(false);
 
   const todayIso = useMemo(() => getBrasiliaTodayIso(), []);
@@ -667,44 +667,33 @@ export const RuScreen: React.FC = () => {
             />
           </section>
         ) : (
-          /* TOOLBAR DESKTOP: Campus + Tira Semanal de 7 dias + DatePicker */
+          /* TOOLBAR DESKTOP: Campus + Tira Semanal de 7 dias */
           <section
             aria-label="Seleção de campus e dia da semana"
             className="bg-paper border-2 border-ink rounded-lg p-4 shadow-neo flex flex-col xl:flex-row xl:items-center justify-between gap-3.5"
           >
-            <div className="flex items-center gap-3 w-full xl:w-auto shrink-0">
-              <div className="flex-1 xl:w-56 min-w-0">
-                <Select
-                  value={campus}
-                  onValueChange={(val) => {
-                    if (val) setCampus(val as RuCampus);
-                  }}
+            <div className="w-full xl:w-56 shrink-0">
+              <Select
+                value={campus}
+                onValueChange={(val) => {
+                  if (val) setCampus(val as RuCampus);
+                }}
+              >
+                <SelectTrigger
+                  aria-label="Selecionar campus do RU"
+                  className="h-10 text-xs font-black"
                 >
-                  <SelectTrigger
-                    aria-label="Selecionar campus do RU"
-                    className="h-10 text-xs font-black"
-                  >
-                    <MapPin className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
-                    <SelectValue>Campus {campus}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RU_CAMPUSES.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        Campus {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="shrink-0 w-40">
-                <DatePicker
-                  value={selectedDate}
-                  onChange={setSelectedDate}
-                  align="end"
-                  className="h-10 px-3 text-xs font-black"
-                />
-              </div>
+                  <MapPin className="w-4 h-4 stroke-[2.5] text-neo-blue shrink-0" />
+                  <SelectValue>Campus {campus}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {RU_CAMPUSES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      Campus {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {activeWeekDays.length > 0 && (
@@ -991,7 +980,11 @@ export const RuScreen: React.FC = () => {
 
           <StudentCardModal
             card={cardModalOpen ? "ru" : null}
-            wallet={wallet}
+            wallet={
+              isPlaceholderWallet
+                ? { ...wallet, renderedCardDataUrl: "/placeholder-student-card.png" }
+                : wallet
+            }
             onClose={() => setCardModalOpen(false)}
           />
         </>

@@ -133,23 +133,6 @@ pub struct AcademicHistoryPayload {
     pub pdf_text: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct RuMenuSection {
-    pub key: String,
-    pub label: String,
-    pub items: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct RuDailyMenu {
-    pub date: String,
-    pub breakfast: Vec<RuMenuSection>,
-    pub lunch: Vec<RuMenuSection>,
-    pub dinner: Vec<RuMenuSection>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RuStatementEntry {

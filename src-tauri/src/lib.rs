@@ -2,7 +2,6 @@ pub mod commands;
 pub mod grade_scraper;
 pub mod models;
 pub mod moodle;
-pub mod ru;
 pub mod schedule_solver;
 pub mod scraper;
 pub mod settings;
@@ -80,7 +79,6 @@ pub fn builder() -> Builder<tauri::Wry> {
         commands::show_main_window,
         commands::prepare_for_update,
         commands::cancel_prepare_for_update,
-        commands::fetch_ru_menu,
         commands::fetch_student_wallet,
         commands::set_max_brightness,
         commands::share_image,

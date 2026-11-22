@@ -56,6 +56,8 @@ function toLandscapeCardDataUrl(dataUrl: string): Promise<string> {
   });
 }
 
+const PLACEHOLDER_CARD_URL = "/placeholder-student-card.png";
+
 export const WalletScreen: React.FC = () => {
   const { wallet, isLoading } = useStudentWallet();
   const { hasCredentials, isLoading: isCheckingAuth } = useCredentials();
@@ -67,8 +69,12 @@ export const WalletScreen: React.FC = () => {
     dataUrl: string;
   } | null>(null);
 
+  const isPlaceholderPreview = !isLoggedIn && !wallet.renderedCardDataUrl;
+  const previewSourceUrl =
+    wallet.renderedCardDataUrl ?? (isPlaceholderPreview ? PLACEHOLDER_CARD_URL : null);
+
   useEffect(() => {
-    const source = wallet.renderedCardDataUrl;
+    const source = previewSourceUrl;
     if (!source) return;
     let cancelled = false;
     void toLandscapeCardDataUrl(source).then((oriented) => {
@@ -79,22 +85,23 @@ export const WalletScreen: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [wallet.renderedCardDataUrl]);
+  }, [previewSourceUrl]);
 
   const displayCardDataUrl =
-    wallet.renderedCardDataUrl &&
-    landscapeCard?.source === wallet.renderedCardDataUrl
+    previewSourceUrl &&
+    landscapeCard?.source === previewSourceUrl
       ? landscapeCard.dataUrl
-      : wallet.renderedCardDataUrl;
+      : previewSourceUrl;
 
   const bceQrValue = wallet.cpfDigits || "";
   const hasOfficialPdf = Boolean(
     wallet.renderedCardDataUrl || wallet.ruCardPdfBase64,
   );
+  const canOpenRuCard = isLoggedIn || isPlaceholderPreview;
 
-  const interactiveCardClasses = isLoggedIn
-    ? "cursor-pointer transition-[transform,box-shadow] duration-150 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs md:hover:translate-x-[2px] md:hover:translate-y-[2px] md:hover:shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none md:active:translate-x-[4px] md:active:translate-y-[4px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue"
-    : "cursor-default";
+  const interactiveCardClasses =
+    "cursor-pointer transition-[transform,box-shadow] duration-150 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs md:hover:translate-x-[2px] md:hover:translate-y-[2px] md:hover:shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none md:active:translate-x-[4px] md:active:translate-y-[4px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue";
+  const disabledCardClasses = "cursor-default";
 
   return (
     <div className="max-w-4xl mx-auto pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-12 space-y-5">
@@ -113,10 +120,10 @@ export const WalletScreen: React.FC = () => {
         {/* CARTÃO 1: Carteirinha Estudantil Oficial em PDF (SIGAA UnB / Cinema / RU) */}
         <button
           type="button"
-          disabled={!isLoggedIn}
-          onClick={isLoggedIn ? () => setExpandedCard("ru") : undefined}
+          disabled={!canOpenRuCard}
+          onClick={canOpenRuCard ? () => setExpandedCard("ru") : undefined}
           aria-label="Abrir Carteirinha Estudantil Oficial em PDF em tela cheia"
-          className={`group relative w-full text-left bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo overflow-hidden flex flex-col justify-between ${interactiveCardClasses}`}
+          className={`group relative w-full text-left bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo overflow-hidden flex flex-col justify-between ${canOpenRuCard ? interactiveCardClasses : disabledCardClasses}`}
         >
           {/* Faixa Superior Institucional UnB */}
           <div className="bg-neo-blue text-white px-4 py-2.5 border-b-2 border-ink flex items-center justify-between gap-2">
@@ -126,11 +133,18 @@ export const WalletScreen: React.FC = () => {
                 Carteirinha
               </span>
             </div>
-            {isLoggedIn && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-ink border-2 border-ink text-xs font-extrabold uppercase tracking-wide shrink-0">
-                <Maximize2 className="w-3 h-3 stroke-[2.5]" />
-                <span>Ampliar</span>
-              </span>
+            {canOpenRuCard && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                {isPlaceholderPreview && (
+                  <span className="px-2 py-0.5 rounded-md bg-neo-yellow text-ink border-2 border-ink text-[11px] font-black uppercase tracking-wide">
+                    Exemplo
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-ink border-2 border-ink text-xs font-extrabold uppercase tracking-wide">
+                  <Maximize2 className="w-3 h-3 stroke-[2.5]" />
+                  <span>Ampliar</span>
+                </span>
+              </div>
             )}
           </div>
 
@@ -222,7 +236,7 @@ export const WalletScreen: React.FC = () => {
           disabled={!isLoggedIn}
           onClick={isLoggedIn ? () => setExpandedCard("bce") : undefined}
           aria-label="Abrir Cartão da Biblioteca Central BCE em tela cheia"
-          className={`group relative w-full text-left bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo overflow-hidden flex flex-col justify-between ${interactiveCardClasses}`}
+          className={`group relative w-full text-left bg-paper border-2 border-ink rounded-lg shadow-neo-sm md:shadow-neo overflow-hidden flex flex-col justify-between ${isLoggedIn ? interactiveCardClasses : disabledCardClasses}`}
         >
           {/* Faixa Superior BCE */}
           <div className="bg-unb-green text-white px-4 py-2.5 border-b-2 border-ink flex items-center justify-between gap-2">
@@ -367,8 +381,12 @@ export const WalletScreen: React.FC = () => {
 
       {/* Modal Tela Cheia Vertical com Animação de Giro 90° (UnB e BCE) */}
       <StudentCardModal
-        card={isLoggedIn ? expandedCard : null}
-        wallet={wallet}
+        card={canOpenRuCard || isLoggedIn ? expandedCard : null}
+        wallet={
+          isPlaceholderPreview
+            ? { ...wallet, renderedCardDataUrl: PLACEHOLDER_CARD_URL }
+            : wallet
+        }
         onClose={() => setExpandedCard(null)}
       />
         </>
