@@ -59,6 +59,7 @@ describe('NotificationSettings & RU Menu Notifications', () => {
     });
 
     expect(normalized).toEqual({
+      deadlines: true,
       backgroundSync: true,
       ruMenu: {
         enabled: true,

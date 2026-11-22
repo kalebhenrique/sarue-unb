@@ -79,6 +79,21 @@ export function useNotificationSettings() {
     [],
   );
 
+  const toggleDeadlines = useCallback(
+    async (enabled: boolean) => {
+      const current = settingsRef.current;
+      const next: NotificationSettings = {
+        ...current,
+        deadlines: enabled,
+      };
+      if (enabled) {
+        void ensurePermissionOnEnable();
+      }
+      await applyUpdate(next);
+    },
+    [applyUpdate, ensurePermissionOnEnable],
+  );
+
   const toggleBackgroundSync = useCallback(
     async (enabled: boolean) => {
       const current = settingsRef.current;
@@ -160,6 +175,7 @@ export function useNotificationSettings() {
 
   return {
     settings,
+    toggleDeadlines,
     toggleBackgroundSync,
     toggleRuMenu,
     toggleRuWeekday,

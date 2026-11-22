@@ -9,6 +9,7 @@ import { getDatabase } from './sqlite-feed.repo';
 export const NOTIFICATION_SETTINGS_SQLITE_KEY = 'notification_settings';
 
 const settingsListeners = new Set<(settings: NotificationSettings) => void>();
+let inMemorySettings: NotificationSettings = cloneDefaultSettings();
 
 export function subscribeToNotificationSettings(
   listener: (settings: NotificationSettings) => void,
@@ -32,17 +33,22 @@ function cloneDefaultSettings(): NotificationSettings {
  * hidratação imediata na UI e checagens rápidas em background.
  */
 export function getNotificationSettings(): NotificationSettings {
-  if (typeof window === 'undefined') return cloneDefaultSettings();
+  if (typeof window === 'undefined') {
+    return normalizeNotificationSettings(inMemorySettings);
+  }
   try {
     const raw = window.localStorage.getItem(STORAGE_KEYS.NOTIFICATION_SETTINGS);
     if (!raw) return cloneDefaultSettings();
-    return normalizeNotificationSettings(JSON.parse(raw));
+    const parsed = normalizeNotificationSettings(JSON.parse(raw));
+    inMemorySettings = parsed;
+    return parsed;
   } catch {
-    return cloneDefaultSettings();
+    return normalizeNotificationSettings(inMemorySettings);
   }
 }
 
 function writeSettingsToLocalStorage(settings: NotificationSettings): void {
+  inMemorySettings = settings;
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(

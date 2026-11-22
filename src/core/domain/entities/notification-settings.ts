@@ -12,6 +12,7 @@ export interface RuMenuNotificationSettings {
 }
 
 export interface NotificationSettings {
+  deadlines: boolean;
   backgroundSync: boolean;
   ruMenu: RuMenuNotificationSettings;
 }
@@ -35,6 +36,7 @@ export const WEEKDAY_OPTIONS: readonly WeekdayOption[] = [
 export const DEFAULT_RU_WEEKDAYS: Weekday[] = [1, 2, 3, 4, 5];
 
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
+  deadlines: true,
   backgroundSync: false,
   ruMenu: {
     enabled: false,
@@ -67,6 +69,7 @@ export function normalizeNotificationSettings(
 ): NotificationSettings {
   if (!raw || typeof raw !== 'object') {
     return {
+      deadlines: DEFAULT_NOTIFICATION_SETTINGS.deadlines,
       backgroundSync: DEFAULT_NOTIFICATION_SETTINGS.backgroundSync,
       ruMenu: {
         enabled: DEFAULT_NOTIFICATION_SETTINGS.ruMenu.enabled,
@@ -96,6 +99,10 @@ export function normalizeNotificationSettings(
     : [...DEFAULT_NOTIFICATION_SETTINGS.ruMenu.weekdays];
 
   return {
+    deadlines:
+      typeof obj.deadlines === 'boolean'
+        ? obj.deadlines
+        : DEFAULT_NOTIFICATION_SETTINGS.deadlines,
     backgroundSync:
       typeof obj.backgroundSync === 'boolean'
         ? obj.backgroundSync

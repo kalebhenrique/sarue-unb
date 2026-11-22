@@ -112,6 +112,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   } = useSyncOnlyOnWifi();
   const {
     settings: notificationSettings,
+    toggleDeadlines: toggleDeadlineNotifications,
     toggleBackgroundSync: toggleBackgroundSyncNotifications,
     toggleRuMenu: toggleRuMenuNotifications,
     toggleRuWeekday,
@@ -429,9 +430,27 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           </div>
         </SettingsSection>
 
-        {/* Notificações: sincronização em segundo plano e cardápio do RU */}
+        {/* Notificações: prazos de atividades, sincronização em segundo plano e cardápio do RU */}
         <SettingsSection icon={Bell} label="Notificações">
           <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4 py-1">
+              <div className="max-w-md min-w-0">
+                <span className="text-xs font-black text-black block">
+                  Prazos de atividades
+                </span>
+                <p className="text-xs font-semibold text-neutral-600 leading-snug mt-0.5">
+                  Avisa quando uma tarefa estiver a menos de 48h ou 24h da
+                  entrega, ou quando o prazo encerrar.
+                </p>
+              </div>
+              <Switch
+                checked={notificationSettings.deadlines}
+                onCheckedChange={toggleDeadlineNotifications}
+                aria-label="Notificar prazos de atividades"
+                className="shrink-0"
+              />
+            </div>
+
             <div className="flex items-center justify-between gap-4 py-1">
               <div className="max-w-md min-w-0">
                 <span className="text-xs font-black text-black block">

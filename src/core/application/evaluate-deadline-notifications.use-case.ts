@@ -82,6 +82,7 @@ export class EvaluateDeadlineNotificationsUseCase {
     private readonly feedRepo: IFeedRepository,
     private readonly deadlineRepo: IDeadlineNotificationRepository,
     private readonly notifier: IOSNotifier,
+    private readonly isNotificationEnabled: () => boolean = () => true,
   ) {}
 
   async execute(now: Date = new Date()): Promise<DeadlineEvaluationResult> {
@@ -139,7 +140,11 @@ export class EvaluateDeadlineNotificationsUseCase {
       }
     }
 
-    if (newPings.length > 0 && (await this.notifier.ensurePermission())) {
+    if (
+      newPings.length > 0 &&
+      this.isNotificationEnabled() &&
+      (await this.notifier.ensurePermission())
+    ) {
       for (const ping of newPings) {
         await this.notifier.notify(ping);
       }

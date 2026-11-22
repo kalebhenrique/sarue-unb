@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createContainer } from '../container';
 import { InMemoryFeedRepository } from '../infrastructure/in-memory-feed.repo';
 import { InMemoryDeadlineNotificationRepository } from '../infrastructure/in-memory-deadline-notification.repo';
+import { saveNotificationSettings } from '../infrastructure/notification-settings.service';
+import { DEFAULT_NOTIFICATION_SETTINGS } from '../domain/entities/notification-settings';
 import type { IOSNotifier, OSNotificationPayload } from '../domain/interfaces/os-notifier.interface';
 import type { FeedItem } from '../domain/entities/feed-item';
 
@@ -52,6 +54,7 @@ describe('EvaluateDeadlineNotificationsUseCase', () => {
 
   beforeEach(async () => {
     feedRepo = new InMemoryFeedRepository();
+    await saveNotificationSettings(DEFAULT_NOTIFICATION_SETTINGS);
   });
 
   it('classifica urgência, monta o painel e dispara um ping por marco novo', async () => {
@@ -206,5 +209,37 @@ describe('EvaluateDeadlineNotificationsUseCase', () => {
     await container.useCases.getFeed.markAsCompleted('pendente2', true);
     await container.useCases.evaluateDeadlines.execute(NOW);
     expect(notifier.badgeCalls).toEqual([2, 1, 0]);
+  });
+
+  it('não dispara notificação do SO quando notificações de prazos estão desativadas, mas mantém o painel e registra os marcos', async () => {
+    await saveNotificationSettings({
+      ...DEFAULT_NOTIFICATION_SETTINGS,
+      deadlines: false,
+    });
+
+    const notifier = makeNotifier();
+    const container = createContainer({
+      repos: {
+        feedRepo,
+        deadlineNotificationRepo: new InMemoryDeadlineNotificationRepository(),
+        osNotifier: notifier,
+      },
+    });
+
+    await feedRepo.saveItems([assignment('silenciada', 10)]);
+
+    const result = await container.useCases.evaluateDeadlines.execute(NOW);
+    expect(result.entries).toHaveLength(1);
+    expect(result.badgeCount).toBe(1);
+    expect(notifier.calls).toHaveLength(0);
+
+    await saveNotificationSettings({
+      ...DEFAULT_NOTIFICATION_SETTINGS,
+      deadlines: true,
+    });
+
+    const again = await container.useCases.evaluateDeadlines.execute(NOW);
+    expect(again.newPings).toHaveLength(0);
+    expect(notifier.calls).toHaveLength(0);
   });
 });

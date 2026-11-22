@@ -50,6 +50,7 @@ import { TauriProfessorEvaluationRepository } from './infrastructure/tauri-profe
 import { InMemoryProfessorEvaluationRepository } from './infrastructure/in-memory-professor-evaluation.repo';
 import { SqliteUserEventsRepository } from './infrastructure/sqlite-user-events.repo';
 import { InMemoryUserEventsRepository } from './infrastructure/in-memory-user-events.repo';
+import { getNotificationSettings } from './infrastructure/notification-settings.service';
 
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -170,6 +171,7 @@ export function createContainer(overrides?: ContainerOverrides): Container {
       feedRepo,
       deadlineNotificationRepo,
       osNotifier,
+      () => getNotificationSettings().deadlines,
     ),
     getCourses: new GetCoursesUseCase(feedRepo),
     getDepartments: new GetDepartmentsUseCase(gradeRepo),
