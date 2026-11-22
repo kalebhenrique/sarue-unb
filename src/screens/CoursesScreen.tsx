@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useFeed } from "../hooks/useFeed";
-import { useContainer } from "../context/ContainerContext";
 import {
   Card,
   Badge,
@@ -74,7 +73,6 @@ export const CoursesScreen: React.FC = () => {
     archiveItemsBatch,
   } = useFeed();
 
-  const { repos } = useContainer();
   const isMobile = useMediaQuery("(max-width: 767px)");
 
   const [selectedDiscipline, setSelectedDiscipline] =
@@ -197,38 +195,6 @@ export const CoursesScreen: React.FC = () => {
     // manual de faltas muda (o valor vem de localStorage, não observável pelo React)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [disciplines, absenceOverridesVersion]);
-
-  // Notificação do Sistema Operacional quando estiver prestes a atingir o limite de faltas (ou tiver excedido)
-  useEffect(() => {
-    if (!disciplines || disciplines.length === 0) return;
-
-    const checkAbsenceNotifications = async () => {
-      for (const item of atRiskDisciplines) {
-        const { discipline, status } = item;
-        const notifKey = `sarue:absence_notif:${discipline.id}:${status.absences}`;
-        if (!localStorage.getItem(notifKey)) {
-          localStorage.setItem(notifKey, new Date().toISOString());
-          await repos.osNotifier.ensurePermission();
-
-          const title = status.isExceeded
-            ? `Limite de faltas excedido: ${discipline.name}`
-            : status.isCritical
-              ? `Alerta Crítico de Faltas: ${discipline.name}`
-              : `Atenção ao limite de faltas: ${discipline.name}`;
-
-          const body = status.isExceeded
-            ? `Você possui ${status.absences}/${status.maxAbsences} faltas e ultrapassou os 25% permitidos na UnB.`
-            : status.isCritical
-              ? `Resta apenas 1 aula (${status.hoursPerClass}h) para reprovação por faltas na UnB!`
-              : `Restam 2 aulas (${status.hoursPerClass}h cada) para atingir o limite de 25% de faltas na UnB.`;
-
-          await repos.osNotifier.notify({ title, body });
-        }
-      }
-    };
-
-    checkAbsenceNotifications();
-  }, [atRiskDisciplines, disciplines, repos.osNotifier]);
 
   // Feed da disciplina (drill-down): filtragem e paginação calculadas no topo,
   // antes dos retornos antecipados, para os hooks do modo Selecionar manterem
