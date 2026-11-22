@@ -74,7 +74,7 @@ export const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
   const triggerClasses = `flex w-full items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-black focus:outline-hidden transition-[box-shadow,border-color,background-color] cursor-pointer select-none ${
     bare
       ? 'h-full rounded-r-xl focus-visible:ring-2 focus-visible:ring-inset ring-neo-blue'
-      : 'h-10 rounded-xl border-2 border-ink bg-paper dark:bg-neutral-200 dark:text-slate-50 dark:hover:bg-neutral-300 focus:ring-2 focus:ring-neo-blue'
+      : 'h-10 rounded-xl border-2 border-ink bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-200 dark:hover:bg-neutral-300 dark:text-slate-50 focus:ring-2 focus:ring-neo-blue'
   } ${triggerClassName ?? ''}`;
 
   if (isMobile) {

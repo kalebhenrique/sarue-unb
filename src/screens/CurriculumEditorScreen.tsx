@@ -279,7 +279,7 @@ const CatalogDisciplineSelect: React.FC<{
         : "Buscar pelo código ou nome (ex.: APC, Cálculo 1)…");
 
   const triggerClasses =
-    "flex h-10 w-full min-w-0 box-border items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-black focus:outline-hidden focus:ring-2 focus:ring-neo-blue transition-[box-shadow,border-color,background-color] cursor-pointer select-none rounded-xl border-2 border-ink bg-paper dark:bg-neutral-200 dark:text-slate-50 dark:hover:bg-neutral-300 disabled:cursor-not-allowed disabled:opacity-50";
+    "flex h-10 w-full min-w-0 box-border items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-black focus:outline-hidden focus:ring-2 focus:ring-neo-blue transition-[box-shadow,border-color,background-color] cursor-pointer select-none rounded-xl border-2 border-ink bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-200 dark:hover:bg-neutral-300 dark:text-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
 
   if (isMobile) {
     return (

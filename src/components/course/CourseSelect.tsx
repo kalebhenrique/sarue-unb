@@ -82,7 +82,7 @@ export const CourseSelect: React.FC<CourseSelectProps> = ({
   };
 
   const triggerClasses =
-    'flex w-full h-10 items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-black rounded-xl border-2 border-ink bg-paper dark:bg-neutral-200 dark:text-slate-50 dark:hover:bg-neutral-300 focus:outline-hidden focus:ring-2 focus:ring-neo-blue transition-[box-shadow,border-color,background-color] cursor-pointer select-none';
+    'flex w-full h-10 items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-black rounded-xl border-2 border-ink bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-200 dark:hover:bg-neutral-300 dark:text-slate-50 focus:outline-hidden focus:ring-2 focus:ring-neo-blue transition-[box-shadow,border-color,background-color] cursor-pointer select-none';
 
   if (isMobile) {
     return (
