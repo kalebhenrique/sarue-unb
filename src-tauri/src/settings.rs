@@ -12,14 +12,21 @@ pub struct SyncOnlyOnWifiState(pub AtomicBool);
 struct AppPreferencesFile {
     #[serde(default = "default_sync_only_on_wifi")]
     sync_only_on_wifi: bool,
+    #[serde(default = "default_background_run_enabled")]
+    background_run_enabled: bool,
 }
 
 impl Default for AppPreferencesFile {
     fn default() -> Self {
         Self {
             sync_only_on_wifi: default_sync_only_on_wifi(),
+            background_run_enabled: default_background_run_enabled(),
         }
     }
+}
+
+pub fn default_background_run_enabled() -> bool {
+    true
 }
 
 /// No mobile, sincroniza apenas no Wi-Fi por padrão para economizar dados móveis.
@@ -90,6 +97,33 @@ pub fn is_sync_only_on_wifi(app: &AppHandle) -> bool {
     app.try_state::<SyncOnlyOnWifiState>()
         .map(|s| s.0.load(Ordering::Relaxed))
         .unwrap_or_else(|| load_sync_only_on_wifi(app))
+}
+
+/// Carrega a preferência `background_run_enabled` do store local em disco.
+pub fn load_background_run_enabled(app: &AppHandle) -> bool {
+    match preferences_file_path(app) {
+        Ok(path) => read_preferences_from_path(&path).background_run_enabled,
+        Err(_) => default_background_run_enabled(),
+    }
+}
+
+/// Persiste `background_run_enabled` no store local (`preferences.json`) preservando as demais chaves.
+pub fn save_background_run_enabled(app: &AppHandle, enabled: bool) -> Result<(), String> {
+    let path = preferences_file_path(app)?;
+    let mut prefs = read_preferences_from_path(&path);
+    prefs.background_run_enabled = enabled;
+    write_preferences_to_path(&path, &prefs)
+}
+
+/// Lê `(background_run_enabled, sync_only_on_wifi)` diretamente de um diretório de dados (uso via JNI / WorkManager).
+pub fn read_preferences_from_dir(data_dir: &std::path::Path) -> (bool, bool) {
+    let filename = if cfg!(debug_assertions) {
+        "preferences_dev.json"
+    } else {
+        "preferences.json"
+    };
+    let prefs = read_preferences_from_path(&data_dir.join(filename));
+    (prefs.background_run_enabled, prefs.sync_only_on_wifi)
 }
 
 /// Regra pura para decidir se o sync automático em segundo plano pode rodar.
@@ -182,6 +216,7 @@ mod tests {
             &prefs_path,
             &AppPreferencesFile {
                 sync_only_on_wifi: true,
+                background_run_enabled: true,
             },
         )
         .expect("Falha ao gravar preferências");
@@ -191,10 +226,12 @@ mod tests {
             &prefs_path,
             &AppPreferencesFile {
                 sync_only_on_wifi: false,
+                background_run_enabled: false,
             },
         )
         .expect("Falha ao atualizar preferências");
         assert!(!read_preferences_from_path(&prefs_path).sync_only_on_wifi);
+        assert!(!read_preferences_from_path(&prefs_path).background_run_enabled);
 
         let _ = std::fs::remove_dir_all(&temp_dir);
     }

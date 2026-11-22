@@ -102,6 +102,10 @@ opt-level = 3
 [profile.dev.package.iota_stronghold]
 opt-level = 3
 
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
 # Workaround para bug do linker do macOS (ld-27106.1): sem DWARF (debug = false),
 # o ld não alinha o string pool (__LINKEDIT stroff) em 8 bytes após nindirectsyms ímpar
 # no proc-macro libsqlx_macros.dylib (mis-aligned LINKEDIT string pool).

@@ -890,6 +890,14 @@ fn get_evaluations_csv_lock() -> &'static tokio::sync::RwLock<Option<String>> {
     EVALUATIONS_CSV_CACHE.get_or_init(|| tokio::sync::RwLock::new(None))
 }
 
+/// Libera todos os caches estáticos em memória RAM do backend Rust (catálogos SIGAA + CSV de avaliações).
+pub fn clear_all_memory_caches() {
+    crate::grade_scraper::SigaaGradeScraper::clear_memory_caches();
+    if let Ok(mut lock) = get_evaluations_csv_lock().try_write() {
+        *lock = None;
+    }
+}
+
 #[command]
 #[specta::specta]
 pub async fn fetch_professor_evaluations_csv(force_refresh: bool) -> Result<String, String> {
@@ -940,6 +948,7 @@ pub async fn set_background_run(app: AppHandle, enabled: bool) -> Result<(), Str
     use tauri::Manager;
     let state = app.state::<crate::BackgroundRunState>();
     state.0.store(enabled, std::sync::atomic::Ordering::Relaxed);
+    let _ = crate::settings::save_background_run_enabled(&app, enabled);
     log::info!("Execução em segundo plano definida para: {}", enabled);
     Ok(())
 }
@@ -1067,6 +1076,30 @@ pub async fn share_image(
     app.share()
         .share_image(base64_png, filename, title)
         .map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RenderedStudentCardDto {
+    pub cropped_data_url: String,
+    pub full_page_data_url: String,
+}
+
+#[command]
+#[specta::specta]
+pub async fn render_student_card_pdf(
+    app: AppHandle,
+    pdf_base64: String,
+) -> Result<Option<RenderedStudentCardDto>, String> {
+    use tauri_plugin_share::ShareExt;
+    let res = app
+        .share()
+        .render_student_card_pdf(pdf_base64)
+        .map_err(|e| e.to_string())?;
+    Ok(res.map(|r| RenderedStudentCardDto {
+        cropped_data_url: r.cropped_data_url,
+        full_page_data_url: r.full_page_data_url,
+    }))
 }
 
 #[cfg(test)]

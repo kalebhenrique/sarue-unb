@@ -16,6 +16,8 @@ use tauri_specta::{collect_commands, Builder};
 pub struct BackgroundRunState(pub std::sync::atomic::AtomicBool);
 pub struct IsQuitting(pub std::sync::atomic::AtomicBool);
 
+static GLOBAL_APP_HANDLE: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
+
 /// Verifica se a sincronização automática em segundo plano pode rodar de acordo
 /// com a preferência `sync_only_on_wifi` e o status atual da rede.
 /// No desktop, sempre retorna `true` para não bloquear o sync automático.
@@ -82,6 +84,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         commands::fetch_student_wallet,
         commands::set_max_brightness,
         commands::share_image,
+        commands::render_student_card_pdf,
     ])
 }
 
@@ -208,6 +211,13 @@ pub fn run() {
                 .0
                 .store(initial_sync_only_on_wifi, std::sync::atomic::Ordering::Relaxed);
 
+            let initial_bg_run = settings::load_background_run_enabled(app.handle());
+            app.state::<BackgroundRunState>()
+                .0
+                .store(initial_bg_run, std::sync::atomic::Ordering::Relaxed);
+
+            let _ = GLOBAL_APP_HANDLE.set(app.handle().clone());
+
             #[cfg(desktop)]
             {
                 app.handle()
@@ -295,6 +305,53 @@ pub unsafe extern "C" fn Java_br_unb_sarue_MainActivity_initPlatformVerifier<'lo
         Ok(())
     })
     .resolve::<jni::errors::ThrowRuntimeExAndDefault>();
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "C" fn Java_br_unb_sarue_MainActivity_onAndroidTrimMemory(
+    _env: jni::EnvUnowned<'_>,
+    _class: jni::objects::JClass<'_>,
+    level: jni::sys::jint,
+) {
+    crate::commands::clear_all_memory_caches();
+    log::info!(
+        "[Android Memory] Caches estáticos em RAM liberados (onTrimMemory level={})",
+        level
+    );
+}
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "C" fn Java_br_unb_sarue_SarueSyncWorker_nativeRunBackgroundSync<'local>(
+    mut env: jni::EnvUnowned<'local>,
+    _class: jni::objects::JClass<'local>,
+    data_dir_jstr: jni::objects::JString<'local>,
+) -> jni::sys::jboolean {
+    let data_dir_str: String = env
+        .with_env(|inner_env| -> jni::errors::Result<String> {
+            Ok(data_dir_jstr.try_to_string(inner_env).unwrap_or_default())
+        })
+        .resolve::<jni::errors::ThrowRuntimeExAndDefault>();
+
+    let data_path = std::path::PathBuf::from(&data_dir_str);
+    let (bg_enabled, _wifi_only) = crate::settings::read_preferences_from_dir(&data_path);
+    if !bg_enabled {
+        log::info!("[SarueSyncWorker] Execução em segundo plano desativada; pulando tick.");
+        return jni::sys::JNI_FALSE;
+    }
+
+    // Se a instância Tauri / WebView estiver ativa na memória, emite request-auto-sync
+    if let Some(app_handle) = GLOBAL_APP_HANDLE.get() {
+        use tauri::Emitter;
+        if crate::can_run_auto_sync(app_handle) {
+            log::info!("[SarueSyncWorker] AppHandle ativo: emitindo request-auto-sync.");
+            let _ = app_handle.emit("request-auto-sync", ());
+            return jni::sys::JNI_TRUE;
+        }
+    }
+
+    jni::sys::JNI_FALSE
 }
 
 #[cfg(test)]

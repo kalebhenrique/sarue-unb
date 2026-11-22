@@ -164,6 +164,28 @@ pub struct CurriculumStructure {
 pub struct SigaaGradeScraper;
 
 impl SigaaGradeScraper {
+    /// Libera todos os caches estáticos em memória RAM (chamado em eventos de pressão de memória / onTrimMemory no Android).
+    pub fn clear_memory_caches() {
+        if let Ok(mut lock) = get_classes_lock().try_write() {
+            *lock = None;
+        }
+        if let Ok(mut lock) = get_curricula_lock().try_write() {
+            *lock = None;
+        }
+        if let Ok(mut lock) = get_course_curricula_lock().try_write() {
+            *lock = None;
+        }
+        if let Ok(mut lock) = get_professors_lock().try_write() {
+            *lock = None;
+        }
+        if let Ok(mut lock) = get_courses_lock().try_write() {
+            *lock = None;
+        }
+        if let Ok(mut lock) = get_depts_lock().try_write() {
+            *lock = None;
+        }
+    }
+
     /// Cliente HTTP para requests com timeout adequado
     fn http_client() -> reqwest::Client {
         reqwest::Client::builder()
@@ -173,54 +195,58 @@ impl SigaaGradeScraper {
             .unwrap_or_else(|_| reqwest::Client::new())
     }
 
-    /// Busca um arquivo JSON a partir do disco local ou CDN
+    /// Busca um arquivo JSON a partir do disco local (Desktop) ou CDN
     async fn fetch_static_json<T: for<'de> Deserialize<'de>>(file_name: &str) -> Result<T, String> {
-        let mut candidates = vec![
-            std::path::PathBuf::from(format!("public/data/{}", file_name)),
-            std::path::PathBuf::from(format!("../public/data/{}", file_name)),
-            std::path::PathBuf::from(format!("data/{}", file_name)),
-            std::path::PathBuf::from(format!("../data/{}", file_name)),
-        ];
+        #[cfg(not(target_os = "android"))]
+        {
+            let mut candidates = vec![
+                std::path::PathBuf::from(format!("public/data/{}", file_name)),
+                std::path::PathBuf::from(format!("../public/data/{}", file_name)),
+                std::path::PathBuf::from(format!("data/{}", file_name)),
+                std::path::PathBuf::from(format!("../data/{}", file_name)),
+            ];
 
-        if let Ok(cwd) = std::env::current_dir() {
-            candidates.push(cwd.join("public").join("data").join(file_name));
-            candidates.push(cwd.join("data").join(file_name));
-            if let Some(parent) = cwd.parent() {
-                candidates.push(parent.join("public").join("data").join(file_name));
-                candidates.push(parent.join("data").join(file_name));
+            if let Ok(cwd) = std::env::current_dir() {
+                candidates.push(cwd.join("public").join("data").join(file_name));
+                candidates.push(cwd.join("data").join(file_name));
+                if let Some(parent) = cwd.parent() {
+                    candidates.push(parent.join("public").join("data").join(file_name));
+                    candidates.push(parent.join("data").join(file_name));
+                }
             }
-        }
 
-        if let Ok(exe_path) = std::env::current_exe() {
-            if let Some(exe_dir) = exe_path.parent() {
-                candidates.push(exe_dir.join("public").join("data").join(file_name));
-                candidates.push(exe_dir.join("data").join(file_name));
-                candidates.push(
-                    exe_dir
-                        .join("resources")
-                        .join("public")
-                        .join("data")
-                        .join(file_name),
-                );
-                candidates.push(exe_dir.join("resources").join("data").join(file_name));
-                if let Some(contents_dir) = exe_dir.parent() {
+            if let Ok(exe_path) = std::env::current_exe() {
+                if let Some(exe_dir) = exe_path.parent() {
+                    candidates.push(exe_dir.join("public").join("data").join(file_name));
+                    candidates.push(exe_dir.join("data").join(file_name));
                     candidates.push(
-                        contents_dir
-                            .join("Resources")
+                        exe_dir
+                            .join("resources")
                             .join("public")
                             .join("data")
                             .join(file_name),
                     );
-                    candidates.push(contents_dir.join("Resources").join("data").join(file_name));
+                    candidates.push(exe_dir.join("resources").join("data").join(file_name));
+                    if let Some(contents_dir) = exe_dir.parent() {
+                        candidates.push(
+                            contents_dir
+                                .join("Resources")
+                                .join("public")
+                                .join("data")
+                                .join(file_name),
+                        );
+                        candidates
+                            .push(contents_dir.join("Resources").join("data").join(file_name));
+                    }
                 }
             }
-        }
 
-        for path in &candidates {
-            if path.exists() {
-                if let Ok(content) = std::fs::read_to_string(path) {
-                    if let Ok(data) = serde_json::from_str::<T>(&content) {
-                        return Ok(data);
+            for path in &candidates {
+                if path.exists() {
+                    if let Ok(content) = std::fs::read_to_string(path) {
+                        if let Ok(data) = serde_json::from_str::<T>(&content) {
+                            return Ok(data);
+                        }
                     }
                 }
             }
