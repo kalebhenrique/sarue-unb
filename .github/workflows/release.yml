@@ -138,8 +138,119 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
 
+  publish-android:
+    needs: create-release
+    name: "Build & Publish Android (APK + AAB)"
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK (API 36/37.0 & NDK)
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-36" "platforms;android-37.0" "build-tools;36.0.0" "ndk;26.1.10909125"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> "$GITHUB_ENV"
+
+      - name: Setup Android Signing Keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "❌ Erro: Secrets de assinatura do Android (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD) não estão configurados!"
+            exit 1
+          fi
+          KEYSTORE_PATH="$RUNNER_TEMP/sarue-release.jks"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          echo "ANDROID_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "✅ Keystore de produção carregada via GitHub Secrets."
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          cache-directories: |
+            src-tauri/gen/android/.tauri
+            src-tauri/plugins/tauri-plugin-brightness/android/.tauri
+            src-tauri/plugins/tauri-plugin-network-status/android/.tauri
+            src-tauri/plugins/tauri-plugin-share/android/.tauri
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Android Production APK & AAB
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x src-tauri/gen/android/gradlew
+          node scripts/tauri-cli.mjs android build --apk --aab --target aarch64
+
+      - name: Prepare & Upload Android Assets to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GH_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          SEMVER="${TAG#v}"
+          APK_SRC="src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk"
+          AAB_SRC="src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab"
+
+          APK_OUT="Sarue.UnB_${SEMVER}_android_arm64.apk"
+          AAB_OUT="Sarue.UnB_${SEMVER}_android.aab"
+
+          cp "$APK_SRC" "$APK_OUT"
+          cp "$AAB_SRC" "$AAB_OUT"
+          ls -lh "$APK_OUT" "$AAB_OUT"
+
+          gh release upload "$TAG" "$APK_OUT" "$AAB_OUT" --clobber
+
+      - name: Upload Play Console AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarue-unb-android-release
+          path: |
+            Sarue.UnB_*_android_arm64.apk
+            Sarue.UnB_*_android.aab
+          if-no-files-found: error
+          retention-days: 30
+
   finalize-release:
-    needs: [create-release, publish-tauri]
+    needs: [create-release, publish-tauri, publish-android]
     permissions:
       contents: write
     runs-on: ubuntu-latest

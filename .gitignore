@@ -13,6 +13,8 @@ src-tauri/gen/schemas
 *.hold
 vault.salt
 salt.txt
+*.jks
+*.keystore
 
 # Environment
 .env
