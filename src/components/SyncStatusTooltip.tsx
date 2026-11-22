@@ -265,12 +265,11 @@ export const SyncStatusSummaryDialog: React.FC<SyncStatusSummaryDialogProps> = (
         <DialogFooter>
           <Button
             type="button"
-            variant="outline"
-            size="sm"
+            size="md"
             onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto sm:min-w-32"
           >
-            Fechar
+            <span>Okay</span>
           </Button>
         </DialogFooter>
       </DialogContent>

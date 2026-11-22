@@ -8,7 +8,10 @@ import React, {
   useEffect,
 } from "react";
 import { useContainer } from "./ContainerContext";
-import { notifyMyCourseListeners, resolveCourseIdForProfile } from "../hooks/useMyCourse";
+import {
+  notifyMyCourseListeners,
+  resolveCourseIdForProfile,
+} from "../hooks/useMyCourse";
 import { notifyFeedListeners } from "../hooks/useFeed";
 import { toast } from "@/components/ui";
 import {
@@ -26,12 +29,7 @@ import {
 import { checkForUpdates } from "../hooks/useAppUpdater";
 
 export type SyncStepId =
-  | "sigaa"
-  | "aprender3"
-  | "teams"
-  | "myCourse"
-  | "ghPages"
-  | "planilha";
+  "sigaa" | "aprender3" | "teams" | "myCourse" | "ghPages" | "planilha";
 
 export type SyncStepStatus =
   "idle" | "syncing" | "success" | "error" | "skipped";
@@ -104,6 +102,20 @@ const INITIAL_STEPS: Record<SyncStepId, SyncStepInfo> = {
   },
 };
 
+export const PERIODIC_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+export function shouldTriggerPeriodicSync(
+  lastSyncedAt: string | null,
+  nowMs: number,
+  isBackgroundRunEnabled: boolean,
+): boolean {
+  if (!isBackgroundRunEnabled) return false;
+  if (!lastSyncedAt) return true;
+  const lastMs = new Date(lastSyncedAt).getTime();
+  if (Number.isNaN(lastMs)) return true;
+  return nowMs - lastMs >= PERIODIC_SYNC_INTERVAL_MS;
+}
+
 const SyncContext = createContext<SyncContextValue | null>(null);
 
 // Ouvintes globais de fim de sync (ex.: avaliação de prazos do sino)
@@ -135,7 +147,11 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     useState<Record<SyncStepId, SyncStepInfo>>(INITIAL_STEPS);
   const syncInFlightRef = useRef<boolean>(false);
   const syncGenerationRef = useRef<number>(0);
-  const syncAllRef = useRef<(options?: SyncOptions) => Promise<void>>(() => Promise.resolve());
+  const syncAllRef = useRef<(options?: SyncOptions) => Promise<void>>(() =>
+    Promise.resolve(),
+  );
+  const useCasesRef = useRef(useCases);
+  useCasesRef.current = useCases;
 
   const updateStep = useCallback(
     (id: SyncStepId, patch: Partial<SyncStepInfo>) => {
@@ -168,468 +184,504 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  const syncAll = useCallback(async (options?: SyncOptions) => {
-    if (syncInFlightRef.current || isOnboardingNotificationsBlocked()) {
-      return;
-    }
-
-    // Sincronizações automáticas respeitam a trava de Wi-Fi sem afetar o sync manual.
-    if (options?.isAutoSync) {
-      const allowed = await checkIsAutoSyncAllowed();
-      if (!allowed) {
+  const syncAll = useCallback(
+    async (options?: SyncOptions) => {
+      if (syncInFlightRef.current || isOnboardingNotificationsBlocked()) {
         return;
       }
-    }
 
-    const myGen = ++syncGenerationRef.current;
-    const isCancelled = () => syncGenerationRef.current !== myGen;
-
-    syncInFlightRef.current = true;
-    setIsSyncing(true);
-    if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
-      void import("@/core/infrastructure/bindings").then(({ commands }) => {
-        void commands.setTraySyncState(true);
-      });
-    }
-
-    try {
-      // Dispara verificação silenciosa de atualizações do app em segundo plano
-      void checkForUpdates(true);
-
-      // Carrega credenciais em tempo real diretamente do cofre para evitar estados defasados de React
-      const activeCreds = await useCases.getCredentials.getAllCredentials();
-
-      // 1. Sincronização do Catálogo UnB (GitHub Pages / CDN).
-      // Com SIGAA configurado, o passo espera o histórico (Meu Curso) criar o
-      // perfil: é ele que diz qual curso baixar — sem isso a primeira
-      // sincronização baixaria o catálogo inteiro (612 matrizes) sem precisar.
-      const sigaaCreds = activeCreds.sigaa;
-      const hasSigaa = Boolean(
-        sigaaCreds?.matricula?.trim() && sigaaCreds?.senha,
-      );
-
-      const runGhPagesStep = async () => {
-        try {
-          // Mesma política do useMyCourse: com perfil (login SIGAA), baixa só
-          // as matrizes do curso do usuário em vez do catálogo inteiro da UnB.
-          const profile = await useCases.manageAcademicProfile.getProfile();
-          let curricula: CurriculumStructure[] = [];
-          let isCourseScoped = false;
-          if (profile) {
-            const courseId = await resolveCourseIdForProfile(profile, repos.gradeRepo);
-            if (courseId) {
-              curricula = await useCases.manageAcademicProfile.getCurriculaForCourse(courseId);
-              isCourseScoped = curricula.length > 0;
-            }
-          }
-          if (curricula.length === 0) {
-            curricula = await useCases.manageAcademicProfile.getAllCurricula();
-          }
-          if (isCancelled()) return;
-          updateStep("ghPages", {
-            status: "success",
-            count: curricula.length,
-            message: isCourseScoped
-              ? `${curricula.length} matrizes do seu curso disponíveis`
-              : `${curricula.length} matrizes curriculares disponíveis`,
-            lastUpdated: new Date().toISOString(),
-          });
-        } catch (err: unknown) {
-          if (isCancelled()) return;
-          updateStep("ghPages", {
-            status: "error",
-            message:
-              err instanceof Error
-                ? err.message
-                : "Falha ao acessar CDN do GitHub Pages",
-          });
-        }
-      };
-
-      if (hasSigaa) {
-        updateStep("ghPages", {
-          status: "syncing",
-          message: "Aguardando histórico do SIGAA para baixar as matrizes do seu curso...",
-        });
-      } else {
-        updateStep("ghPages", {
-          status: "syncing",
-          message: "Consultando catálogo de matrizes e turmas da UnB...",
-        });
-        void runGhPagesStep();
-      }
-
-      // 2. Sincronização do SIGAA
-      let sigaaSuccess = false;
-      let sigaaError = false;
-
-      const sigaaPromise = (async () => {
-        if (!hasSigaa) {
-          updateStep("sigaa", {
-            status: "skipped",
-            message: "Conta não configurada",
-          });
+      // Sincronizações automáticas respeitam a trava de Wi-Fi sem afetar o sync manual.
+      if (options?.isAutoSync) {
+        const allowed = await checkIsAutoSyncAllowed();
+        if (!allowed) {
           return;
         }
-
-        updateStep("sigaa", {
-          status: "syncing",
-          message: "Conectando ao SIGAA e extraindo turmas e avisos...",
-        });
-
-        try {
-          const res = await useCases.syncPlatforms.execute(["sigaa"]);
-          if (isCancelled()) return;
-          if (res.errors?.sigaa) {
-            sigaaError = true;
-            updateStep("sigaa", {
-              status: "error",
-              message: res.errors.sigaa,
-            });
-          } else {
-            sigaaSuccess = true;
-            const sigaaCourses = res.courses.filter(
-              (c) => c.platform === "sigaa",
-            );
-            const sigaaItems = res.items.filter((i) => i.platform === "sigaa");
-            updateStep("sigaa", {
-              status: "success",
-              count: sigaaCourses.length,
-              message: `${sigaaCourses.length} turmas • ${sigaaItems.length} avisos`,
-              lastUpdated: new Date().toISOString(),
-            });
-            notifyFeedListeners();
-            notifySyncComplete();
-          }
-        } catch (err: unknown) {
-          if (isCancelled()) return;
-          sigaaError = true;
-          updateStep("sigaa", {
-            status: "error",
-            message:
-              err instanceof Error ? err.message : "Falha na conexão com o SIGAA",
-          });
-        }
-      })();
-
-      // 3. Sincronização do Aprender 3
-      const aprenderCreds = activeCreds.aprender3;
-      const hasAprender = Boolean(
-        aprenderCreds?.cpf?.trim() && aprenderCreds?.senha,
-      );
-
-      let aprenderSuccess = false;
-      let aprenderError = false;
-
-      const aprenderPromise = (async () => {
-        if (!hasAprender) {
-          updateStep("aprender3", {
-            status: "skipped",
-            message: "Conta não configurada",
-          });
-          return;
-        }
-
-        updateStep("aprender3", {
-          status: "syncing",
-          message: "Buscando tarefas, atividades e prazos no Aprender 3...",
-        });
-
-        try {
-          const res = await useCases.syncPlatforms.execute(["aprender3"]);
-          if (isCancelled()) return;
-          if (res.errors?.aprender3) {
-            aprenderError = true;
-            updateStep("aprender3", {
-              status: "error",
-              message: res.errors.aprender3,
-            });
-          } else {
-            aprenderSuccess = true;
-            const a3Courses = res.courses.filter(
-              (c) => c.platform === "aprender3",
-            );
-            const a3Items = res.items.filter((i) => i.platform === "aprender3");
-            updateStep("aprender3", {
-              status: "success",
-              count: a3Items.length,
-              message: `${a3Courses.length} turmas • ${a3Items.length} tarefas/prazos`,
-              lastUpdated: new Date().toISOString(),
-            });
-            notifyFeedListeners();
-            notifySyncComplete();
-          }
-        } catch (err: unknown) {
-          if (isCancelled()) return;
-          aprenderError = true;
-          updateStep("aprender3", {
-            status: "error",
-            message:
-              err instanceof Error
-                ? err.message
-                : "Falha na conexão com o Aprender 3",
-          });
-        }
-      })();
-
-      // Marca estado inicial do Teams antes de aguardar os canais HTTP rápidos
-      const teamsCreds = activeCreds.teams;
-      const hasTeams = Boolean(teamsCreds?.isConnected);
-      if (!hasTeams) {
-        updateStep("teams", {
-          status: "skipped",
-          message: "Conta não configurada",
-        });
-      } else {
-        updateStep("teams", {
-          status: "syncing",
-          message: "Aguardando canais rápidos para sincronizar Teams...",
-        });
       }
 
-      // Aguarda os canais rápidos executando em paralelo (sem competir com o webview do Teams)
-      const ruMenuPromise = (async () => {
-        try {
-          const campus = getSavedRuCampus();
-          await fetchAndCacheRuMenus(campus);
-          await syncRuMenuNotifications({ campus });
-        } catch (err) {
-          console.warn("[SyncContext] Falha ao sincronizar cardápio do RU:", err);
-        }
-      })();
+      const myGen = ++syncGenerationRef.current;
+      const isCancelled = () => syncGenerationRef.current !== myGen;
 
-      await Promise.all([sigaaPromise, aprenderPromise, ruMenuPromise]);
-      if (isCancelled()) return;
-
-      // 4. Sincronização de Meu Curso + Carteirinha Estudantil / Extrato RU (depende das credenciais do SIGAA)
-      if (!hasSigaa) {
-        updateStep("myCourse", {
-          status: "skipped",
-          message: "Requer conta do SIGAA configurada",
-        });
-      } else if (!sigaaSuccess) {
-        updateStep("myCourse", {
-          status: "error",
-          message: "Aguardando autenticação correta no SIGAA",
-        });
-      } else {
-        updateStep("myCourse", {
-          status: "syncing",
-          message: "Baixando histórico escolar, carteirinha oficial e calculando fluxo...",
-        });
-
-        try {
-          const result = await useCases.manageAcademicProfile.syncWithSigaa(
-            sigaaCreds!,
-          );
-          if (isCancelled()) return;
-          notifyMyCourseListeners();
-
-          const student = result.profile;
-          try {
-            await fetchAndCacheStudentWallet(
-              sigaaCreds!.matricula,
-              sigaaCreds!.senha,
-              student.cpf,
-            );
-          } catch (walletErr) {
-            console.warn(
-              "[SyncContext] Falha ao sincronizar carteirinha/extrato do RU:",
-              walletErr,
-            );
-          }
-          if (isCancelled()) return;
-
-          const iraStr = student.ira
-            ? `IRA ${student.ira.toFixed(2)}`
-            : "Perfil discente ativo";
-          const pctStr = student.percentualIntegralizado
-            ? `${student.percentualIntegralizado.toFixed(0)}% integralizado`
-            : "Fluxo atualizado";
-
-          updateStep("myCourse", {
-            status: "success",
-            message: `${iraStr} • ${pctStr}`,
-            lastUpdated: new Date().toISOString(),
-          });
-        } catch (err: unknown) {
-          if (isCancelled()) return;
-          updateStep("myCourse", {
-            status: "error",
-            message:
-              err instanceof Error
-                ? err.message
-                : "Falha ao sincronizar histórico escolar",
-          });
-        }
-      }
-
-      // Catálogo UnB por curso: roda depois do histórico porque é ele que cria
-      // o perfil (com o curso do discente) na primeira sincronização.
-      await runGhPagesStep();
-      if (isCancelled()) return;
-
-      // 6. Planilha de avaliações de professores (relatos da comunidade):
-      // aquece o cache usado pela tela Avaliar Professor.
-      updateStep("planilha", {
-        status: "syncing",
-        message: "Buscando relatos da comunidade...",
-      });
-      try {
-        const evaluations = await useCases.getProfessorEvaluations.execute(
-          undefined,
-          true
-        );
-        if (isCancelled()) return;
-        updateStep("planilha", {
-          status: "success",
-          message: `${evaluations.length} relatos de professores disponíveis`,
-          lastUpdated: new Date().toISOString(),
-        });
-      } catch (err) {
-        if (isCancelled()) return;
-        updateStep("planilha", {
-          status: "error",
-          message:
-            err instanceof Error
-              ? err.message
-              : "Falha ao sincronizar a planilha",
-        });
-      }
-
-      const now = new Date().toISOString();
-      setLastSyncedAt(now);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("sarue_last_synced_at", now);
-      }
-      setIsSyncing(false);
+      syncInFlightRef.current = true;
+      setIsSyncing(true);
       if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
         void import("@/core/infrastructure/bindings").then(({ commands }) => {
-          void commands.setTraySyncState(false);
+          void commands.setTraySyncState(true);
         });
       }
-      notifyFeedListeners();
-      notifySyncComplete();
 
-      const totalConfigured = (hasSigaa ? 1 : 0) + (hasAprender ? 1 : 0);
-      const totalErrors = (sigaaError ? 1 : 0) + (aprenderError ? 1 : 0);
-      const totalSuccess = (sigaaSuccess ? 1 : 0) + (aprenderSuccess ? 1 : 0);
+      try {
+        // Dispara verificação silenciosa de atualizações do app em segundo plano
+        void checkForUpdates(true);
 
-      if (!isOnboardingNotificationsBlocked()) {
-        if (totalConfigured > 0 && totalSuccess === 0 && totalErrors > 0) {
-          toast.add({
-            title: "Erro na sincronização",
-            description: "Não foi possível conectar às plataformas acadêmicas.",
-            type: "danger",
-            timeout: 5000,
-          });
-          if (options?.isAutoSync && getNotificationSettings().backgroundSync) {
-            void repos.osNotifier.notify({
-              title: "Falha na sincronização em segundo plano",
-              body: "Não foi possível conectar às plataformas acadêmicas.",
+        // Carrega credenciais em tempo real diretamente do cofre para evitar estados defasados de React
+        const activeCreds = await useCases.getCredentials.getAllCredentials();
+
+        // 1. Sincronização do Catálogo UnB (GitHub Pages / CDN).
+        // Com SIGAA configurado, o passo espera o histórico (Meu Curso) criar o
+        // perfil: é ele que diz qual curso baixar — sem isso a primeira
+        // sincronização baixaria o catálogo inteiro (612 matrizes) sem precisar.
+        const sigaaCreds = activeCreds.sigaa;
+        const hasSigaa = Boolean(
+          sigaaCreds?.matricula?.trim() && sigaaCreds?.senha,
+        );
+
+        const runGhPagesStep = async () => {
+          try {
+            // Mesma política do useMyCourse: com perfil (login SIGAA), baixa só
+            // as matrizes do curso do usuário em vez do catálogo inteiro da UnB.
+            const profile = await useCases.manageAcademicProfile.getProfile();
+            let curricula: CurriculumStructure[] = [];
+            let isCourseScoped = false;
+            if (profile) {
+              const courseId = await resolveCourseIdForProfile(
+                profile,
+                repos.gradeRepo,
+              );
+              if (courseId) {
+                curricula =
+                  await useCases.manageAcademicProfile.getCurriculaForCourse(
+                    courseId,
+                  );
+                isCourseScoped = curricula.length > 0;
+              }
+            }
+            if (curricula.length === 0) {
+              curricula =
+                await useCases.manageAcademicProfile.getAllCurricula();
+            }
+            if (isCancelled()) return;
+            updateStep("ghPages", {
+              status: "success",
+              count: curricula.length,
+              message: isCourseScoped
+                ? `${curricula.length} matrizes do seu curso disponíveis`
+                : `${curricula.length} matrizes curriculares disponíveis`,
+              lastUpdated: new Date().toISOString(),
+            });
+          } catch (err: unknown) {
+            if (isCancelled()) return;
+            updateStep("ghPages", {
+              status: "error",
+              message:
+                err instanceof Error
+                  ? err.message
+                  : "Falha ao acessar CDN do GitHub Pages",
             });
           }
-        } else if (totalErrors > 0 && totalSuccess > 0) {
-          toast.add({
-            title: "Sincronização com avisos",
-            description: "Algumas plataformas não puderam ser sincronizadas.",
-            type: "warning",
-            timeout: 5000,
-          });
-          if (options?.isAutoSync && getNotificationSettings().backgroundSync) {
-            void repos.osNotifier.notify({
-              title: "Sincronização em segundo plano com avisos",
-              body: "Algumas plataformas não puderam ser sincronizadas.",
-            });
-          }
-        } else if (totalSuccess > 0 || totalConfigured === 0) {
-          toast.add({
-            title: "Sincronização concluída",
-            description: "Seus dados foram atualizados com sucesso.",
-            type: "success",
-            timeout: 4000,
-          });
-          if (options?.isAutoSync && getNotificationSettings().backgroundSync) {
-            void repos.osNotifier.notify({
-              title: "Sincronização em segundo plano concluída",
-              body: "Seus avisos, prazos e cardápio do RU foram atualizados.",
-            });
-          }
-        }
-      }
+        };
 
-      // 5. Sincronização do Teams (100% não-bloqueante em segundo plano após liberar a UI)
-      if (hasTeams && !isCancelled()) {
-        void (async () => {
-          updateStep("teams", {
+        if (hasSigaa) {
+          updateStep("ghPages", {
             status: "syncing",
-            message: "Sincronizando equipes do Teams em segundo plano...",
+            message:
+              "Aguardando histórico do SIGAA para baixar as matrizes do seu curso...",
+          });
+        } else {
+          updateStep("ghPages", {
+            status: "syncing",
+            message: "Consultando catálogo de matrizes e turmas da UnB...",
+          });
+          void runGhPagesStep();
+        }
+
+        // 2. Sincronização do SIGAA
+        let sigaaSuccess = false;
+        let sigaaError = false;
+
+        const sigaaPromise = (async () => {
+          if (!hasSigaa) {
+            updateStep("sigaa", {
+              status: "skipped",
+              message: "Conta não configurada",
+            });
+            return;
+          }
+
+          updateStep("sigaa", {
+            status: "syncing",
+            message: "Conectando ao SIGAA e extraindo turmas e avisos...",
           });
 
           try {
-            const res = await useCases.syncPlatforms.execute(["teams"]);
+            const res = await useCases.syncPlatforms.execute(["sigaa"]);
             if (isCancelled()) return;
-            if (res.errors?.teams) {
-              updateStep("teams", {
+            if (res.errors?.sigaa) {
+              sigaaError = true;
+              updateStep("sigaa", {
                 status: "error",
-                message: res.errors.teams,
+                message: res.errors.sigaa,
               });
             } else {
-              const teamsCourses = res.courses.filter(
-                (c) => c.platform === "teams",
+              sigaaSuccess = true;
+              const sigaaCourses = res.courses.filter(
+                (c) => c.platform === "sigaa",
               );
-              const teamsItems = res.items.filter(
-                (i) => i.platform === "teams",
+              const sigaaItems = res.items.filter(
+                (i) => i.platform === "sigaa",
               );
-              const teamsPostsCount = teamsItems.filter(
-                (i) => i.itemType === "post",
-              ).length;
-              const teamsAssignmentsCount = teamsItems.filter(
-                (i) => i.itemType === "assignment",
-              ).length;
-              updateStep("teams", {
+              updateStep("sigaa", {
                 status: "success",
-                count: teamsCourses.length,
-                message:
-                  teamsAssignmentsCount > 0
-                    ? `${teamsCourses.length} turmas • ${teamsPostsCount} avisos • ${teamsAssignmentsCount} atividades`
-                    : `${teamsCourses.length} turmas • ${teamsItems.length} avisos`,
+                count: sigaaCourses.length,
+                message: `${sigaaCourses.length} turmas • ${sigaaItems.length} avisos`,
                 lastUpdated: new Date().toISOString(),
               });
-              setLastSyncedAt(new Date().toISOString());
               notifyFeedListeners();
               notifySyncComplete();
             }
           } catch (err: unknown) {
             if (isCancelled()) return;
-            updateStep("teams", {
+            sigaaError = true;
+            updateStep("sigaa", {
               status: "error",
               message:
                 err instanceof Error
                   ? err.message
-                  : "Falha na sincronização do Teams",
+                  : "Falha na conexão com o SIGAA",
             });
-          } finally {
-            if (!isCancelled()) {
-              syncInFlightRef.current = false;
-            }
           }
         })();
-      } else {
-        syncInFlightRef.current = false;
-      }
-    } catch {
-      if (!isCancelled()) {
+
+        // 3. Sincronização do Aprender 3
+        const aprenderCreds = activeCreds.aprender3;
+        const hasAprender = Boolean(
+          aprenderCreds?.cpf?.trim() && aprenderCreds?.senha,
+        );
+
+        let aprenderSuccess = false;
+        let aprenderError = false;
+
+        const aprenderPromise = (async () => {
+          if (!hasAprender) {
+            updateStep("aprender3", {
+              status: "skipped",
+              message: "Conta não configurada",
+            });
+            return;
+          }
+
+          updateStep("aprender3", {
+            status: "syncing",
+            message: "Buscando tarefas, atividades e prazos no Aprender 3...",
+          });
+
+          try {
+            const res = await useCases.syncPlatforms.execute(["aprender3"]);
+            if (isCancelled()) return;
+            if (res.errors?.aprender3) {
+              aprenderError = true;
+              updateStep("aprender3", {
+                status: "error",
+                message: res.errors.aprender3,
+              });
+            } else {
+              aprenderSuccess = true;
+              const a3Courses = res.courses.filter(
+                (c) => c.platform === "aprender3",
+              );
+              const a3Items = res.items.filter(
+                (i) => i.platform === "aprender3",
+              );
+              updateStep("aprender3", {
+                status: "success",
+                count: a3Items.length,
+                message: `${a3Courses.length} turmas • ${a3Items.length} tarefas/prazos`,
+                lastUpdated: new Date().toISOString(),
+              });
+              notifyFeedListeners();
+              notifySyncComplete();
+            }
+          } catch (err: unknown) {
+            if (isCancelled()) return;
+            aprenderError = true;
+            updateStep("aprender3", {
+              status: "error",
+              message:
+                err instanceof Error
+                  ? err.message
+                  : "Falha na conexão com o Aprender 3",
+            });
+          }
+        })();
+
+        // Marca estado inicial do Teams antes de aguardar os canais HTTP rápidos
+        const teamsCreds = activeCreds.teams;
+        const hasTeams = Boolean(teamsCreds?.isConnected);
+        if (!hasTeams) {
+          updateStep("teams", {
+            status: "skipped",
+            message: "Conta não configurada",
+          });
+        } else {
+          updateStep("teams", {
+            status: "syncing",
+            message: "Aguardando canais rápidos para sincronizar Teams...",
+          });
+        }
+
+        // Aguarda os canais rápidos executando em paralelo (sem competir com o webview do Teams)
+        const ruMenuPromise = (async () => {
+          try {
+            const campus = getSavedRuCampus();
+            await fetchAndCacheRuMenus(campus);
+            await syncRuMenuNotifications({ campus });
+          } catch (err) {
+            console.warn(
+              "[SyncContext] Falha ao sincronizar cardápio do RU:",
+              err,
+            );
+          }
+        })();
+
+        await Promise.all([sigaaPromise, aprenderPromise, ruMenuPromise]);
+        if (isCancelled()) return;
+
+        // 4. Sincronização de Meu Curso + Carteirinha Estudantil / Extrato RU (depende das credenciais do SIGAA)
+        if (!hasSigaa) {
+          updateStep("myCourse", {
+            status: "skipped",
+            message: "Requer conta do SIGAA configurada",
+          });
+        } else if (!sigaaSuccess) {
+          updateStep("myCourse", {
+            status: "error",
+            message: "Aguardando autenticação correta no SIGAA",
+          });
+        } else {
+          updateStep("myCourse", {
+            status: "syncing",
+            message:
+              "Baixando histórico escolar, carteirinha oficial e calculando fluxo...",
+          });
+
+          try {
+            const result = await useCases.manageAcademicProfile.syncWithSigaa(
+              sigaaCreds!,
+            );
+            if (isCancelled()) return;
+            notifyMyCourseListeners();
+
+            const student = result.profile;
+            try {
+              await fetchAndCacheStudentWallet(
+                sigaaCreds!.matricula,
+                sigaaCreds!.senha,
+                student.cpf,
+              );
+            } catch (walletErr) {
+              console.warn(
+                "[SyncContext] Falha ao sincronizar carteirinha/extrato do RU:",
+                walletErr,
+              );
+            }
+            if (isCancelled()) return;
+
+            const iraStr = student.ira
+              ? `IRA ${student.ira.toFixed(2)}`
+              : "Perfil discente ativo";
+            const pctStr = student.percentualIntegralizado
+              ? `${student.percentualIntegralizado.toFixed(0)}% integralizado`
+              : "Fluxo atualizado";
+
+            updateStep("myCourse", {
+              status: "success",
+              message: `${iraStr} • ${pctStr}`,
+              lastUpdated: new Date().toISOString(),
+            });
+          } catch (err: unknown) {
+            if (isCancelled()) return;
+            updateStep("myCourse", {
+              status: "error",
+              message:
+                err instanceof Error
+                  ? err.message
+                  : "Falha ao sincronizar histórico escolar",
+            });
+          }
+        }
+
+        // Catálogo UnB por curso: roda depois do histórico porque é ele que cria
+        // o perfil (com o curso do discente) na primeira sincronização.
+        await runGhPagesStep();
+        if (isCancelled()) return;
+
+        // 6. Planilha de avaliações de professores (relatos da comunidade):
+        // aquece o cache usado pela tela Avaliar Professor.
+        updateStep("planilha", {
+          status: "syncing",
+          message: "Buscando relatos da comunidade...",
+        });
+        try {
+          const evaluations = await useCases.getProfessorEvaluations.execute(
+            undefined,
+            true,
+          );
+          if (isCancelled()) return;
+          updateStep("planilha", {
+            status: "success",
+            message: `${evaluations.length} relatos de professores disponíveis`,
+            lastUpdated: new Date().toISOString(),
+          });
+        } catch (err) {
+          if (isCancelled()) return;
+          updateStep("planilha", {
+            status: "error",
+            message:
+              err instanceof Error
+                ? err.message
+                : "Falha ao sincronizar a planilha",
+          });
+        }
+
+        const now = new Date().toISOString();
+        setLastSyncedAt(now);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("sarue_last_synced_at", now);
+        }
         setIsSyncing(false);
-        syncInFlightRef.current = false;
         if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
           void import("@/core/infrastructure/bindings").then(({ commands }) => {
             void commands.setTraySyncState(false);
           });
         }
+        notifyFeedListeners();
+        notifySyncComplete();
+
+        const totalConfigured = (hasSigaa ? 1 : 0) + (hasAprender ? 1 : 0);
+        const totalErrors = (sigaaError ? 1 : 0) + (aprenderError ? 1 : 0);
+        const totalSuccess = (sigaaSuccess ? 1 : 0) + (aprenderSuccess ? 1 : 0);
+
+        if (!isOnboardingNotificationsBlocked()) {
+          if (totalConfigured > 0 && totalSuccess === 0 && totalErrors > 0) {
+            toast.add({
+              title: "Erro na sincronização",
+              description:
+                "Não foi possível conectar às plataformas acadêmicas.",
+              type: "danger",
+              timeout: 5000,
+            });
+            if (
+              options?.isAutoSync &&
+              getNotificationSettings().backgroundSync
+            ) {
+              void repos.osNotifier.notify({
+                title: "Falha na sincronização em segundo plano",
+                body: "Não foi possível conectar às plataformas acadêmicas.",
+              });
+            }
+          } else if (totalErrors > 0 && totalSuccess > 0) {
+            toast.add({
+              title: "Sincronização com avisos",
+              description: "Algumas plataformas não puderam ser sincronizadas.",
+              type: "warning",
+              timeout: 5000,
+            });
+            if (
+              options?.isAutoSync &&
+              getNotificationSettings().backgroundSync
+            ) {
+              void repos.osNotifier.notify({
+                title: "Sincronização em segundo plano com avisos",
+                body: "Algumas plataformas não puderam ser sincronizadas.",
+              });
+            }
+          } else if (totalSuccess > 0 || totalConfigured === 0) {
+            toast.add({
+              title: "Sincronização concluída",
+              description: "Seus dados foram atualizados com sucesso.",
+              type: "success",
+              timeout: 4000,
+            });
+            if (
+              options?.isAutoSync &&
+              getNotificationSettings().backgroundSync
+            ) {
+              void repos.osNotifier.notify({
+                title: "Sincronização em segundo plano concluída",
+                body: "Seus avisos, prazos e cardápio do RU foram atualizados.",
+              });
+            }
+          }
+        }
+
+        // 5. Sincronização do Teams (100% não-bloqueante em segundo plano após liberar a UI)
+        if (hasTeams && !isCancelled()) {
+          void (async () => {
+            updateStep("teams", {
+              status: "syncing",
+              message: "Sincronizando equipes do Teams em segundo plano...",
+            });
+
+            try {
+              const res = await useCases.syncPlatforms.execute(["teams"]);
+              if (isCancelled()) return;
+              if (res.errors?.teams) {
+                updateStep("teams", {
+                  status: "error",
+                  message: res.errors.teams,
+                });
+              } else {
+                const teamsCourses = res.courses.filter(
+                  (c) => c.platform === "teams",
+                );
+                const teamsItems = res.items.filter(
+                  (i) => i.platform === "teams",
+                );
+                const teamsPostsCount = teamsItems.filter(
+                  (i) => i.itemType === "post",
+                ).length;
+                const teamsAssignmentsCount = teamsItems.filter(
+                  (i) => i.itemType === "assignment",
+                ).length;
+                updateStep("teams", {
+                  status: "success",
+                  count: teamsCourses.length,
+                  message:
+                    teamsAssignmentsCount > 0
+                      ? `${teamsCourses.length} turmas • ${teamsPostsCount} avisos • ${teamsAssignmentsCount} atividades`
+                      : `${teamsCourses.length} turmas • ${teamsItems.length} avisos`,
+                  lastUpdated: new Date().toISOString(),
+                });
+                setLastSyncedAt(new Date().toISOString());
+                notifyFeedListeners();
+                notifySyncComplete();
+              }
+            } catch (err: unknown) {
+              if (isCancelled()) return;
+              updateStep("teams", {
+                status: "error",
+                message:
+                  err instanceof Error
+                    ? err.message
+                    : "Falha na sincronização do Teams",
+              });
+            } finally {
+              if (!isCancelled()) {
+                syncInFlightRef.current = false;
+              }
+            }
+          })();
+        } else {
+          syncInFlightRef.current = false;
+        }
+      } catch {
+        if (!isCancelled()) {
+          setIsSyncing(false);
+          syncInFlightRef.current = false;
+          if (
+            typeof window !== "undefined" &&
+            "__TAURI_INTERNALS__" in window
+          ) {
+            void import("@/core/infrastructure/bindings").then(
+              ({ commands }) => {
+                void commands.setTraySyncState(false);
+              },
+            );
+          }
+        }
       }
-    }
-  }, [repos.gradeRepo, repos.osNotifier, updateStep, useCases]);
+    },
+    [repos.gradeRepo, repos.osNotifier, updateStep, useCases],
+  );
 
   syncAllRef.current = syncAll;
 
@@ -656,21 +708,32 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
       });
     }
 
-    const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+    // Checagem silenciosa de atualizações do app na abertura (no-op no mobile e MS Store)
+    void checkForUpdates(true);
+
     const checkPeriodicSync = () => {
       if (typeof window === "undefined" || isOnboardingNotificationsBlocked()) {
         return;
       }
       const isBgEnabled =
         localStorage.getItem("sarue_background_run_enabled") !== "false";
-      if (!isBgEnabled) return;
       const last = localStorage.getItem("sarue_last_synced_at");
-      if (!last || Date.now() - new Date(last).getTime() >= SIX_HOURS_MS) {
-        void syncAllRef.current({ isAutoSync: true });
+      if (!shouldTriggerPeriodicSync(last, Date.now(), isBgEnabled)) {
+        return;
       }
+      void (async () => {
+        try {
+          const hasAccounts =
+            await useCasesRef.current.getCredentials.hasSavedCredentials();
+          if (!disposed && hasAccounts && !isOnboardingNotificationsBlocked()) {
+            void syncAllRef.current({ isAutoSync: true });
+          }
+        } catch {}
+      })();
     };
 
-    // Executa verificação preventiva logo após o boot (após 5s) e depois a cada 10 minutos
+    // Executa verificação de catch-up após o boot (5s) apenas se >= 6h desde o último sync,
+    // e repete a verificação a cada 10 minutos enquanto o app estiver aberto.
     const bootTimer = setTimeout(checkPeriodicSync, 5000);
     const intervalId = setInterval(checkPeriodicSync, 10 * 60 * 1000);
 

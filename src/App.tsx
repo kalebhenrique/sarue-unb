@@ -119,15 +119,14 @@ const AppShell: React.FC = () => {
   }, [isMobile, isRuHiddenInDesktop, currentTab]);
 
   // Usuário recorrente pula o onboarding na abertura do app: credenciais salvas
-  // (entra sincronizando) ou, como fallback, dados locais de uso anterior (modo
-  // local: reconectar contas em Configurações). Roda uma vez no boot apenas:
-  // conectar uma plataforma durante o onboarding não deve ejectar o usuário
-  // para o app principal no meio do wizard.
+  // ou dados locais de uso anterior entram direto em 'main' usando o cache do
+  // SQLite, sem forçar sync imediato (confia no ciclo de 6h e no botão manual).
+  // Roda uma vez no boot apenas: conectar uma plataforma durante o onboarding
+  // não deve ejectar o usuário para o app principal no meio do wizard.
   // Fast-path Tauri 2: se o SQLite já confirmou dados locais (hasLocalData === true),
   // entra em 'main' imediatamente sem ficar preso no AppBootSkeleton esperando o
-  // Argon2id do Stronghold terminar; assim que hasCredentials resolver, dispara o sync.
+  // Argon2id do Stronghold terminar.
   const bootstrapped = React.useRef(false);
-  const autoSyncedOnBoot = React.useRef(false);
   React.useEffect(() => {
     if (bootstrapped.current) return;
     if (hasLocalData === true) {
@@ -143,14 +142,6 @@ const AppShell: React.FC = () => {
       setStep('main');
     }
   }, [isCheckingAuth, hasLocalData, hasCredentials]);
-
-  React.useEffect(() => {
-    if (autoSyncedOnBoot.current || isCheckingAuth || step !== 'main') return;
-    if (hasCredentials) {
-      autoSyncedOnBoot.current = true;
-      void syncAll({ isAutoSync: true });
-    }
-  }, [isCheckingAuth, hasCredentials, step, syncAll]);
 
   // Navegação disparada por componentes fora da árvore de tabs (ex.: sino de prazos)
   React.useEffect(() => {
