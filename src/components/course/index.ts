@@ -2,7 +2,7 @@ export * from './AbsenceSection';
 export * from './CurrentlyEnrolledPanel';
 export * from './CurriculumSelectorDialog';
 export * from './FlowchartCard';
-export * from './FlowchartDiagram';
+export type { FlowchartDiagramProps } from './FlowchartDiagram';
 export * from './FlowchartList';
 export * from './FlowchartStats';
 export * from './GradeFormulaSection';

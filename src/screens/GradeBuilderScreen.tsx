@@ -36,7 +36,6 @@ import {
 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { isMobileDevice } from "@/lib/platform";
-import { toPng } from "html-to-image";
 import type { ScrapedClass } from "@/core";
 import { GradeFilters } from "../components/grade/GradeFilters";
 import { SelectedClassesCard } from "../components/grade/SelectedClassesCard";
@@ -323,6 +322,7 @@ export const GradeBuilderScreen: React.FC = () => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
       });
 
+      const { toPng } = await import("html-to-image");
       const dataUrl = await toPng(exportInner, {
         pixelRatio: 2,
         // A exportação segue o tema ativo: base de corte escura exporta fundo escuro.

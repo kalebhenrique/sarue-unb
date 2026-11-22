@@ -1,4 +1,3 @@
-import { extractText } from 'unpdf';
 import type { CompletedDiscipline, StudentAcademicProfile } from '../domain/entities/academic-profile';
 import type { CurriculumStructure } from '../domain/entities/course';
 import {
@@ -140,6 +139,7 @@ export class ParseHistoricoUseCase {
 
       if (uint8) {
         try {
+          const { extractText } = await import('unpdf');
           const res = await extractText(uint8);
           if (Array.isArray(res.text)) {
             fullText = res.text.join('\n');

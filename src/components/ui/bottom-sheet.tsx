@@ -106,12 +106,17 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           }}
           initial={
             shouldReduceMotion
-              ? { height: "auto", opacity: 0 }
-              : { height: 0, opacity: 0 }
+              ? { opacity: 0 }
+              : { y: "100%", opacity: 0 }
           }
-          animate={{ height: "auto", opacity: 1, y: 0 }}
-          exit={{ height: 0, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={
+            shouldReduceMotion
+              ? { opacity: 0 }
+              : { y: "100%", opacity: 0 }
+          }
           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          style={{ willChange: "transform" }}
           className={cn(
             "overflow-hidden bg-paper border-t-2 border-ink rounded-t-2xl select-none",
             dragOnlyOnHandle ? "touch-pan-y" : "touch-pan-x",

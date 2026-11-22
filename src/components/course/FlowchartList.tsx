@@ -121,7 +121,7 @@ const DisciplineRow: React.FC<{
 
   return (
     <div
-      className={`group flex items-start gap-3 px-4 py-2.5 transition-colors duration-150 hover:bg-neutral-50 ${
+      className={`cv-row group flex items-start gap-3 px-4 py-2.5 transition-colors duration-150 hover:bg-neutral-50 ${
         isCompleted ? "bg-neutral-50/70" : "bg-paper"
       }`}
     >

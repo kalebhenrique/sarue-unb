@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import { useMyCourse } from "../hooks/useMyCourse";
 import {
   FlowchartStats,
   FlowchartList,
-  FlowchartDiagram,
   CurrentlyEnrolledPanel,
   CurriculumSelectorDialog,
   MyCourseSkeleton,
@@ -11,6 +10,12 @@ import {
 import { IraCalculatorScreen } from "./IraCalculatorScreen";
 import { CurriculumEditorScreen } from "./CurriculumEditorScreen";
 import { useContainer } from "../context/ContainerContext";
+
+const FlowchartDiagramLazy = React.lazy(() =>
+  import("../components/course/FlowchartDiagram").then((m) => ({
+    default: m.FlowchartDiagram,
+  }))
+);
 import { sendDisciplineToGradeAction } from "../hooks/useGrade";
 import {
   PageContainer,
@@ -636,14 +641,24 @@ export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }
                       }
                     />
                   ) : (
-                    <FlowchartDiagram
-                      flowchartData={flowchartData}
-                      visibleCodes={filteredCodesSet}
-                      onToggle={toggleDiscipline}
-                      onSendToGrade={(code, name) =>
-                        sendDisciplineToGradeAction(container, code, name)
+                    <Suspense
+                      fallback={
+                        <div className="h-[560px] w-full bg-canvas flex items-center justify-center">
+                          <span className="text-xs font-bold text-neutral-600">
+                            Carregando mapa...
+                          </span>
+                        </div>
                       }
-                    />
+                    >
+                      <FlowchartDiagramLazy
+                        flowchartData={flowchartData}
+                        visibleCodes={filteredCodesSet}
+                        onToggle={toggleDiscipline}
+                        onSendToGrade={(code, name) =>
+                          sendDisciplineToGradeAction(container, code, name)
+                        }
+                      />
+                    </Suspense>
                   )}
                 </section>
               </>
