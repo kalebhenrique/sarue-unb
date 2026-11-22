@@ -732,9 +732,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
       })();
     };
 
-    // Executa verificação de catch-up após o boot (5s) apenas se >= 6h desde o último sync,
-    // e repete a verificação a cada 10 minutos enquanto o app estiver aberto.
-    const bootTimer = setTimeout(checkPeriodicSync, 5000);
+    // Mantém a verificação periódica a cada 10 minutos enquanto o app estiver aberto,
+    // sem disparar sincronização automática na abertura (o usuário usa o botão Sincronizar).
     const intervalId = setInterval(checkPeriodicSync, 10 * 60 * 1000);
 
     // Carrega preferências de notificação e mantém a agenda de alertas do RU atualizada
@@ -753,7 +752,6 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
       disposed = true;
       if (unlistenManual) unlistenManual();
       if (unlistenAuto) unlistenAuto();
-      clearTimeout(bootTimer);
       clearInterval(intervalId);
       clearInterval(ruNotifIntervalId);
     };
