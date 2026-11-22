@@ -17,6 +17,12 @@ Saruê UnB é o **agregador acadêmico definitivo e moderno** para estudantes da
     <img alt="Saruê UnB" src="public/sarue-logo.png" width="280">
 </p>
 
+## 📥 Download & Instalação
+
+Você pode baixar o Saruê UnB diretamente pelo site **[sarue.app.br](https://sarue.app.br)**, que utiliza a mesma fonte das **Releases** do repositório e oferece guias de instalação para cada plataforma.
+
+---
+
 ## ✨ Funcionalidades Principais
 
 - **Feed Acadêmico Centralizado (SIGAA, Aprender 3 & Teams)**
