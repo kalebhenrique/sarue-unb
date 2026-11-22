@@ -112,6 +112,7 @@ function setupAndroidEnvironment() {
           process.env[`AR_${hostPrefix}`] = '/usr/bin/ar';
           process.env[`RANLIB_${hostPrefix}`] = '/usr/bin/ranlib';
           process.env[`CC_${hostPrefix}`] = '/usr/bin/cc';
+          process.env[`CXX_${hostPrefix}`] = '/usr/bin/c++';
         }
       }
 
