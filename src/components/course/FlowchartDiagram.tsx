@@ -106,9 +106,16 @@ const STATUS_STYLE: Record<
   },
 };
 
+const SUPPORTS_HOVER =
+  typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia("(hover: hover)").matches
+    : true;
+
 // Nó-adesivo: conteúdo (raio 8px, sombra 4px) com física de card clicável.
 // Clique = abre menu com opção de marcar/desmarcar concluída OU enviar para Montar Grade.
-function DisciplineNode({ data }: NodeProps<DisciplineFlowNode>) {
+const DisciplineNode = React.memo(function DisciplineNode({
+  data,
+}: NodeProps<DisciplineFlowNode>) {
   const { discipline: d, dim, onToggle, onSendToGrade } = data;
   const status = d.status as DisciplineStatus;
   const s = STATUS_STYLE[status];
@@ -135,101 +142,111 @@ function DisciplineNode({ data }: NodeProps<DisciplineFlowNode>) {
     }
   }
 
+  const cardInner = (
+    <>
+      <span
+        className={`text-[11px] font-black leading-[1.25] line-clamp-2 ${textColor}`}
+        title={d.name}
+      >
+        {d.name}
+      </span>
+
+      <span className="flex items-center gap-1 w-full min-w-0">
+        <span className={`text-[11px] font-bold truncate ${metaColor}`}>
+          {d.code} • {d.workloadHours}h
+        </span>
+        <span
+          className="ml-auto text-[11px] font-black px-1 py-px bg-paper border border-ink rounded text-black shrink-0"
+          title={d.level === 0 ? "Optativa de interesse" : `${d.level}º semestre sugerido`}
+        >
+          {d.level === 0 ? "OPT" : `${d.level}º`}
+        </span>
+
+        {/* Botão rápido no hover: Enviar para o Montar Grade (do lado esquerdo do ícone de status) */}
+        {onSendToGrade && (
+          <button
+            type="button"
+            title="Enviar para o Montar Grade"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSendToGrade(d.code, d.name);
+            }}
+            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-0.5 rounded bg-paper hover:bg-pastel-yellow border border-ink text-black cursor-pointer shadow-neo-xs shrink-0"
+          >
+            <CalendarPlus className="w-3 h-3 stroke-[2.5]" />
+          </button>
+        )}
+
+        {/* Ícone de status (cursando, bloqueado, disponível, etc) com clique de toggle rápido */}
+        <button
+          type="button"
+          title={isCompleted ? "Desmarcar disciplina" : "Marcar como concluída"}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle(d.code, isCompleted);
+          }}
+          className="cursor-pointer hover:scale-110 transition-transform shrink-0"
+        >
+          {s.icon}
+        </button>
+      </span>
+    </>
+  );
+
+  const cardButton = (
+    <button
+      type="button"
+      aria-label={`Opções para ${d.code} - ${d.name}`}
+      className={`group w-[212px] h-[78px] min-h-[78px] p-2 flex flex-col justify-between gap-1 text-left border-2 border-ink rounded-lg shadow-(--neo-card-shadow) cursor-pointer transition-[transform,box-shadow,opacity] duration-150 ease-out hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_var(--neo-shadow)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 select-none ${stickerBg} ${
+        dim ? "opacity-30" : "opacity-100"
+      }`}
+    />
+  );
+
   return (
     <div className="relative">
       <DropdownMenu>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <DropdownMenuTrigger
-                render={
-                  <button
-                    type="button"
-                    aria-label={`Opções para ${d.code} - ${d.name}`}
-                    className={`group w-[212px] h-[78px] min-h-[78px] p-2 flex flex-col justify-between gap-1 text-left border-2 border-ink rounded-lg shadow-(--neo-card-shadow) cursor-pointer transition-[transform,box-shadow,opacity] duration-150 ease-out hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_var(--neo-shadow)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2 select-none ${stickerBg} ${
-                      dim ? "opacity-30" : "opacity-100"
-                    }`}
-                  />
-                }
-              />
-            }
-          >
-            <span
-              className={`text-[11px] font-black leading-[1.25] line-clamp-2 ${textColor}`}
-              title={d.name}
+        {SUPPORTS_HOVER ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={<DropdownMenuTrigger render={cardButton} />}
             >
-              {d.name}
-            </span>
+              {cardInner}
+            </TooltipTrigger>
 
-            <span className="flex items-center gap-1 w-full min-w-0">
-              <span className={`text-[11px] font-bold truncate ${metaColor}`}>
-                {d.code} • {d.workloadHours}h
-              </span>
-              <span
-                className="ml-auto text-[11px] font-black px-1 py-px bg-paper border border-ink rounded text-black shrink-0"
-                title={d.level === 0 ? "Optativa de interesse" : `${d.level}º semestre sugerido`}
-              >
-                {d.level === 0 ? "OPT" : `${d.level}º`}
-              </span>
-
-              {/* Botão rápido no hover: Enviar para o Montar Grade (do lado esquerdo do ícone de status) */}
-              {onSendToGrade && (
-                <button
-                  type="button"
-                  title="Enviar para o Montar Grade"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSendToGrade(d.code, d.name);
-                  }}
-                  className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-0.5 rounded bg-paper hover:bg-pastel-yellow border border-ink text-black cursor-pointer shadow-neo-xs shrink-0"
-                >
-                  <CalendarPlus className="w-3 h-3 stroke-[2.5]" />
-                </button>
-              )}
-
-              {/* Ícone de status (cursando, bloqueado, disponível, etc) com clique de toggle rápido */}
-              <button
-                type="button"
-                title={isCompleted ? "Desmarcar disciplina" : "Marcar como concluída"}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggle(d.code, isCompleted);
-                }}
-                className="cursor-pointer hover:scale-110 transition-transform shrink-0"
-              >
-                {s.icon}
-              </button>
-            </span>
-          </TooltipTrigger>
-
-          <TooltipContent className="pointer-events-none text-left max-w-[260px]">
-            <p className="font-black">{d.name}</p>
-            <p className="text-[11px] font-bold text-neutral-600 mb-1">
-              {d.code} • {d.workloadHours}h • {d.level === 0 ? "Optativa" : `${d.level}º semestre`} {isOptativa ? "• Optativa de interesse" : ""}
-            </p>
-            <p className="font-bold">
-              {s.label}
-              {isCompleted && d.grade ? ` · Nota ${d.grade}` : ""}
-            </p>
-            {status === "locked" && d.missingPrerequisites.length > 0 && (
-              <>
-                <p className="font-black mt-1">Falta:</p>
-                <ul className="space-y-0.5">
-                  {d.missingPrerequisites.map((m, i) => (
-                    <li key={i} className="font-medium">
-                      {m}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-            {d.prerequisites.length > 0 && status !== "locked" && (
-              <p className="font-bold mt-1">
-                {d.prerequisites.length} pré-requisito(s)
+            <TooltipContent className="pointer-events-none text-left max-w-[260px]">
+              <p className="font-black">{d.name}</p>
+              <p className="text-[11px] font-bold text-neutral-600 mb-1">
+                {d.code} • {d.workloadHours}h • {d.level === 0 ? "Optativa" : `${d.level}º semestre`} {isOptativa ? "• Optativa de interesse" : ""}
               </p>
-            )}
-          </TooltipContent>
-        </Tooltip>
+              <p className="font-bold">
+                {s.label}
+                {isCompleted && d.grade ? ` · Nota ${d.grade}` : ""}
+              </p>
+              {status === "locked" && d.missingPrerequisites.length > 0 && (
+                <>
+                  <p className="font-black mt-1">Falta:</p>
+                  <ul className="space-y-0.5">
+                    {d.missingPrerequisites.map((m, i) => (
+                      <li key={i} className="font-medium">
+                        {m}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {d.prerequisites.length > 0 && status !== "locked" && (
+                <p className="font-bold mt-1">
+                  {d.prerequisites.length} pré-requisito(s)
+                </p>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <DropdownMenuTrigger render={cardButton}>
+            {cardInner}
+          </DropdownMenuTrigger>
+        )}
 
         <DropdownMenuContent side="bottom" align="start" className="w-64 p-1.5 shadow-(--neo-card-shadow) border-2 border-ink bg-paper">
           <div className="px-2 py-1.5 mb-1 border-b-2 border-ink/10">
@@ -289,10 +306,10 @@ function DisciplineNode({ data }: NodeProps<DisciplineFlowNode>) {
       />
     </div>
   );
-}
+});
 
 // Aresta-caneta: traço ortogonal preto de 2px (3px na cadeia em hover), raio suave
-function PenEdge({
+const PenEdge = React.memo(function PenEdge({
   sourceX,
   sourceY,
   targetX,
@@ -323,7 +340,7 @@ function PenEdge({
       }}
     />
   );
-}
+});
 
 const STATUS_HEX: Record<DisciplineStatus, string> = {
   completed: "#46e297",
@@ -455,6 +472,8 @@ function CanvasControls() {
   );
 }
 
+const FLOWCHART_VIEWPORT_CHECK_EVENT = "sarue:flowchart-check-viewport";
+
 // Re-enquadra o grafo sempre que o layout muda (troca de matriz): sem isso a
 // câmera ficava onde estava e o novo grafo nascia fora da tela
 function AutoFit({
@@ -469,74 +488,70 @@ function AutoFit({
   const [outOfView, setOutOfView] = useState(false);
   const outRef = useRef(false);
 
+  const checkViewport = React.useCallback(() => {
+    const { nodes, width, height, transform } = store.getState();
+    const realNodes = nodes.filter((n) => !n.hidden);
+
+    const el = containerRef.current;
+    if (el && (!width || !height) && el.clientWidth > 0 && el.clientHeight > 0) {
+      window.dispatchEvent(new Event("resize"));
+      return;
+    }
+
+    if (realNodes.length === 0 || !width || !height) return;
+
+    const [x, y, zoom] = transform;
+    const broken = ![x, y, zoom].every(Number.isFinite) || zoom < 0.01;
+    if (broken) {
+      fitView({ padding: 0.15, duration: 0 });
+      outRef.current = false;
+      setOutOfView(false);
+      return;
+    }
+
+    const viewL = -x / zoom;
+    const viewT = -y / zoom;
+    const viewR = viewL + width / zoom;
+    const viewB = viewT + height / zoom;
+    const b = getNodesBounds(realNodes);
+    const ix = Math.min(viewR, b.x + b.width) - Math.max(viewL, b.x);
+    const iy = Math.min(viewB, b.y + b.height) - Math.max(viewT, b.y);
+    const inter = Math.max(0, ix) * Math.max(0, iy);
+    const coverage = inter / ((width / zoom) * (height / zoom));
+    const visible = coverage > 0.12;
+
+    if (outRef.current !== !visible) {
+      outRef.current = !visible;
+      setOutOfView(!visible);
+    }
+  }, [store, fitView, containerRef, getNodesBounds]);
+
   useEffect(() => {
-    const t = setTimeout(() => fitView({ padding: 0.15, duration: 200 }), 60);
+    const t = setTimeout(() => {
+      fitView({ padding: 0.15, duration: 200 });
+      outRef.current = false;
+      setOutOfView(false);
+    }, 60);
     return () => clearTimeout(t);
   }, [trigger, fitView]);
 
-  // Watchdog: o mapa pode ficar invisível sem erro nenhum no console (o
-  // "ResizeObserver loop" é ruído). Câmera quebrada (NaN/zoom colapsado) cura
-  // sozinha; grafo fora da vista vira chip de reenquadrar — nunca rouba o pan.
+  // Verifica visibilidade sob demanda (após movimento/zoom ou redimensionamento do container)
+  // em vez de polling contínuo por setInterval a cada 1.2s.
   useEffect(() => {
-    const id = setInterval(() => {
-      const { nodes, width, height, transform } = store.getState();
-      const realNodes = nodes.filter((n) => !n.hidden);
+    const onMoveCheck = () => checkViewport();
+    window.addEventListener(FLOWCHART_VIEWPORT_CHECK_EVENT, onMoveCheck);
 
-      // HMR de CSS reinjeta a folha e o RF pode medir o canvas como 0:
-      // canvas em branco, sem erro no console e watchdog mudo. Container vivo
-      // com store zerado = re-medir (o RF escuta resize) e registrar a evidência.
-      const el = containerRef.current;
-      if (el && (!width || !height) && el.clientWidth > 0 && el.clientHeight > 0) {
-        console.warn("[FlowchartDiagram] canvas mediu 0 com container vivo, re-medindo:", {
-          store: { width, height },
-          container: { w: el.clientWidth, h: el.clientHeight },
-        });
-        window.dispatchEvent(new Event("resize"));
-        return;
-      }
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && containerRef.current) {
+      ro = new ResizeObserver(() => checkViewport());
+      ro.observe(containerRef.current);
+    }
 
-      if (realNodes.length === 0 || !width || !height) return;
-
-      const [x, y, zoom] = transform;
-      const broken = ![x, y, zoom].every(Number.isFinite) || zoom < 0.01;
-      if (broken) {
-        console.warn("[FlowchartDiagram] viewport inválido, reenquadrando:", {
-          x,
-          y,
-          zoom,
-        });
-        fitView({ padding: 0.15, duration: 0 });
-        outRef.current = false;
-        setOutOfView(false);
-        return;
-      }
-
-      const viewL = -x / zoom;
-      const viewT = -y / zoom;
-      const viewR = viewL + width / zoom;
-      const viewB = viewT + height / zoom;
-      const b = getNodesBounds(realNodes);
-      // Visível = grafo cobre parte relevante da tela; um recorte de borda
-      // (faixa de nó no canto) já lê como "sumido" para quem está olhando
-      const ix = Math.min(viewR, b.x + b.width) - Math.max(viewL, b.x);
-      const iy = Math.min(viewB, b.y + b.height) - Math.max(viewT, b.y);
-      const inter = Math.max(0, ix) * Math.max(0, iy);
-      const coverage = inter / ((width / zoom) * (height / zoom));
-      const visible = coverage > 0.12;
-
-      if (!visible && !outRef.current) {
-        console.warn("[FlowchartDiagram] grafo fora da vista:", {
-          transform: { x, y, zoom },
-          bounds: b,
-        });
-      }
-      if (outRef.current !== !visible) {
-        outRef.current = !visible;
-        setOutOfView(!visible);
-      }
-    }, 1200);
-    return () => clearInterval(id);
-  }, [store, fitView, containerRef, getNodesBounds]);
+    return () => {
+      window.removeEventListener(FLOWCHART_VIEWPORT_CHECK_EVENT, onMoveCheck);
+      ro?.disconnect();
+    };
+  }, [checkViewport, containerRef]);
 
   if (!outOfView) return null;
 
@@ -832,12 +847,17 @@ export const FlowchartDiagram: React.FC<FlowchartDiagramProps> = ({
           zoomOnDoubleClick={false}
           minZoom={0.1}
           maxZoom={1.6}
-          onlyRenderVisibleElements={false}
+          onlyRenderVisibleElements={true}
           fitView
           fitViewOptions={{ padding: 0.15, maxZoom: 1.1 }}
           deleteKeyCode={null}
-          onNodeMouseEnter={(_, node) => setHoveredCode(node.id)}
-          onNodeMouseLeave={() => setHoveredCode(null)}
+          onMoveEnd={() => window.dispatchEvent(new Event(FLOWCHART_VIEWPORT_CHECK_EVENT))}
+          onNodeMouseEnter={
+            SUPPORTS_HOVER ? (_, node) => setHoveredCode(node.id) : undefined
+          }
+          onNodeMouseLeave={
+            SUPPORTS_HOVER ? () => setHoveredCode(null) : undefined
+          }
           className="w-full h-full"
         >
           {/* Papel quadriculado: grid de 32px que escala com o zoom */}
