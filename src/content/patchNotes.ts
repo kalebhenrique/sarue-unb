@@ -22,6 +22,23 @@ export interface PatchNotesEntry {
 
 export const PATCH_NOTES: PatchNotesEntry[] = [
   {
+    version: "0.5.0",
+    date: "22/11/2026",
+    title: "Saruê no Android, RU Completo e Muito Mais Rápido",
+    items: [
+      "Suporte completo a Android: interface adaptada para o celular, com barra de navegação inferior, folhas deslizantes e gestos.",
+      "Novo módulo do RU: cardápio diário com seletor de data e extrato do saldo.",
+      "Carteirinha oficial do SIGAA de fácil acesso no app Android.",
+      "Telas de Calendário, Fluxograma e IRA aprimoradas.",
+      "Notificações: novas opções de configuração, incluindo avisos de prazos e cardápio do dia.",
+      "Desempenho: inicialização mais rápida, troca de abas instantânea sem recarregar e uso otimizado de memória.",
+      "Melhorias visuais: toasts com barra de progresso, blocos de ícone padronizados e design consistente em todo o app.",
+      "Adicionado processo de builds de preview no desenvolvimento.",
+      "Correção na exportação de PNG da grade horária, que podia sair em branco no modo escuro.",
+      "Correção de instalador no macOS exigir configuração via terminal.",
+    ],
+  },
+  {
     version: "0.4.0",
     date: "09/11/2026",
     title: "Nova Tela de Calendário e Gerenciamento de Notas e Faltas",

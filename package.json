@@ -1,6 +1,6 @@
 {
   "name": "sarue-unb",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.14.0",
@@ -33,6 +33,7 @@
     "scrape:courses": "node --experimental-strip-types src/scrapers/courses-scraper.ts",
     "scrape:calendar": "node --experimental-strip-types src/scrapers/calendar-scraper.ts",
     "scrape:professors": "node --experimental-strip-types src/scrapers/professors-scraper.ts",
+    "scrape:ru": "node --experimental-strip-types src/scrapers/ru-scraper.ts",
     "scrape:all": "pnpm run scrape:grade && pnpm run scrape:courses && pnpm run data:split-curricula && pnpm run scrape:calendar",
     "data:split-curricula": "node scripts/split-curricula.mjs",
     "seeds": "node scripts/seed-dev-db.mjs",
