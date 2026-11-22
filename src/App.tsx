@@ -123,20 +123,34 @@ const AppShell: React.FC = () => {
   // local: reconectar contas em Configurações). Roda uma vez no boot apenas:
   // conectar uma plataforma durante o onboarding não deve ejectar o usuário
   // para o app principal no meio do wizard.
+  // Fast-path Tauri 2: se o SQLite já confirmou dados locais (hasLocalData === true),
+  // entra em 'main' imediatamente sem ficar preso no AppBootSkeleton esperando o
+  // Argon2id do Stronghold terminar; assim que hasCredentials resolver, dispara o sync.
   const bootstrapped = React.useRef(false);
+  const autoSyncedOnBoot = React.useRef(false);
   React.useEffect(() => {
-    if (isCheckingAuth || hasLocalData === null || bootstrapped.current) return;
+    if (bootstrapped.current) return;
+    if (hasLocalData === true) {
+      bootstrapped.current = true;
+      setOnboardingNotificationsBlocked(false);
+      setStep('main');
+      return;
+    }
+    if (isCheckingAuth || hasLocalData === null) return;
     bootstrapped.current = true;
     if (hasCredentials) {
       setOnboardingNotificationsBlocked(false);
       setStep('main');
-      // Sessão restabelecida: atualiza os dados locais em segundo plano
-      void syncAll({ isAutoSync: true });
-    } else if (hasLocalData) {
-      setOnboardingNotificationsBlocked(false);
-      setStep('main');
     }
-  }, [isCheckingAuth, hasLocalData, hasCredentials, syncAll]);
+  }, [isCheckingAuth, hasLocalData, hasCredentials]);
+
+  React.useEffect(() => {
+    if (autoSyncedOnBoot.current || isCheckingAuth || step !== 'main') return;
+    if (hasCredentials) {
+      autoSyncedOnBoot.current = true;
+      void syncAll({ isAutoSync: true });
+    }
+  }, [isCheckingAuth, hasCredentials, step, syncAll]);
 
   // Navegação disparada por componentes fora da árvore de tabs (ex.: sino de prazos)
   React.useEffect(() => {
@@ -150,11 +164,10 @@ const AppShell: React.FC = () => {
     return () => window.removeEventListener(NAVIGATE_EVENT, handler);
   }, []);
 
-  // A tela de verificação existe só para o arranque do app. Depois do boot, o
-  // loadAll disparado por um save (ex.: conectar SIGAA no onboarding) acende
-  // isLoading nesta instância também — renderizar o loading aqui desmontaria
-  // o wizard e resetaria o onboarding para o passo 1.
-  if ((isCheckingAuth || hasLocalData === null) && !bootstrapped.current) {
+  // A tela de verificação existe só para o arranque do app. Com o fast-path,
+  // se o SQLite já encontrou dados locais (hasLocalData === true), não bloqueia
+  // esperando o Argon2id do Stronghold.
+  if (!bootstrapped.current && (hasLocalData === null || (hasLocalData === false && isCheckingAuth))) {
     return <AppBootSkeleton />;
   }
 
