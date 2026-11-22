@@ -7,7 +7,6 @@ import {
   MapPin,
   Clock,
   Calendar,
-  LibraryBig,
   Search,
   RefreshCw,
   Sparkles,

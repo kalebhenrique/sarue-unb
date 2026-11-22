@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, Button, Badge, FilterSelect } from "@/components/ui";
-import { BookMarked, Trash2, Sparkles, Save } from "lucide-react";
+import { Trash2, Sparkles, Save } from "lucide-react";
 import type { ScrapedClass } from "@/core";
 import {
   SHIFT_OPTIONS,
