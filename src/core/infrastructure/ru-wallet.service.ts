@@ -1,4 +1,3 @@
-import { renderPageAsImage } from 'unpdf';
 import {
   RU_CAMPUSES,
   getBrasiliaDateParts,
@@ -193,7 +192,28 @@ export async function renderOfficialStudentCardPdf(
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return null;
   }
+
+  // Caminho prioritário Android Tauri 2: usa android.graphics.pdf.PdfRenderer + Bitmap
+  // nativo em Kotlin (thread de background), sem carregar 1.67 MB do PDF.js na WebView.
+  if (isTauriRuntime()) {
+    try {
+      const { commands } = await import('./bindings');
+      if (typeof commands.renderStudentCardPdf === 'function') {
+        const res = await commands.renderStudentCardPdf(pdfBase64);
+        if (res.status === 'ok' && res.data) {
+          return {
+            croppedDataUrl: res.data.croppedDataUrl,
+            fullPageDataUrl: res.data.fullPageDataUrl,
+          };
+        }
+      }
+    } catch {
+      // Cai de forma transparente para o fallback JS abaixo
+    }
+  }
+
   try {
+    const { renderPageAsImage } = await import('unpdf');
     const bytes = base64ToUint8Array(pdfBase64);
     const fullPageDataUrl = await renderPageAsImage(bytes, 1, {
       scale: 2.5,

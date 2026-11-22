@@ -57,25 +57,33 @@ export function formatCurrencyBrl(amount?: number | null): string | null {
   });
 }
 
+const DEFAULT_WALLET_STATE: StudentWalletState = {
+  studentName: 'Estudante UnB',
+  matricula: '',
+  courseName: 'Graduação UnB',
+  level: 'GRADUAÇÃO',
+  cpfDigits: null,
+  ruCardCode: null,
+  ruCardValidity: null,
+  ruCardPdfBase64: null,
+  renderedCardDataUrl: null,
+  renderedFullPageDataUrl: null,
+  ruBalance: null,
+  ruGroup: null,
+  statement: [],
+  updatedAt: null,
+};
+
+let cachedWalletState: StudentWalletState | null = null;
+
 export function useStudentWallet() {
   const { useCases } = useContainer();
-  const [wallet, setWallet] = useState<StudentWalletState>({
-    studentName: 'Estudante UnB',
-    matricula: '',
-    courseName: 'Graduação UnB',
-    level: 'GRADUAÇÃO',
-    cpfDigits: null,
-    ruCardCode: null,
-    ruCardValidity: null,
-    ruCardPdfBase64: null,
-    renderedCardDataUrl: null,
-    renderedFullPageDataUrl: null,
-    ruBalance: null,
-    ruGroup: null,
-    statement: [],
-    updatedAt: null,
-  });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [wallet, setWallet] = useState<StudentWalletState>(
+    () => cachedWalletState ?? DEFAULT_WALLET_STATE,
+  );
+  const [isLoading, setIsLoading] = useState<boolean>(
+    () => cachedWalletState === null,
+  );
 
   const loadLocal = useCallback(async () => {
     try {
@@ -140,7 +148,7 @@ export function useStudentWallet() {
           prev.ruCardCode !== null;
 
         if (!cached.payload && hasExistingWallet) {
-          return {
+          const preserved = {
             ...prev,
             studentName: nextStudentName,
             matricula: nextMatricula,
@@ -149,6 +157,8 @@ export function useStudentWallet() {
             shift: nextShift,
             cpfDigits: nextCpf,
           };
+          cachedWalletState = preserved;
+          return preserved;
         }
 
         const nextPdfBase64 =
@@ -164,7 +174,7 @@ export function useStudentWallet() {
             ? prev.renderedFullPageDataUrl
             : null);
 
-        return {
+        const nextState: StudentWalletState = {
           studentName: nextStudentName,
           matricula: nextMatricula,
           courseName: nextCourseName,
@@ -189,6 +199,8 @@ export function useStudentWallet() {
               : prev.statement,
           updatedAt: cached.updatedAt ?? prev.updatedAt,
         };
+        cachedWalletState = nextState;
+        return nextState;
       });
     } catch (e) {
       console.warn('[useStudentWallet] Erro ao carregar dados locais:', e);

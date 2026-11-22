@@ -18,6 +18,7 @@ import {
   StudentCardModal,
   type WalletCardId,
 } from "@/components/wallet/StudentCardModal";
+import { WalletSkeleton } from "@/components/wallet/WalletSkeleton";
 
 /**
  * Garante que a imagem renderizada da carteirinha fique sempre em orientação
@@ -56,9 +57,10 @@ function toLandscapeCardDataUrl(dataUrl: string): Promise<string> {
 }
 
 export const WalletScreen: React.FC = () => {
-  const { wallet } = useStudentWallet();
-  const { hasCredentials } = useCredentials();
+  const { wallet, isLoading } = useStudentWallet();
+  const { hasCredentials, isLoading: isCheckingAuth } = useCredentials();
   const isLoggedIn = Boolean(hasCredentials);
+  const isInitialLoad = isLoading || isCheckingAuth;
   const [expandedCard, setExpandedCard] = useState<WalletCardId | null>(null);
   const [landscapeCard, setLandscapeCard] = useState<{
     source: string;
@@ -99,7 +101,11 @@ export const WalletScreen: React.FC = () => {
       {/* PageHeader padrão do sistema (sem card, sem ícone; fonte menor no mobile) */}
       <PageHeader title="Carteirinha Estudantil" />
 
-      {/* Pilha de Cartões Horizontais Estilo Samsung Wallet */}
+      {isInitialLoad ? (
+        <WalletSkeleton />
+      ) : (
+        <>
+          {/* Pilha de Cartões Horizontais Estilo Samsung Wallet */}
       <section
         aria-label="Cartões estudantis"
         className="grid grid-cols-1 lg:grid-cols-2 gap-5"
@@ -365,6 +371,8 @@ export const WalletScreen: React.FC = () => {
         wallet={wallet}
         onClose={() => setExpandedCard(null)}
       />
+        </>
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 use tauri::{plugin::TauriPlugin, Manager, Runtime};
 
 mod commands;
@@ -11,6 +11,20 @@ const PLUGIN_IDENTIFIER: &str = "br.unb.sarue.share";
 
 #[cfg(target_os = "ios")]
 tauri::ios_plugin_binding!(init_plugin_share);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RenderedStudentCard {
+    pub cropped_data_url: String,
+    pub full_page_data_url: String,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RenderStudentCardArgs {
+    pdf_base64: String,
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -80,6 +94,25 @@ impl<R: Runtime> Share<R> {
                 },
             )
             .map(|_| true)
+            .map_err(Into::into)
+    }
+
+    /// Renderiza e recorta a 1ª página do PDF da Carteirinha Estudantil usando `PdfRenderer` nativo no Android.
+    /// Em Desktop/iOS retorna `Ok(None)` para acionar o fallback JS.
+    #[cfg(not(target_os = "android"))]
+    pub fn render_student_card_pdf(&self, pdf_base64: String) -> Result<Option<RenderedStudentCard>> {
+        let _ = pdf_base64;
+        Ok(None)
+    }
+
+    #[cfg(target_os = "android")]
+    pub fn render_student_card_pdf(&self, pdf_base64: String) -> Result<Option<RenderedStudentCard>> {
+        self.mobile_plugin_handle
+            .run_mobile_plugin::<RenderedStudentCard>(
+                "renderStudentCardPdf",
+                RenderStudentCardArgs { pdf_base64 },
+            )
+            .map(Some)
             .map_err(Into::into)
     }
 }

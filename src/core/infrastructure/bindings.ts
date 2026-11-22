@@ -48,6 +48,10 @@ export const commands = {
 	fetchStudentWallet: (matricula: string, senha: string) => typedError<StudentWalletSyncPayload, string>(__TAURI_INVOKE("fetch_student_wallet", { matricula, senha })),
 	setMaxBrightness: (enable: boolean) => typedError<null, string>(__TAURI_INVOKE("set_max_brightness", { enable })),
 	shareImage: (base64Png: string, filename: string, title: string | null) => typedError<boolean, string>(__TAURI_INVOKE("share_image", { base64Png, filename, title })),
+	renderStudentCardPdf: (pdfBase64: string) => typedError<{
+	croppedDataUrl: string,
+	fullPageDataUrl: string,
+} | null, string>(__TAURI_INVOKE("render_student_card_pdf", { pdfBase64 })),
 };
 
 /* Types */
@@ -146,6 +150,11 @@ export type NetworkStatus = {
 };
 
 export type PlatformType = "sigaa" | "aprender3" | "teams";
+
+export type RenderedStudentCardDto = {
+	croppedDataUrl: string,
+	fullPageDataUrl: string,
+};
 
 export type RuDailyMenu = {
 	date: string,
