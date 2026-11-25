@@ -12,7 +12,6 @@ import {
   Archive,
   ArchiveRestore,
   CheckCircle,
-  Download,
   ListChecks,
   Search,
   SlidersHorizontal,
@@ -53,10 +52,6 @@ export interface FeedToolbarProps {
   onBatchComplete: () => void;
   onBatchArchive: () => void;
   onBatchRestore: () => void;
-  /** Quando há atualização do app disponível, exibe botão ao lado de Arquivados / Selecionar. */
-  hasUpdateAvailable?: boolean;
-  updateVersion?: string;
-  onOpenUpdateDialog?: () => void;
 }
 
 const PLATFORM_OPTIONS: { value: PlatformType | "all"; label: string }[] = [
@@ -103,9 +98,6 @@ export const FeedToolbar: React.FC<FeedToolbarProps> = ({
   onBatchComplete,
   onBatchArchive,
   onBatchRestore,
-  hasUpdateAvailable = false,
-  updateVersion,
-  onOpenUpdateDialog,
 }) => {
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const mobileSearchInputRef = React.useRef<HTMLInputElement>(null);
@@ -419,25 +411,8 @@ export const FeedToolbar: React.FC<FeedToolbarProps> = ({
               ) : null}
             </div>
 
-            {/* Arquivados e Atualização ao lado esquerdo do modo Selecionar */}
+            {/* Arquivados ao lado esquerdo do modo Selecionar */}
             <div className="flex flex-wrap items-end gap-3">
-              {hasUpdateAvailable && onOpenUpdateDialog ? (
-                <Button
-                  type="button"
-                  variant="accent"
-                  size="sm"
-                  className="h-[34px] bg-neo-yellow text-ink hover:bg-neo-yellowHover"
-                  onClick={onOpenUpdateDialog}
-                  title={
-                    updateVersion
-                      ? `Nova atualização v${updateVersion} disponível`
-                      : "Nova atualização disponível"
-                  }
-                >
-                  <Download className="w-3.5 h-3.5 stroke-[2.5]" />
-                  {updateVersion ? `Atualizar (v${updateVersion})` : "Atualizar"}
-                </Button>
-              ) : null}
               <ArchivedToggleButton
                 showArchived={showArchived}
                 onToggle={onToggleArchived}

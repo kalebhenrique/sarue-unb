@@ -155,7 +155,7 @@ export const DashboardScreen: React.FC = () => {
     searchQuery.trim().length > 0;
 
   return (
-    <PageContainer className={isSelecting ? "pb-40 md:pb-12" : undefined}>
+    <PageContainer className={isSelecting ? "pb-24 md:pb-12" : undefined}>
       {/* Título Padronizado da Página com marca no mobile e contagem de resultados */}
       <PageHeader
         icon={Home}
@@ -184,16 +184,15 @@ export const DashboardScreen: React.FC = () => {
               <HeaderIconButton
                 aria-label={
                   updateInfo?.version
-                    ? `Nova atualização v${updateInfo.version} disponível`
+                    ? `Nova atualização ${updateInfo.version} disponível`
                     : "Nova atualização disponível"
                 }
                 title={
                   updateInfo?.version
-                    ? `Nova atualização v${updateInfo.version} disponível`
+                    ? `Nova atualização ${updateInfo.version} disponível`
                     : "Nova atualização disponível"
                 }
                 onClick={() => setUpdateDialogOpen(true)}
-                className="bg-neo-yellow text-ink hover:bg-neo-yellowHover"
               >
                 <Download className="w-4 h-4 stroke-[2.5]" />
               </HeaderIconButton>
@@ -266,9 +265,6 @@ export const DashboardScreen: React.FC = () => {
         onBatchComplete={handleBatchComplete}
         onBatchArchive={handleBatchArchive}
         onBatchRestore={handleBatchRestore}
-        hasUpdateAvailable={hasUpdateAvailable}
-        updateVersion={updateInfo?.version}
-        onOpenUpdateDialog={() => setUpdateDialogOpen(true)}
       />
 
       <AppUpdateDialog

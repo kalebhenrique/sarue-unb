@@ -65,22 +65,16 @@ export const AppUpdateDialog: React.FC<AppUpdateDialogProps> = ({
               <Sparkles className="w-5 h-5 stroke-[2.5]" />
             </div>
             <DialogTitle>
-              Nova versão v{updater.updateInfo?.version} disponível!
+              Nova versão {updater.updateInfo?.version} disponível!
             </DialogTitle>
           </div>
           <DialogDescription>
-            Você está na versão v{updater.currentVersion}.{" "}
+            Você está na versão {updater.currentVersion}.{" "}
             {isMobileApk
               ? "Baixe e instale o novo APK da última Release oficial para receber as correções e melhorias."
               : "Atualize agora para receber as últimas correções e novidades."}
           </DialogDescription>
         </DialogHeader>
-
-        {updater.updateInfo?.body ? (
-          <div className="max-h-48 overflow-y-auto rounded-xl border-2 border-ink bg-canvas p-3 text-xs font-semibold text-neutral-700 whitespace-pre-wrap leading-relaxed">
-            {updater.updateInfo.body}
-          </div>
-        ) : null}
 
         {isDownloading && updater.progress ? (
           <div className="space-y-1.5">
@@ -91,7 +85,7 @@ export const AppUpdateDialog: React.FC<AppUpdateDialogProps> = ({
               />
             </div>
             <div className="flex justify-between text-[11px] font-bold text-neutral-600">
-              <span>Baixando v{updater.updateInfo?.version}...</span>
+              <span>Baixando {updater.updateInfo?.version}...</span>
               <span>{downloadPct}%</span>
             </div>
           </div>
@@ -188,17 +182,18 @@ export const AppUpdaterCard: React.FC = () => {
     // Mesma seção padrão das demais (ícone w-4 + rótulo gritado): a tela
     // inteira compartilha uma anatomia só de cabeçalho.
     <SettingsSection icon={Sparkles} label="Atualizações do aplicativo">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <p className="text-xs font-semibold text-neutral-600">
           {statusMessage(updater)}
         </p>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
           {updater.status === "ready-to-restart" ? (
             <Button
               type="button"
               variant="accent"
               size="md"
+              className="w-full sm:w-auto"
               onClick={() => updater.relaunchApp()}
             >
               <RotateCcw className="w-4 h-4 stroke-[2.5]" />
@@ -210,16 +205,18 @@ export const AppUpdaterCard: React.FC = () => {
                 type="button"
                 variant="primary"
                 size="md"
+                className="w-full sm:w-auto"
                 onClick={() => void updater.openApkDownload()}
               >
                 <Download className="w-4 h-4 stroke-[2.5]" />
-                <span>Baixar APK (v{updater.updateInfo?.version})</span>
+                <span>Baixar APK ({updater.updateInfo?.version})</span>
               </Button>
             ) : (
               <Button
                 type="button"
                 variant="primary"
                 size="md"
+                className="w-full sm:w-auto"
                 isLoading={isDownloading}
                 onClick={() => updater.downloadUpdate()}
               >
@@ -234,6 +231,7 @@ export const AppUpdaterCard: React.FC = () => {
               type="button"
               variant="outline"
               size="md"
+              className="w-full sm:w-auto"
               isLoading={isChecking}
               onClick={() => updater.checkForUpdates()}
             >

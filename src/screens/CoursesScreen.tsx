@@ -454,7 +454,7 @@ export const CoursesScreen: React.FC = () => {
     );
 
     return (
-      <PageContainer className={isSelecting ? "pb-40 md:pb-12" : undefined}>
+      <PageContainer className={isSelecting ? "pb-24 md:pb-12" : undefined}>
         {/* Título Padronizado da Página com Nome da Disciplina e Ação de Voltar */}
         <PageHeader
           icon={GraduationCap}
@@ -597,7 +597,7 @@ export const CoursesScreen: React.FC = () => {
               portal
               dragOnlyOnHandle
             >
-              <div className="px-4 max-h-[calc(85dvh-2rem)] overflow-y-auto overflow-x-hidden pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+              <div className="px-4 h-[82dvh] overflow-y-auto overflow-x-hidden pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
                 <div className="flex items-center gap-2.5 pb-3 mb-2 border-b-2 border-ink/10">
                   <div className="w-8 h-8 rounded-lg bg-sticker-blue border-2 border-ink flex items-center justify-center text-ink shrink-0">
                     <Calculator className="w-4 h-4 stroke-[2.5]" />
