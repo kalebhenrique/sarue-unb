@@ -3,6 +3,7 @@ import type { IAcademicProfileRepository } from '../domain/interfaces/academic-p
 import type { IIraScenarioRepository } from '../domain/interfaces/ira-scenario-repo.interface';
 import type { IGradeRepository } from '../domain/interfaces/grade-repo.interface';
 import type { IDeadlineNotificationRepository } from '../domain/interfaces/deadline-notification-repo.interface';
+import { clearCachedStudentWallet } from './ru-wallet.service';
 import { STORAGE_KEYS } from '../../lib/storage-keys';
 
 /**
@@ -67,7 +68,8 @@ export interface ExitDemoModeDeps {
 
 /**
  * Desliga o modo demo e limpa os dados fictícios que ele semeou (feed,
- * perfil acadêmico, cenário de IRA e grade salva). Chamado ao conectar uma
+ * perfil acadêmico, cenário de IRA, grade salva e carteirinha/saldo RU).
+ * Chamado ao conectar uma
  * conta real ou ao sair do demo pelas Configurações. Cada limpeza é
  * best-effort: uma falha não impede as demais nem o desligamento da flag.
  */
@@ -79,6 +81,7 @@ export async function exitDemoMode(deps: ExitDemoModeDeps): Promise<void> {
     ['cenário de IRA', () => deps.iraScenarioRepo.clearScenario()],
     ['grade salva', () => deps.gradeRepo.clearSavedGrade()],
     ['notificações de prazo', () => deps.deadlineNotificationRepo.clear()],
+    ['carteira do RU', () => clearCachedStudentWallet()],
   ];
   for (const [label, step] of steps) {
     try {

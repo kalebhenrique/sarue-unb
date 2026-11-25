@@ -2200,6 +2200,33 @@ impl SigaaClient {
                 .and_then(|c| c[1].parse::<u32>().ok())
         });
 
+        // Limite defensivo: se o SIGAA devolver mais linhas que o necessário,
+        // mantém só as 10 movimentações mais recentes (ordem original da tabela
+        // preservada). Roda depois de saldo/grupo, que olham a lista completa.
+        // Linhas de controle contábil ("Saldo"/"Saldo Anterior") não são
+        // movimentação e a UI as filtra, então saem primeiro se houver excesso.
+        const MAX_RU_ENTRIES: usize = 10;
+        if entries.len() > MAX_RU_ENTRIES {
+            let mut ranked: Vec<(usize, (i32, u32, u32, u32, u32))> = entries
+                .iter()
+                .enumerate()
+                .filter(|(idx, _)| !is_current_balance_label(&entries[*idx].description))
+                .map(|(idx, e)| (idx, parse_dt_key(&e.occurred_at)))
+                .collect();
+            ranked.sort_by_key(|(_, key)| std::cmp::Reverse(*key));
+            let kept: std::collections::HashSet<usize> = ranked
+                .into_iter()
+                .take(MAX_RU_ENTRIES)
+                .map(|(idx, _)| idx)
+                .collect();
+            entries = entries
+                .into_iter()
+                .enumerate()
+                .filter(|(idx, _)| kept.contains(idx))
+                .map(|(_, e)| e)
+                .collect();
+        }
+
         Some((balance, group, entries))
     }
 
@@ -4262,6 +4289,44 @@ mod tests {
         assert_eq!(group, Some(1));
         assert_eq!(entries.len(), 4);
         assert_eq!(entries[1].description, "Grupo 1 Almoço");
+    }
+
+    #[test]
+    fn test_parse_ru_statement_html_caps_entries_at_ten_most_recent() {
+        // 12 movimentações em datas distintas: o parse deve manter só as 10
+        // mais recentes, na ordem original da tabela.
+        let mut rows = String::new();
+        for day in 1..=12 {
+            rows.push_str(&format!(
+                r#"<tr>
+                    <td align="right"><div style="font-size: x-small">{day:02}/11/2026 12:00</div></td>
+                    <td align="right"><div style="margin-right:15px; font-size: x-small">Grupo 2 Almo&#231;o</div></td>
+                    <td align="right"><div style="margin-right:15px; font-size: x-small">R$ 4,50</div></td>
+                </tr>"#
+            ));
+        }
+        let html = format!(
+            r#"
+            <h4>Extrato no Restaurante Universit&#225;rio</h4>
+            <table width="100%">
+                <tr>
+                    <td align="right"><div style="font-size: x-small">30/11/2026 09:00</div></td>
+                    <td align="right"><div style="margin-right:15px; font-size: x-small">Saldo</div></td>
+                    <td align="right"><div style="margin-right:15px; font-size: x-small">R$ 6,50</div></td>
+                </tr>
+                {rows}
+            </table>
+        "#
+        );
+
+        let (balance, group, entries) = SigaaClient::parse_ru_statement_html(&html).unwrap();
+        assert_eq!(balance, 6.5);
+        assert_eq!(group, Some(2));
+        assert_eq!(entries.len(), 10);
+        // As 2 movimentações mais antigas (dias 1 e 2) ficam de fora; a mais
+        // antiga mantida é a do dia 3, e a ordem original da tabela persiste.
+        assert_eq!(entries[0].occurred_at, "03/11/2026 12:00");
+        assert_eq!(entries[9].occurred_at, "12/11/2026 12:00");
     }
 
     #[test]

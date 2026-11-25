@@ -20,7 +20,10 @@ import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { AnimatePresence, motion } from "motion/react";
 import { Progress } from "@/components/ui/progress";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { SyncStatusTooltip, SyncStatusSummaryDialog } from "./SyncStatusTooltip";
+import {
+  SyncStatusTooltip,
+  SyncStatusSummaryDialog,
+} from "./SyncStatusTooltip";
 import { DeadlineBell } from "./notifications/DeadlineBell";
 import { useDeadlines } from "../context/DeadlineContext";
 import { useUpdateAvailable } from "../hooks/useAppUpdater";
@@ -428,22 +431,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
 
-          {/* Badge do Modo Demonstração (desktop expandido e recolhido) */}
-          {isDemoMode ? (
-            <div className={isCollapsed ? "px-2 pt-2 flex justify-center" : "px-4 pt-2"}>
-              <div
-                title="Modo Demonstração: dados fictícios para conhecer o app"
-                aria-label="Modo Demonstração ativo"
-                className={`flex items-center justify-center rounded-full border-2 border-ink bg-neo-yellow text-black text-[10px] font-black uppercase tracking-wide shadow-[2px_2px_0px_0px_var(--neo-shadow)] ${
-                  isCollapsed ? "w-7 h-7" : "gap-1.5 px-2.5 py-1 w-fit"
-                }`}
-              >
-                <FlaskConical className="w-3 h-3 stroke-[2.5] shrink-0" />
-                {!isCollapsed && <span>Demo</span>}
-              </div>
-            </div>
-          ) : null}
-
           {/* Lista de Navegação com som fofo/macio tátil (apenas ao alternar para aba inativa) */}
           <nav className="min-h-0 overflow-y-auto border-b-2 border-ink">
             <ul className="flex flex-col">
@@ -609,99 +596,89 @@ export const Sidebar: React.FC<SidebarProps> = ({
           role="navigation"
           aria-label="Mais opções de navegação"
         >
-              {/* Topo: Botão de Sincronizar (sem popover no mobile) + Progress Verde Contínuo com Checks */}
-              <div className="px-4 pt-2 pb-3.5 bg-neutral-50 border-b-2 border-ink space-y-2.5">
-                {isDemoMode ? (
-                  <div className="flex items-center justify-between gap-2 px-2.5 py-1 rounded-lg border-2 border-ink bg-neo-yellow text-black text-[11px] font-black uppercase tracking-wide">
-                    <span className="inline-flex items-center gap-1.5">
-                      <FlaskConical className="w-3.5 h-3.5 stroke-[2.5]" />
-                      Modo Demonstração
-                    </span>
-                    <span className="text-[10px] font-bold normal-case">Dados fictícios</span>
-                  </div>
-                ) : null}
+          {/* Topo: Botão de Sincronizar (sem popover no mobile) + Progress Verde Contínuo com Checks */}
+          <div className="px-4 pt-2 pb-3.5 bg-neutral-50 border-b-2 border-ink space-y-2.5">
+            <button
+              type="button"
+              disabled={!hasConnectedAccounts}
+              onClick={() => {
+                if (!hasConnectedAccounts || isSyncing) return;
+                onSync?.();
+              }}
+              className={`w-full h-11 flex items-center justify-center gap-2 font-extrabold text-xs rounded-xl border-2 transition-[transform,box-shadow,background-color,border-color] duration-150 select-none ${
+                !hasConnectedAccounts
+                  ? "bg-neutral-200 text-neutral-400 border-neutral-300 cursor-not-allowed shadow-none"
+                  : "cursor-pointer bg-neo-blue hover:bg-neo-blueHover text-white border-ink shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2"
+              }`}
+            >
+              <RefreshCw
+                className={`w-4 h-4 shrink-0 stroke-[2.5] ${
+                  isSyncing || activeSyncStep ? "animate-spin" : ""
+                }`}
+              />
+              <span>{isSyncing ? "Sincronizando..." : "Sincronizar"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMobileSyncDialogOpen(true)}
+              aria-label="Ver status resumido da sincronização"
+              className="cursor-pointer block w-full text-left rounded-xl px-1.5 py-1 hover:bg-black/5 active:bg-black/10 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue"
+            >
+              <Progress
+                value={syncProgressInfo.percent}
+                stepsCount={syncProgressInfo.total}
+                completedSteps={syncProgressInfo.completed}
+                aria-label="Progresso da sincronização"
+              />
+              <div className="flex items-center justify-between gap-2 text-[11px] font-bold text-neutral-600 mt-0.5 px-0.5">
+                <span className="truncate">
+                  {isSyncing || activeSyncStep
+                    ? `Sincronizando ${activeSyncStep?.label ?? "..."}`
+                    : formatLastSync(lastSyncedAt)}
+                </span>
+                <span className="shrink-0 text-blue-ink font-extrabold underline">
+                  Ver status
+                </span>
+              </div>
+            </button>
+          </div>
+
+          {/* Lista de Navegação Expansível (incluindo Carteirinha) */}
+          <div className="flex flex-col divide-y-2 divide-black/10 py-1">
+            {moreNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentTab === item.id;
+              const isSettingsWithUpdate = item.id === "settings" && hasUpdate;
+
+              return (
                 <button
+                  key={item.id}
                   type="button"
-                  disabled={!hasConnectedAccounts}
+                  data-no-sound={isActive ? "true" : undefined}
+                  aria-current={isActive ? "page" : undefined}
                   onClick={() => {
-                    if (!hasConnectedAccounts || isSyncing) return;
-                    onSync?.();
+                    onSelectTab(item.id);
+                    setIsMoreOpen(false);
                   }}
-                  className={`w-full h-11 flex items-center justify-center gap-2 font-extrabold text-xs rounded-xl border-2 transition-[transform,box-shadow,background-color,border-color] duration-150 select-none ${
-                    !hasConnectedAccounts
-                      ? "bg-neutral-200 text-neutral-400 border-neutral-300 cursor-not-allowed shadow-none"
-                      : "cursor-pointer bg-neo-blue hover:bg-neo-blueHover text-white border-ink shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-neo-xs active:translate-x-[2px] active:translate-y-[2px] active:shadow-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2"
+                  className={`cursor-pointer w-full px-5 py-4 text-sm font-extrabold flex items-center gap-3 text-left transition-colors focus-visible:outline-hidden ${
+                    isActive
+                      ? "text-neo-blue bg-neutral-100"
+                      : "text-black hover:bg-neutral-100 hover:text-neo-blue active:bg-neutral-200"
                   }`}
                 >
-                  <RefreshCw
-                    className={`w-4 h-4 shrink-0 stroke-[2.5] ${
-                      isSyncing || activeSyncStep ? "animate-spin" : ""
-                    }`}
-                  />
-                  <span>{isSyncing ? "Sincronizando..." : "Sincronizar"}</span>
+                  <Icon className="w-5 h-5 shrink-0 stroke-[2.5]" />
+                  <span className="truncate">{item.label}</span>
+                  {isSettingsWithUpdate && (
+                    <span
+                      aria-label="Atualização disponível"
+                      className="w-2 h-2 rounded-full shrink-0 ml-auto bg-neo-blue"
+                    />
+                  )}
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => setMobileSyncDialogOpen(true)}
-                  aria-label="Ver status resumido da sincronização"
-                  className="cursor-pointer block w-full text-left rounded-xl px-1.5 py-1 hover:bg-black/5 active:bg-black/10 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue"
-                >
-                  <Progress
-                    value={syncProgressInfo.percent}
-                    stepsCount={syncProgressInfo.total}
-                    completedSteps={syncProgressInfo.completed}
-                    aria-label="Progresso da sincronização"
-                  />
-                  <div className="flex items-center justify-between gap-2 text-[11px] font-bold text-neutral-600 mt-0.5 px-0.5">
-                    <span className="truncate">
-                      {isSyncing || activeSyncStep
-                        ? `Sincronizando ${activeSyncStep?.label ?? "..."}`
-                        : formatLastSync(lastSyncedAt)}
-                    </span>
-                    <span className="shrink-0 text-blue-ink font-extrabold underline">
-                      Ver status
-                    </span>
-                  </div>
-                </button>
-              </div>
-
-              {/* Lista de Navegação Expansível (incluindo Carteirinha) */}
-              <div className="flex flex-col divide-y-2 divide-black/10 py-1">
-                {moreNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = currentTab === item.id;
-                  const isSettingsWithUpdate =
-                    item.id === "settings" && hasUpdate;
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      data-no-sound={isActive ? "true" : undefined}
-                      aria-current={isActive ? "page" : undefined}
-                      onClick={() => {
-                        onSelectTab(item.id);
-                        setIsMoreOpen(false);
-                      }}
-                      className={`cursor-pointer w-full px-5 py-4 text-sm font-extrabold flex items-center gap-3 text-left transition-colors focus-visible:outline-hidden ${
-                        isActive
-                          ? "text-neo-blue bg-neutral-100"
-                          : "text-black hover:bg-neutral-100 hover:text-neo-blue active:bg-neutral-200"
-                      }`}
-                    >
-                      <Icon className="w-5 h-5 shrink-0 stroke-[2.5]" />
-                      <span className="truncate">{item.label}</span>
-                      {isSettingsWithUpdate && (
-                        <span
-                          aria-label="Atualização disponível"
-                          className="w-2 h-2 rounded-full shrink-0 ml-auto bg-neo-blue"
-                        />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+              );
+            })}
+          </div>
         </BottomSheet>
 
         {/* Bottom Tab Bar inspirada em SegmentedControl (sem border-t quando o sheet está aberto) */}

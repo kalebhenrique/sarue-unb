@@ -1111,7 +1111,7 @@ export const RuScreen: React.FC = () => {
                     type="button"
                     onClick={() => setStatementExpanded((v) => !v)}
                     aria-expanded={statementExpanded}
-                    className="cursor-pointer text-[11px] font-extrabold underline decoration-2 underline-offset-2 text-neutral-600 hover:text-black transition-colors duration-150 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2"
+                    className="cursor-pointer inline-flex min-h-12 items-center px-4 text-[11px] font-extrabold underline decoration-2 underline-offset-2 text-neutral-600 hover:text-black transition-colors duration-150 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2"
                   >
                     {statementExpanded
                       ? "Ver menos"
