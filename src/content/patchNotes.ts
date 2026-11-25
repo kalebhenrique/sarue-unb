@@ -22,6 +22,19 @@ export interface PatchNotesEntry {
 
 export const PATCH_NOTES: PatchNotesEntry[] = [
   {
+    version: "0.5.2",
+    date: "25/11/2026",
+    title: "Saldo do RU e Mais Estabilidade",
+    items: [
+      "Saldo e extrato do RU agora na tela do Cardápio.",
+      "Android: atualização do app direto pelo APK oficial publicado no GitHub.",
+      "Sincronização: aviso claro quando a internet está muito lenta.",
+      "SIGAA: nova tentativa automática de login e correções na leitura de faltas",
+      "Quando chegar no final do semestre, desativa automaticamente as notificações do RU, sendo possível ativar manualmente.",
+      "Calculadora de Notas: layout melhorado",
+    ],
+  },
+  {
     version: "0.5.1",
     date: "22/11/2026",
     title: "Hotfix: Carregamento do Cardápio do RU",
