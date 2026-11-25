@@ -118,14 +118,7 @@ O Saruê UnB oferece dois modos principais de desenvolvimento:
   ```
 
 - **Popular Banco de Dados de Desenvolvimento**:
-  O projeto adota uma política de **isolamento estrito entre desenvolvimento e produção**. Para preencher turmas, feed de avisos/tarefas, histórico escolar e simulação de IRA fictícios no SQLite de desenvolvimento:
-
-  ```bash
-  pnpm seeds
-
-  # Caso queira resetar o banco de dev antes de reinserir os dados
-  pnpm seeds --clean
-  ```
+  O projeto adota uma política de **isolamento estrito entre desenvolvimento e produção**. Para explorar o app com turmas, feed de avisos/tarefas, histórico escolar e simulação de IRA fictícios, **não é necessário rodar nenhum comando**: na tela de login, informe as credenciais de teste (`123456789` / `#SarueTest123@`) no campo SIGAA — o Modo Demonstração semeia os dados mockados automaticamente, no navegador (`pnpm dev`) e no app desktop/mobile.
 
 ---
 

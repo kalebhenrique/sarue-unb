@@ -35,9 +35,7 @@
     "scrape:professors": "node --experimental-strip-types src/scrapers/professors-scraper.ts",
     "scrape:ru": "node --experimental-strip-types src/scrapers/ru-scraper.ts",
     "scrape:all": "pnpm run scrape:grade && pnpm run scrape:courses && pnpm run data:split-curricula && pnpm run scrape:calendar",
-    "data:split-curricula": "node scripts/split-curricula.mjs",
-    "seeds": "node scripts/seed-dev-db.mjs",
-    "seed": "node scripts/seed-dev-db.mjs"
+    "data:split-curricula": "node scripts/split-curricula.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
