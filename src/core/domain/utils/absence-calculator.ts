@@ -31,19 +31,47 @@ export interface AbsenceStatus {
 /**
  * Calcula a quantidade de créditos a partir do código de horário SIGAA da UnB
  * (ex: 35T45 -> 4 créditos, 4M1234 -> 4 créditos, 235M34 -> 6 créditos, 6M34 -> 2 créditos).
+ * Quando o SIGAA separa dois blocos com exatamente o mesmo sufixo de turno e períodos
+ * (ex: "3M12 56M12" em vez do bloco contínuo "356M12") ou intervalos de datas distintos,
+ * trata-se de uma disciplina de 60h (4 créditos) com vigências ou subturmas separadas.
  */
 export function parseCreditsFromSchedule(schedule?: string | null): number {
   if (!schedule) return 4;
 
-  const regex = /([2-7]+)[MTN]([1-6]+)/g;
+  const blockRegex =
+    /([2-7]+)([MTN][1-6]+)(?:\s*\((\d{2}\/\d{2}\/\d{4}\s*-\s*\d{2}\/\d{2}\/\d{4})\))?/g;
   let credits = 0;
-  for (const match of schedule.matchAll(regex)) {
+  let maxBlock = 0;
+  const suffixes: string[] = [];
+  const dateRanges = new Set<string>();
+
+  for (const match of schedule.matchAll(blockRegex)) {
     const days = match[1].length;
-    const periods = match[2].length;
-    credits += days * periods;
+    const suffix = match[2];
+    const periods = Math.max(0, suffix.length - 1);
+    const blockCredits = days * periods;
+    credits += blockCredits;
+    if (blockCredits > maxBlock) {
+      maxBlock = blockCredits;
+    }
+    suffixes.push(suffix);
+    if (match[3]) {
+      dateRanges.add(match[3].trim());
+    }
   }
 
-  return credits > 0 ? credits : 4;
+  if (credits <= 0) return 4;
+
+  const hasDuplicateSuffix =
+    suffixes.length > 1 && new Set(suffixes).size < suffixes.length;
+  if (
+    dateRanges.size > 1 ||
+    (hasDuplicateSuffix && credits === 6 && maxBlock === 4)
+  ) {
+    return maxBlock;
+  }
+
+  return credits;
 }
 
 /**
@@ -130,13 +158,23 @@ export function calculateAbsenceRisk(params: CalculateAbsenceRiskParams): Absenc
   const credits = parseCreditsFromSchedule(params.schedule);
   const calculatedMax = calculateMaxAbsences(credits, hoursPerClass);
 
-  // Se schedule estiver presente, usamos calculatedMax para garantir a regra exata de dias/encontros (especialmente para aulas de 4h ou créditos variados).
-  // Se não estiver presente, recorre a params.maxAbsences ou calculatedMax.
-  let maxAbsences = params.schedule
-    ? calculatedMax
-    : params.maxAbsences ? Number(params.maxAbsences) : calculatedMax;
+  // Se maxAbsences oficial foi informado (ex.: calculado a partir da CH oficial do Boletim SIGAA)
+  // e não é o valor legado 15 (horas-falta de 60h não convertidas), respeita-o;
+  // caso contrário, usa calculatedMax derivado do horário.
+  const providedMax =
+    params.maxAbsences !== null &&
+    params.maxAbsences !== undefined &&
+    Number(params.maxAbsences) > 0
+      ? Number(params.maxAbsences)
+      : null;
 
-  if (maxAbsences === 15 && credits !== 8) {
+  let maxAbsences =
+    providedMax !== null && !(providedMax === 15 && credits !== 8)
+      ? providedMax
+      : calculatedMax;
+
+  // Em aulas de 4h (ex.: 4M1234), garante que maxAbsences nunca exceda o limite em encontros de 4h
+  if (params.schedule && hoursPerClass === 4 && maxAbsences > calculatedMax) {
     maxAbsences = calculatedMax;
   }
   maxAbsences = Math.max(1, maxAbsences);

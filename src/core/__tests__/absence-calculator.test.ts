@@ -33,6 +33,28 @@ describe('Absence Calculator - Regras de Faltas UnB (25% em dias/aulas de aula)'
       expect(calculateMaxAbsences(credits, 2)).toBe(11);
     });
 
+    it('calcula 4 créditos (7 faltas) para matérias de 60h registradas com 3 dias separados no mesmo sufixo (3M12 56M12)', () => {
+      const credits = parseCreditsFromSchedule('3M12 56M12');
+      expect(credits).toBe(4);
+      expect(calculateMaxAbsences(credits, 2)).toBe(7);
+
+      const risk = calculateAbsenceRisk({
+        absences: 2,
+        schedule: '3M12 56M12',
+      });
+      expect(risk.maxAbsences).toBe(7);
+      expect(risk.remainingAbsences).toBe(5);
+    });
+
+    it('respeita maxAbsences vindo da carga horária oficial (CH 60h -> 7 faltas) mesmo em horário com múltiplos blocos', () => {
+      const risk = calculateAbsenceRisk({
+        absences: 1,
+        maxAbsences: 7,
+        schedule: '3M12 56M12',
+      });
+      expect(risk.maxAbsences).toBe(7);
+    });
+
     it('adota 4 créditos como padrão quando horário não puder ser parseado', () => {
       expect(parseCreditsFromSchedule('')).toBe(4);
       expect(parseCreditsFromSchedule(null)).toBe(4);
