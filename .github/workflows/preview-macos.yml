@@ -1,6 +1,8 @@
 name: "Preview Build (macOS)"
 
 on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
     inputs:
       target:
@@ -13,12 +15,22 @@ on:
           - x86_64-apple-darwin
           - both
 
+concurrency:
+  group: preview-macos-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
 jobs:
   build-macos-preview:
     name: "Build macOS Preview (${{ matrix.target }})"
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        contains(github.event.pull_request.labels.*.name, 'preview') &&
+        (github.event.action != 'labeled' || github.event.label.name == 'preview')
+      )
     runs-on: macos-latest
     strategy:
       fail-fast: false

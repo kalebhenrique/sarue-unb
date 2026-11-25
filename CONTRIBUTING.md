@@ -237,6 +237,7 @@ pnpm tauri build
    ```
 
    _(Detalhes de cada comando na seção [Verificação & Testes](#-verificação--testes))._
+
 5. Envie a branch para o seu fork:
 
    ```bash
@@ -247,6 +248,16 @@ pnpm tauri build
    - Descreva com clareza o que foi alterado e o porquê.
    - Para mudanças visuais na interface, inclua **prints ou GIFs** de antes e depois.
    - Vincule a Issue correspondente na descrição (ex: `Closes #42`).
+
+### 🤖 Builds de Preview em Pull Requests (Android e macOS)
+
+Para testar alterações diretamente em dispositivos Android ou Macs sem precisar compilar localmente, o projeto conta com workflows de **Preview Build** no GitHub Actions:
+
+- **Como acionar**: quando um mantenedor adiciona a label **`preview`** ao Pull Request (ou quando novos commits são enviados para um PR que já possui essa label), os workflows **Preview Build (Android)** (`aarch64` APK) e **Preview Build (macOS)** (`aarch64-apple-darwin` DMG) são iniciados automaticamente.
+- **Download dos artefatos**: assim que cada build termina, o bot publica e atualiza automaticamente um comentário no PR com os links diretos para download dos artefatos (`.apk` e `.dmg`, mantidos por **14 dias** — é necessário estar logado no GitHub para baixar).
+- **Segurança e aprovação para contribuidores externos (forks)**:
+  - Os builds de preview rodam no evento `pull_request` com permissão somente-leitura (`contents: read`).
+  - Para PRs vindos de forks externos, mesmo após a adição da label `preview`, a execução do workflow permanece aguardando autorização manual de um administrador/mantenedor (**"Approve and run"**) antes de rodar código externo.
 
 ---
 
