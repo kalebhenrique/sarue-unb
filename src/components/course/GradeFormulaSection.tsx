@@ -69,6 +69,8 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
     return saved !== null ? saved === "true" : true;
   });
 
+  const [isFormulaFocused, setIsFormulaFocused] = useState(false);
+
   // Salva fórmula no localStorage
   useEffect(() => {
     localStorage.setItem(formulaStorageKey, formula);
@@ -96,6 +98,24 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
     if (!validation.isValid) return null;
     return calculateApprovalRequirements(formula, grades);
   }, [formula, grades, validation.isValid]);
+
+  const lastValidRef = React.useRef<{
+    variables: string[];
+    calculation: CalculationResult | null;
+  }>({ variables: [], calculation: null });
+  if (validation.isValid) {
+    lastValidRef.current = { variables, calculation };
+  }
+  const isFormulaInvalid = !validation.isValid;
+  const displayVariables = isFormulaInvalid
+    ? lastValidRef.current.variables
+    : variables;
+  const displayCalculation = isFormulaInvalid
+    ? lastValidRef.current.calculation
+    : calculation;
+  const pausedClassName = isFormulaInvalid
+    ? "opacity-45 pointer-events-none transition-opacity duration-150"
+    : "transition-opacity duration-150";
 
   const handleGradeChange = (variable: string, val: number | null) => {
     if (val === null || val === undefined || isNaN(val)) {
@@ -258,7 +278,7 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                 <Sparkles className="w-3.5 h-3.5 text-amber-500 stroke-[2.5]" />
                 <span>Modelos Frequentes da UnB:</span>
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-nowrap overflow-x-auto gap-2 pb-1 no-scrollbar">
                 {COMMON_UNB_FORMULA_PRESETS.map((preset) => {
                   const isSelected = formula.trim() === preset.formula.trim();
                   return (
@@ -309,22 +329,27 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                     id="discipline-formula-input"
                     value={formula}
                     onChange={(e) => setFormula(e.target.value)}
+                    onFocus={() => setIsFormulaFocused(true)}
+                    onBlur={() => setIsFormulaFocused(false)}
                     placeholder="Ex.: (P1 + P2 + P3) / 3 ou 0.4*P1 + 0.6*P2"
                     className="font-mono text-sm font-bold"
                   />
                 </div>
               </div>
 
-              <p className="flex text-xs text-neutral-600 font-semibold items-center gap-1">
-                <Info className="w-3 h-3 stroke-2 shrink-0 text-blue-ink" />
-                Use letras para os nomes das provas/trabalhos (ex: P1, P2, T).
-                Operadores permitidos: +, -, *, /, ( ).
-              </p>
+              {isFormulaFocused && (
+                <p className="flex text-xs text-neutral-600 font-semibold items-start gap-1">
+                  <Info className="w-3 h-3 stroke-2 shrink-0 text-blue-ink mt-0.5" />
+                  <span>
+                    Use letras para os nomes das provas/trabalhos (ex: P1, P2,
+                    T). Operadores permitidos: +, -, *, /, ( ).
+                  </span>
+                </p>
+              )}
             </div>
 
-            {/* Grade de Lançamento de Notas das Variáveis Detectadas */}
-            {variables.length > 0 && validation.isValid && (
-              <div className="space-y-2">
+            {displayVariables.length > 0 && (
+              <div className={`space-y-2 ${pausedClassName}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs font-black text-black">
                     Notas Obtidas:
@@ -343,7 +368,7 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                 </div>
 
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
-                  {variables.map((variable) => {
+                  {displayVariables.map((variable) => {
                     const val = grades[variable];
                     const hasValue = val !== undefined && val !== null;
 
@@ -389,7 +414,7 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                             handleGradeChange(variable, newVal)
                           }
                           aria-label={`Nota da avaliação ${variable}`}
-                          controls="stacked"
+                          controls="none"
                         />
                       </div>
                     );
@@ -399,21 +424,21 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
             )}
 
             {/* Painel de Resultados & Estimativas para Aprovação */}
-            {calculation && validation.isValid && (
-              <div className="space-y-2.5 pt-1">
+            {displayCalculation && (
+              <div className={`space-y-2.5 pt-1 ${pausedClassName}`}>
                 {/* Caso 1: Todas as notas já foram preenchidas */}
-                {calculation.isFullyGraded &&
-                  calculation.finalGrade !== null &&
-                  calculation.finalMention && (
+                {displayCalculation.isFullyGraded &&
+                  displayCalculation.finalGrade !== null &&
+                  displayCalculation.finalMention && (
                     <Alert
                       variant={
-                        calculation.finalMention.passed
+                        displayCalculation.finalMention.passed
                           ? "green"
                           : "destructive"
                       }
-                      title={`Nota Final: ${formatGrade(calculation.finalGrade, 2)} (${calculation.finalMention.mention} — ${calculation.finalMention.label})`}
+                      title={`Nota Final: ${formatGrade(displayCalculation.finalGrade, 2)} (${displayCalculation.finalMention.mention} — ${displayCalculation.finalMention.label})`}
                       description={
-                        calculation.finalMention.passed
+                        displayCalculation.finalMention.passed
                           ? "Aprovado na disciplina."
                           : "Reprovado na disciplina."
                       }
@@ -421,59 +446,59 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                   )}
 
                 {/* Caso 2: Avaliações ainda pendentes -> Estimativa concisa */}
-                {!calculation.isFullyGraded && (
+                {!displayCalculation.isFullyGraded && (
                   <div className="space-y-2.5">
-                    {calculation.requirements.MM.isAlreadyAchieved ? (
+                    {displayCalculation.requirements.MM.isAlreadyAchieved ? (
                       <Alert
                         variant="green"
                         className="shadow-none"
                         title="Aprovação garantida (Menção MM ≥ 5,0)"
-                        description={`Nota acumulada já garante aprovação mesmo zerando ${calculation.pendingVariables.join(", ")}.`}
+                        description={`Nota acumulada já garante aprovação mesmo zerando ${displayCalculation.pendingVariables.join(", ")}.`}
                       />
-                    ) : calculation.requirements.MM.isAchievable ? (
+                    ) : displayCalculation.requirements.MM.isAchievable ? (
                       <Alert
                         variant="yellow"
                         className="shadow-none"
-                        title={`Nota restante para aprovação (MM ≥ 5,0): ${formatGrade(calculation.requirements.MM.requiredGrade ?? 0, 2)}`}
+                        title={`Nota restante para aprovação (MM ≥ 5,0): ${formatGrade(displayCalculation.requirements.MM.requiredGrade ?? 0, 2)}`}
                         description={
-                          calculation.pendingVariables.length === 1
-                            ? `Necessário tirar no mínimo ${formatGrade(calculation.requirements.MM.requiredGrade ?? 0, 2)} em ${calculation.pendingVariables[0]}.`
-                            : `Média mínima necessária nas avaliações pendentes (${calculation.pendingVariables.join(", ")}).`
+                          displayCalculation.pendingVariables.length === 1
+                            ? `Necessário tirar no mínimo ${formatGrade(displayCalculation.requirements.MM.requiredGrade ?? 0, 2)} em ${displayCalculation.pendingVariables[0]}.`
+                            : `Média mínima necessária nas avaliações pendentes (${displayCalculation.pendingVariables.join(", ")}).`
                         }
                       />
                     ) : (
                       <Alert
                         variant="destructive"
                         className="shadow-none"
-                        title={`Aprovação em risco (Máx. possível: ${formatGrade(calculation.maxPossibleGrade, 2)})`}
+                        title={`Aprovação em risco (Máx. possível: ${formatGrade(displayCalculation.maxPossibleGrade, 2)})`}
                         description="Mesmo tirando 10,0 nas avaliações restantes, a média não atinge 5,0 (MM)."
                       />
                     )}
 
-                    {/* Metas Superiores: MS (7.0) e SS (9.0) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    {/* Metas Superiores: MS (7.0) e SS (9.0) lado a lado */}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
                       {(
                         [
                           {
                             key: "MS",
                             label: "Meta MS (≥ 7,0)",
-                            req: calculation.requirements.MS,
+                            req: displayCalculation.requirements.MS,
                           },
                           {
                             key: "SS",
                             label: "Meta SS (≥ 9,0)",
-                            req: calculation.requirements.SS,
+                            req: displayCalculation.requirements.SS,
                           },
                         ] as const
                       ).map(({ key, label, req }) => (
                         <div
                           key={key}
-                          className="px-3.5 py-2.5 rounded-xl border-2 border-ink bg-paper text-black flex items-center justify-between gap-2"
+                          className="px-3 py-2.5 rounded-xl border-2 border-ink bg-paper text-black flex flex-col gap-1.5"
                         >
-                          <span className="font-bold text-neutral-700">
-                            {label}:
+                          <span className="text-[11px] font-semibold uppercase tracking-normal text-neutral-600">
+                            {label}
                           </span>
-                          <div className="font-black shrink-0">
+                          <div className="font-black text-sm leading-none">
                             {req.isAlreadyAchieved ? (
                               <Badge
                                 variant="success"
@@ -484,21 +509,13 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
                               </Badge>
                             ) : req.isAchievable &&
                               req.requiredGrade !== null ? (
-                              <Badge
-                                variant="primary"
-                                size="sm"
-                                className="font-black"
-                              >
+                              <span className="text-black">
                                 Falta {formatGrade(req.requiredGrade, 2)}
-                              </Badge>
+                              </span>
                             ) : (
-                              <Badge
-                                variant="outline"
-                                size="sm"
-                                className="font-bold text-neutral-500"
-                              >
+                              <span className="font-bold text-neutral-500">
                                 Inatingível
-                              </Badge>
+                              </span>
                             )}
                           </div>
                         </div>

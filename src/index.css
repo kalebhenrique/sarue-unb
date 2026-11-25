@@ -234,6 +234,15 @@ body {
   border-color: #05070b;
 }
 
+/* Scroll horizontal invisível (pills de modelos, trilhos de chips) */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #5f6c85;
 }
