@@ -45,6 +45,7 @@ export interface SidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   isSyncing?: boolean;
+  isSlowConnection?: boolean;
   onSync?: () => void;
   lastSyncedAt?: string | null;
   hasConnectedAccounts?: boolean;
@@ -64,6 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed,
   onToggleCollapse,
   isSyncing = false,
+  isSlowConnection = false,
   onSync,
   lastSyncedAt,
   hasConnectedAccounts = false,
@@ -325,6 +327,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <SyncStatusTooltip
           steps={syncSteps}
           isSyncing={isSyncing || Boolean(activeSyncStep)}
+          isSlowConnection={isSlowConnection}
           lastSyncedAt={lastSyncedAt ?? null}
         />
       ) : null}
@@ -842,6 +845,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         onOpenChange={setMobileSyncDialogOpen}
         steps={syncSteps}
         isSyncing={isSyncing || Boolean(activeSyncStep)}
+        isSlowConnection={isSlowConnection}
         lastSyncedAt={lastSyncedAt ?? null}
       />
     </>

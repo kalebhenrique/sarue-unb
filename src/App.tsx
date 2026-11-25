@@ -48,7 +48,7 @@ const SCREEN_LABELS: Record<NavTab, string> = {
 const AppShell: React.FC = () => {
   const { repos, useCases } = useContainer();
   const { hasCredentials, isLoading: isCheckingAuth, allCredentials } = useCredentials();
-  const { syncAll, isSyncing, lastSyncedAt, steps: syncSteps } = useSync();
+  const { syncAll, isSyncing, isSlowConnection, lastSyncedAt, steps: syncSteps } = useSync();
   const hasUpdateAvailable = useUpdateAvailable();
 
   // Plataformas de fato conectadas (ordem do cofre), para o dialog de boas-vindas
@@ -215,6 +215,7 @@ const AppShell: React.FC = () => {
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         isSyncing={isSyncing}
+        isSlowConnection={isSlowConnection}
         onSync={syncAll}
         lastSyncedAt={lastSyncedAt}
         hasConnectedAccounts={Boolean(hasCredentials)}

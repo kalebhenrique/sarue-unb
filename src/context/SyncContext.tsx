@@ -15,6 +15,7 @@ import {
 import { notifyFeedListeners } from "../hooks/useFeed";
 import { toast } from "@/components/ui";
 import {
+  checkAndDisableRuNotificationsOnSemesterEnd,
   checkDueRuMenuNotification,
   checkIsAutoSyncAllowed,
   fetchAndCacheRuMenus,
@@ -27,6 +28,8 @@ import {
   type CurriculumStructure,
 } from "@/core";
 import { checkForUpdates } from "../hooks/useAppUpdater";
+
+export const SLOW_SCRAPING_THRESHOLD_MS = 8000;
 
 export type SyncStepId =
   "sigaa" | "aprender3" | "teams" | "myCourse" | "ghPages" | "planilha";
@@ -51,6 +54,7 @@ export interface SyncOptions {
 
 export interface SyncContextValue {
   isSyncing: boolean;
+  isSlowConnection: boolean;
   lastSyncedAt: string | null;
   steps: Record<SyncStepId, SyncStepInfo>;
   syncAll: (options?: SyncOptions) => Promise<void>;
@@ -139,6 +143,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
   const { useCases, repos } = useContainer();
 
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isSlowConnection, setIsSlowConnection] = useState<boolean>(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return localStorage.getItem("sarue_last_synced_at");
@@ -170,6 +175,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     syncGenerationRef.current += 1;
     syncInFlightRef.current = false;
     setIsSyncing(false);
+    setIsSlowConnection(false);
     setLastSyncedAt(null);
     setSteps(INITIAL_STEPS);
 
@@ -203,11 +209,23 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
 
       syncInFlightRef.current = true;
       setIsSyncing(true);
+      setIsSlowConnection(false);
       if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
         void import("@/core/infrastructure/bindings").then(({ commands }) => {
           void commands.setTraySyncState(true);
         });
       }
+
+      let slowTimerId: ReturnType<typeof setTimeout> | null = null;
+      let sigaaInFlight = false;
+      let aprenderInFlight = false;
+
+      const clearSlowTimer = () => {
+        if (slowTimerId !== null) {
+          clearTimeout(slowTimerId);
+          slowTimerId = null;
+        }
+      };
 
       try {
         // Dispara verificação silenciosa de atualizações do app em segundo plano
@@ -288,6 +306,43 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         let sigaaSuccess = false;
         let sigaaError = false;
 
+        // 3. Sincronização do Aprender 3
+        const aprenderCreds = activeCreds.aprender3;
+        const hasAprender = Boolean(
+          aprenderCreds?.cpf?.trim() && aprenderCreds?.senha,
+        );
+
+        let aprenderSuccess = false;
+        let aprenderError = false;
+
+        if (hasSigaa || hasAprender) {
+          slowTimerId = setTimeout(() => {
+            if (isCancelled() || (!sigaaInFlight && !aprenderInFlight)) return;
+            setIsSlowConnection(true);
+            if (sigaaInFlight) {
+              updateStep("sigaa", {
+                message:
+                  "Conexão lenta detectada (eduroam?) — aguardando resposta do SIGAA...",
+              });
+            }
+            if (aprenderInFlight) {
+              updateStep("aprender3", {
+                message:
+                  "Conexão lenta detectada (eduroam?) — aguardando resposta do Aprender 3...",
+              });
+            }
+            if (!options?.isAutoSync && !isOnboardingNotificationsBlocked()) {
+              toast.add({
+                title: "Conexão lenta detectada",
+                description:
+                  "A rede (ex.: eduroam) está demorando para responder ao scraping. A sincronização pode levar mais tempo.",
+                type: "warning",
+                timeout: 6000,
+              });
+            }
+          }, SLOW_SCRAPING_THRESHOLD_MS);
+        }
+
         const sigaaPromise = (async () => {
           if (!hasSigaa) {
             updateStep("sigaa", {
@@ -297,14 +352,23 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
             return;
           }
 
+          sigaaInFlight = true;
           updateStep("sigaa", {
             status: "syncing",
             message: "Conectando ao SIGAA e extraindo turmas e avisos...",
           });
 
           try {
-            const res = await useCases.syncPlatforms.execute(["sigaa"]);
+            let res = await useCases.syncPlatforms.execute(["sigaa"]);
             if (isCancelled()) return;
+
+            if (res.errors?.sigaa && options?.isAutoSync) {
+              await new Promise((r) => setTimeout(r, 2000));
+              if (isCancelled()) return;
+              res = await useCases.syncPlatforms.execute(["sigaa"]);
+              if (isCancelled()) return;
+            }
+
             if (res.errors?.sigaa) {
               sigaaError = true;
               updateStep("sigaa", {
@@ -338,17 +402,10 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
                   ? err.message
                   : "Falha na conexão com o SIGAA",
             });
+          } finally {
+            sigaaInFlight = false;
           }
         })();
-
-        // 3. Sincronização do Aprender 3
-        const aprenderCreds = activeCreds.aprender3;
-        const hasAprender = Boolean(
-          aprenderCreds?.cpf?.trim() && aprenderCreds?.senha,
-        );
-
-        let aprenderSuccess = false;
-        let aprenderError = false;
 
         const aprenderPromise = (async () => {
           if (!hasAprender) {
@@ -359,14 +416,23 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
             return;
           }
 
+          aprenderInFlight = true;
           updateStep("aprender3", {
             status: "syncing",
             message: "Buscando tarefas, atividades e prazos no Aprender 3...",
           });
 
           try {
-            const res = await useCases.syncPlatforms.execute(["aprender3"]);
+            let res = await useCases.syncPlatforms.execute(["aprender3"]);
             if (isCancelled()) return;
+
+            if (res.errors?.aprender3 && options?.isAutoSync) {
+              await new Promise((r) => setTimeout(r, 2000));
+              if (isCancelled()) return;
+              res = await useCases.syncPlatforms.execute(["aprender3"]);
+              if (isCancelled()) return;
+            }
+
             if (res.errors?.aprender3) {
               aprenderError = true;
               updateStep("aprender3", {
@@ -400,6 +466,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
                   ? err.message
                   : "Falha na conexão com o Aprender 3",
             });
+          } finally {
+            aprenderInFlight = false;
           }
         })();
 
@@ -433,6 +501,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         })();
 
         await Promise.all([sigaaPromise, aprenderPromise, ruMenuPromise]);
+        clearSlowTimer();
         if (isCancelled()) return;
 
         // 4. Sincronização de Meu Curso + Carteirinha Estudantil / Extrato RU (depende das credenciais do SIGAA)
@@ -453,6 +522,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
               "Baixando histórico escolar, carteirinha oficial e calculando fluxo...",
           });
 
+          let studentCpf: string | undefined;
+          let historyError: unknown = null;
+
           try {
             const result = await useCases.manageAcademicProfile.syncWithSigaa(
               sigaaCreds!,
@@ -461,19 +533,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
             notifyMyCourseListeners();
 
             const student = result.profile;
-            try {
-              await fetchAndCacheStudentWallet(
-                sigaaCreds!.matricula,
-                sigaaCreds!.senha,
-                student.cpf,
-              );
-            } catch (walletErr) {
-              console.warn(
-                "[SyncContext] Falha ao sincronizar carteirinha/extrato do RU:",
-                walletErr,
-              );
-            }
-            if (isCancelled()) return;
+            studentCpf = student.cpf;
 
             const iraStr = student.ira
               ? `IRA ${student.ira.toFixed(2)}`
@@ -488,12 +548,39 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
               lastUpdated: new Date().toISOString(),
             });
           } catch (err: unknown) {
-            if (isCancelled()) return;
+            historyError = err;
+          }
+
+          if (isCancelled()) return;
+
+          // A sincronização da Carteirinha e do Saldo/Extrato do RU roda sempre que o login SIGAA teve sucesso,
+          // mesmo se o download do PDF do histórico escolar tiver falhado.
+          try {
+            if (!studentCpf) {
+              const cachedProfile =
+                await useCases.manageAcademicProfile.getProfile();
+              studentCpf = cachedProfile?.cpf;
+            }
+            await fetchAndCacheStudentWallet(
+              sigaaCreds!.matricula,
+              sigaaCreds!.senha,
+              studentCpf,
+            );
+          } catch (walletErr) {
+            console.warn(
+              "[SyncContext] Falha ao sincronizar carteirinha/extrato do RU:",
+              walletErr,
+            );
+          }
+
+          if (isCancelled()) return;
+
+          if (historyError) {
             updateStep("myCourse", {
               status: "error",
               message:
-                err instanceof Error
-                  ? err.message
+                historyError instanceof Error
+                  ? historyError.message
                   : "Falha ao sincronizar histórico escolar",
             });
           }
@@ -569,19 +656,13 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
               });
             }
           } else if (totalErrors > 0 && totalSuccess > 0) {
-            toast.add({
-              title: "Sincronização com avisos",
-              description: "Algumas plataformas não puderam ser sincronizadas.",
-              type: "warning",
-              timeout: 5000,
-            });
-            if (
-              options?.isAutoSync &&
-              getNotificationSettings().backgroundSync
-            ) {
-              void repos.osNotifier.notify({
-                title: "Sincronização em segundo plano com avisos",
-                body: "Algumas plataformas não puderam ser sincronizadas.",
+            if (!options?.isAutoSync) {
+              toast.add({
+                title: "Sincronização com avisos",
+                description:
+                  "Algumas plataformas não puderam ser sincronizadas.",
+                type: "warning",
+                timeout: 5000,
               });
             }
           } else if (totalSuccess > 0 || totalConfigured === 0) {
@@ -664,6 +745,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
           syncInFlightRef.current = false;
         }
       } catch {
+        clearSlowTimer();
         if (!isCancelled()) {
           setIsSyncing(false);
           syncInFlightRef.current = false;
@@ -736,14 +818,35 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     // sem disparar sincronização automática na abertura (o usuário usa o botão Sincronizar).
     const intervalId = setInterval(checkPeriodicSync, 10 * 60 * 1000);
 
-    // Carrega preferências de notificação e mantém a agenda de alertas do RU atualizada
-    void loadNotificationSettings().then(() => {
+    // Carrega preferências de notificação, avalia fim do período de aulas e mantém a agenda de alertas do RU atualizada
+    const evaluateRuSemesterEndAndSync = async () => {
+      try {
+        const calendars = await useCasesRef.current.getAcademicCalendar.execute();
+        const currentCal =
+          calendars.find((c) => c.isCurrent) ?? calendars[0] ?? null;
+        const disabledBySemesterEnd =
+          await checkAndDisableRuNotificationsOnSemesterEnd(currentCal);
+        if (disabledBySemesterEnd) {
+          toast.add({
+            title: "Período de aulas encerrado",
+            description:
+              "As notificações diárias do RU foram desativadas pelo fim do semestre. Você pode reativá-las nas Configurações durante as férias.",
+            type: "info",
+            timeout: 7000,
+          });
+        }
+      } catch {}
+    };
+
+    void loadNotificationSettings().then(async () => {
       if (!isOnboardingNotificationsBlocked()) {
+        await evaluateRuSemesterEndAndSync();
         void syncRuMenuNotifications();
       }
     });
     const ruNotifIntervalId = setInterval(() => {
       if (!isOnboardingNotificationsBlocked()) {
+        void evaluateRuSemesterEndAndSync();
         void checkDueRuMenuNotification();
       }
     }, 60 * 1000);
@@ -760,12 +863,13 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
   const value = useMemo(
     () => ({
       isSyncing,
+      isSlowConnection,
       lastSyncedAt,
       steps,
       syncAll,
       cancelSync,
     }),
-    [isSyncing, lastSyncedAt, steps, syncAll, cancelSync],
+    [isSyncing, isSlowConnection, lastSyncedAt, steps, syncAll, cancelSync],
   );
 
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>;
