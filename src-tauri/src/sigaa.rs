@@ -2207,7 +2207,8 @@ impl SigaaClient {
         // movimentação e a UI as filtra, então saem primeiro se houver excesso.
         const MAX_RU_ENTRIES: usize = 10;
         if entries.len() > MAX_RU_ENTRIES {
-            let mut ranked: Vec<(usize, (i32, u32, u32, u32, u32))> = entries
+            type DtKey = (i32, u32, u32, u32, u32);
+            let mut ranked: Vec<(usize, DtKey)> = entries
                 .iter()
                 .enumerate()
                 .filter(|(idx, _)| !is_current_balance_label(&entries[*idx].description))

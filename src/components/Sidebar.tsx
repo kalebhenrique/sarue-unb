@@ -14,7 +14,6 @@ import {
   IdCard,
   AlignJustify,
   Bell,
-  FlaskConical,
 } from "lucide-react";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { AnimatePresence, motion } from "motion/react";
@@ -54,8 +53,6 @@ export interface SidebarProps {
   lastSyncedAt?: string | null;
   hasConnectedAccounts?: boolean;
   hasUpdateAvailable?: boolean;
-  /** Modo Demonstração ativo: exibe o badge "Demo" e mantém o sync disponível */
-  isDemoMode?: boolean;
   syncSteps?: Record<
     "sigaa" | "aprender3" | "teams" | "myCourse" | "ghPages" | "planilha",
     SyncStepInfo
@@ -76,7 +73,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   lastSyncedAt,
   hasConnectedAccounts = false,
   hasUpdateAvailable: propHasUpdateAvailable,
-  isDemoMode = false,
   syncSteps,
   syncPopoverOpen,
   onSyncPopoverOpenChange,

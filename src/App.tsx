@@ -233,7 +233,6 @@ const AppShell: React.FC = () => {
         lastSyncedAt={lastSyncedAt}
         hasConnectedAccounts={Boolean(hasCredentials) || isDemoMode}
         hasUpdateAvailable={hasUpdateAvailable}
-        isDemoMode={isDemoMode}
         syncSteps={syncSteps}
         syncPopoverOpen={!isMobile && syncPopoverOpen}
         onSyncPopoverOpenChange={setSyncPopoverOpen}

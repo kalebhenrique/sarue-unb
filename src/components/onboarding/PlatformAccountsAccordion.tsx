@@ -30,9 +30,11 @@ import { resetGradeCache } from "@/hooks/useGrade";
 import { resetMyCourseCache } from "@/hooks/useMyCourse";
 import { resetStudentWalletCache } from "@/hooks/useStudentWallet";
 import {
+  DEMO_WALLET,
   exitDemoMode,
   isDemoModeActive,
   isDemoSigaaCredentials,
+  saveCachedStudentWallet,
   setDemoMode,
 } from "@/core";
 import { isMobileDevice } from "@/lib/platform";
@@ -165,6 +167,7 @@ export const PlatformAccountsAccordion: React.FC<
   const enterDemoViaSigaaForm = async (): Promise<void> => {
     setDemoMode(true);
     await useCases.enterDemoMode.execute();
+    await saveCachedStudentWallet(DEMO_WALLET);
     notifyFeedListeners();
     resetGradeCache();
     resetMyCourseCache();
@@ -495,9 +498,7 @@ export const PlatformAccountsAccordion: React.FC<
       hint: "Matrícula e senha",
       isSaved: sigaaSaved,
       block: "bg-platform-sigaa",
-      icon: (
-        <GraduationCap className="w-5 h-5 text-ink stroke-[2.5]" />
-      ),
+      icon: <GraduationCap className="w-5 h-5 text-ink stroke-[2.5]" />,
     },
     {
       id: "aprender3",
@@ -505,9 +506,7 @@ export const PlatformAccountsAccordion: React.FC<
       hint: "CPF e senha",
       isSaved: aprenderSaved,
       block: "bg-platform-aprender3",
-      icon: (
-        <BookOpen className="w-5 h-5 text-ink stroke-[2.5]" />
-      ),
+      icon: <BookOpen className="w-5 h-5 text-ink stroke-[2.5]" />,
     },
     ...(showTeams
       ? [
@@ -517,9 +516,7 @@ export const PlatformAccountsAccordion: React.FC<
             hint: "Login interativo",
             isSaved: teamsConnected,
             block: "bg-platform-teams",
-            icon: (
-              <Video className="w-5 h-5 text-white stroke-[2.5]" />
-            ),
+            icon: <Video className="w-5 h-5 text-white stroke-[2.5]" />,
           },
         ]
       : []),
@@ -803,14 +800,18 @@ export const PlatformAccountsAccordion: React.FC<
                             <div className="p-3 bg-pastel-yellow text-black border-2 border-ink rounded-lg text-xs font-semibold leading-relaxed flex items-start gap-2">
                               <AlertCircle className="w-4 h-4 text-ink-warning stroke-[2.5] shrink-0 mt-0.5" />
                               <span>
-                                A integração com o Microsoft Teams requer suporte a múltiplas janelas de autenticação institucional e está disponível exclusivamente na versão Desktop do Saruê UnB.
+                                A integração com o Microsoft Teams requer
+                                suporte a múltiplas janelas de autenticação
+                                institucional e está disponível exclusivamente
+                                na versão Desktop do Saruê UnB.
                               </span>
                             </div>
                           ) : (
                             <p className="text-xs font-medium text-neutral-600 leading-relaxed">
                               Uma janela do Teams será aberta com uma barra de
-                              controle no topo. Entre com seu e-mail institucional
-                              (@aluno.unb.br ou @unb.br) pela opção{" "}
+                              controle no topo. Entre com seu e-mail
+                              institucional (@aluno.unb.br ou @unb.br) pela
+                              opção{" "}
                               <strong className="font-bold text-black">
                                 &quot;Usar minha senha&quot;
                               </strong>{" "}
@@ -841,7 +842,9 @@ export const PlatformAccountsAccordion: React.FC<
                               }
                               size="md"
                               isLoading={isVerifying}
-                              disabled={isLoading || isVerifying || isMobileDevice()}
+                              disabled={
+                                isLoading || isVerifying || isMobileDevice()
+                              }
                               onClick={handleToggleTeams}
                             >
                               <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />

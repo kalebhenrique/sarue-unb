@@ -8,14 +8,11 @@ import {
   DEMO_COURSES,
   DEMO_FEED_ITEMS,
   DEMO_SAVED_GRADE,
-  DEMO_WALLET,
 } from '../seeds/demo-data.seed';
-import { saveCachedStudentWallet } from '../infrastructure/ru-wallet.service';
 
 /**
  * Semeia os dados fictícios do Modo Demonstração (feed, turmas, perfil
- * acadêmico, cenário de IRA, grade salva e carteirinha/saldo RU) pelos
- * repositórios do container —
+ * acadêmico, cenário de IRA e grade salva) pelos repositórios do container —
  * os mesmos que o app usa para ler. Nada toca nos servidores da UnB e o cofre
  * de credenciais fica vazio, então os passos de sync dependente de conta ficam
  * naturalmente de fora.
@@ -61,7 +58,6 @@ export class EnterDemoModeUseCase {
           ),
       ],
       ['grade salva', () => this.manageGrade.save(DEMO_SAVED_GRADE)],
-      ['carteira do RU', () => saveCachedStudentWallet(DEMO_WALLET)],
     ];
 
     for (const [label, step] of steps) {
