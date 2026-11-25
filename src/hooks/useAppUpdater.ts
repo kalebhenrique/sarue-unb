@@ -18,6 +18,8 @@ export interface UpdateInfo {
   currentVersion: string;
   date?: string;
   body?: string;
+  apkDownloadUrl?: string;
+  releasePageUrl?: string;
 }
 
 export interface DownloadProgress {
@@ -32,6 +34,7 @@ interface UpdaterStore {
   progress: DownloadProgress | null;
   errorMessage: string | null;
   currentVersion: string;
+  isPlayStoreBuild: boolean;
 }
 
 let store: UpdaterStore = {
@@ -39,7 +42,10 @@ let store: UpdaterStore = {
   updateInfo: null,
   progress: null,
   errorMessage: null,
-  currentVersion: '0.4.0',
+  currentVersion: '0.5.1',
+  isPlayStoreBuild:
+    import.meta.env.VITE_TARGET_STORE === 'playstore' ||
+    import.meta.env.VITE_TARGET_STORE === 'google',
 };
 
 let pendingUpdate: Update | null = null;
@@ -63,6 +69,38 @@ function getSnapshot(): UpdaterStore {
 
 let versionLoading = false;
 let versionLoaded = false;
+let playStoreCheckLoaded = false;
+
+export async function detectPlayStoreInstall(): Promise<boolean> {
+  if (
+    import.meta.env.VITE_TARGET_STORE === 'playstore' ||
+    import.meta.env.VITE_TARGET_STORE === 'google'
+  ) {
+    if (!store.isPlayStoreBuild) {
+      setStore({ isPlayStoreBuild: true });
+    }
+    return true;
+  }
+
+  if (!isMobileDevice()) return false;
+  if (playStoreCheckLoaded) return store.isPlayStoreBuild;
+
+  if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+    try {
+      const { commands } = await import('../core/infrastructure/bindings');
+      if (typeof commands.isPlayStoreInstall === 'function') {
+        const res = await commands.isPlayStoreInstall();
+        playStoreCheckLoaded = true;
+        const isPlay = res.status === 'ok' && Boolean(res.data);
+        setStore({ isPlayStoreBuild: isPlay });
+        return isPlay;
+      }
+    } catch {
+      // Fallback: assume .apk sideloaded se não foi instalado via Play Store
+    }
+  }
+  return store.isPlayStoreBuild;
+}
 
 export async function loadAppVersion(): Promise<string> {
   if (versionLoaded) return store.currentVersion;
@@ -87,16 +125,46 @@ export async function loadAppVersion(): Promise<string> {
 // Inicia leitura assíncrona da versão se ambiente Tauri detectado
 if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
   void loadAppVersion();
+  void detectPlayStoreInstall();
 }
 
 /**
- * Consulta se há atualizações disponíveis no GitHub Releases via Tauri plugin-updater.
+ * Abre o link de download do APK da última Release no navegador externo do Android.
+ */
+export async function openApkDownload(): Promise<void> {
+  const targetUrl =
+    store.updateInfo?.apkDownloadUrl ||
+    store.updateInfo?.releasePageUrl ||
+    'https://github.com/kalebhenrique/sarue-unb/releases/latest';
+
+  if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+    try {
+      const { commands } = await import('../core/infrastructure/bindings');
+      await commands.openExternalUrl(targetUrl);
+      return;
+    } catch (err) {
+      console.warn('Falha ao abrir link do APK via Tauri:', err);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+  }
+}
+
+/**
+ * Consulta se há atualizações disponíveis no GitHub Releases via Tauri plugin-updater (Desktop)
+ * ou via comando nativo `checkApkReleaseUpdate` (Android APK, exceto builds `.aab` da Play Store).
  * Se silent=true, executa em segundo plano sem alterar status de erro na interface.
  */
 export async function checkForUpdates(silent = false): Promise<Update | null> {
-  // Em compilações distribuídas pela Microsoft Store, atualizações são gerenciadas
-  // exclusivamente pela própria loja (Política 10.2 / 10.8 da Microsoft Store).
-  if (import.meta.env.VITE_TARGET_STORE === 'microsoft' || isMobileDevice()) {
+  // Em compilações distribuídas pela Microsoft Store ou Google Play (.aab), atualizações
+  // são gerenciadas exclusivamente pela própria loja.
+  if (
+    import.meta.env.VITE_TARGET_STORE === 'microsoft' ||
+    import.meta.env.VITE_TARGET_STORE === 'playstore' ||
+    import.meta.env.VITE_TARGET_STORE === 'google'
+  ) {
     return null;
   }
 
@@ -107,6 +175,63 @@ export async function checkForUpdates(silent = false): Promise<Update | null> {
   // Não interrompe download em andamento ou app pronto para reiniciar
   if (store.status === 'downloading' || store.status === 'ready-to-restart') {
     return pendingUpdate;
+  }
+
+  // Fluxo Android (.apk): verifica se não é instalação da Play Store (.aab) e consulta GitHub Releases via Rust
+  if (isMobileDevice()) {
+    const isPlayStore = await detectPlayStoreInstall();
+    if (isPlayStore) {
+      return null;
+    }
+
+    if (!silent) {
+      setStore({ status: 'checking', errorMessage: null });
+    }
+
+    try {
+      const { commands } = await import('../core/infrastructure/bindings');
+      if (typeof commands.checkApkReleaseUpdate !== 'function') {
+        return null;
+      }
+      const res = await commands.checkApkReleaseUpdate();
+      if (res.status === 'error') {
+        throw new Error(res.error);
+      }
+      if (res.data) {
+        setStore({
+          status: 'available',
+          updateInfo: {
+            version: res.data.version,
+            currentVersion: res.data.currentVersion,
+            date: res.data.date ?? undefined,
+            body: res.data.body ?? undefined,
+            apkDownloadUrl: res.data.apkDownloadUrl,
+            releasePageUrl: res.data.releasePageUrl,
+          },
+          errorMessage: null,
+        });
+      } else {
+        setStore({
+          status: silent
+            ? store.status === 'available'
+              ? 'idle'
+              : store.status
+            : 'up-to-date',
+          updateInfo: null,
+          errorMessage: null,
+        });
+      }
+      return null;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!silent) {
+        console.error('Falha ao verificar atualizações de APK:', err);
+        setStore({ status: 'error', errorMessage: msg });
+      } else {
+        console.warn('[Updater APK] Verificação silenciosa falhou:', err);
+      }
+      return null;
+    }
   }
 
   if (!silent) {
@@ -294,6 +419,7 @@ export function useAppUpdater() {
 
   useEffect(() => {
     void loadAppVersion();
+    void detectPlayStoreInstall();
   }, []);
 
   const hasUpdateAvailable =
@@ -302,13 +428,21 @@ export function useAppUpdater() {
     state.status === 'ready-to-restart' ||
     Boolean(state.updateInfo);
 
+  const isApkUpdaterSupported =
+    isMobileDevice() &&
+    !state.isPlayStoreBuild &&
+    import.meta.env.VITE_TARGET_STORE !== 'playstore' &&
+    import.meta.env.VITE_TARGET_STORE !== 'google';
+
   return {
     ...state,
     hasUpdateAvailable,
+    isApkUpdaterSupported,
     checkForUpdates,
     downloadUpdate,
     downloadAndInstall,
     relaunchApp,
+    openApkDownload,
   };
 }
 
@@ -322,6 +456,7 @@ export function __setUpdaterStoreForTesting(
   if (mockPendingUpdate !== undefined) {
     pendingUpdate = mockPendingUpdate;
   }
+  playStoreCheckLoaded = true;
   setStore(patch);
 }
 

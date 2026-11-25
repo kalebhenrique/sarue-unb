@@ -1,8 +1,17 @@
 import React from "react";
-import { Download, RefreshCw, RotateCcw, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Download, ExternalLink, RefreshCw, RotateCcw, Sparkles } from "lucide-react";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { useAppUpdater } from "@/hooks/useAppUpdater";
+import { isMobileDevice } from "@/lib/platform";
 
 type UpdaterState = ReturnType<typeof useAppUpdater>;
 
@@ -16,7 +25,9 @@ const statusMessage = (updater: UpdaterState): string => {
     case "ready-to-restart":
       return "Atualização baixada com sucesso! Reinicie o aplicativo para concluir.";
     case "available":
-      return `Nova versão ${updater.updateInfo?.version} disponível para instalação!`;
+      return isMobileDevice()
+        ? `Nova versão ${updater.updateInfo?.version} disponível para download do APK!`
+        : `Nova versão ${updater.updateInfo?.version} disponível para instalação!`;
     case "up-to-date":
       return "Você está utilizando a versão mais recente do Saruê UnB.";
     case "error":
@@ -26,6 +37,119 @@ const statusMessage = (updater: UpdaterState): string => {
   }
 };
 
+export interface AppUpdateDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+/**
+ * Dialog de atualização disponível exibido ao tocar no botão de atualização na Home.
+ * No Android (.apk) oferece download direto do APK da última Release no GitHub;
+ * no Desktop permite baixar e aplicar a atualização pelo auto-updater.
+ */
+export const AppUpdateDialog: React.FC<AppUpdateDialogProps> = ({
+  open,
+  onOpenChange,
+}) => {
+  const updater = useAppUpdater();
+  const isMobileApk = isMobileDevice();
+  const isDownloading = updater.status === "downloading";
+  const downloadPct = updater.progress?.percent ?? 0;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-2.5 mb-1">
+            <div className="w-9 h-9 rounded-lg bg-neo-yellow text-ink border-2 border-ink flex items-center justify-center shadow-neo-sm shrink-0">
+              <Sparkles className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <DialogTitle>
+              Nova versão v{updater.updateInfo?.version} disponível!
+            </DialogTitle>
+          </div>
+          <DialogDescription>
+            Você está na versão v{updater.currentVersion}.{" "}
+            {isMobileApk
+              ? "Baixe e instale o novo APK da última Release oficial para receber as correções e melhorias."
+              : "Atualize agora para receber as últimas correções e novidades."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {updater.updateInfo?.body ? (
+          <div className="max-h-48 overflow-y-auto rounded-xl border-2 border-ink bg-canvas p-3 text-xs font-semibold text-neutral-700 whitespace-pre-wrap leading-relaxed">
+            {updater.updateInfo.body}
+          </div>
+        ) : null}
+
+        {isDownloading && updater.progress ? (
+          <div className="space-y-1.5">
+            <div className="w-full h-3 bg-neutral-200 rounded-full overflow-hidden border-2 border-ink">
+              <div
+                className="h-full bg-neo-blue transition-[width] duration-300"
+                style={{ width: `${downloadPct}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[11px] font-bold text-neutral-600">
+              <span>Baixando v{updater.updateInfo?.version}...</span>
+              <span>{downloadPct}%</span>
+            </div>
+          </div>
+        ) : null}
+
+        <DialogFooter className="gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            onClick={() => onOpenChange(false)}
+          >
+            <span>Depois</span>
+          </Button>
+
+          {isMobileApk ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={() => {
+                void updater.openApkDownload();
+                onOpenChange(false);
+              }}
+            >
+              <ExternalLink className="w-4 h-4 stroke-[2.5]" />
+              <span>Baixar APK</span>
+            </Button>
+          ) : updater.status === "ready-to-restart" ? (
+            <Button
+              type="button"
+              variant="accent"
+              size="md"
+              onClick={() => void updater.relaunchApp()}
+            >
+              <RotateCcw className="w-4 h-4 stroke-[2.5]" />
+              <span>Reiniciar e Aplicar</span>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              isLoading={isDownloading}
+              onClick={() => void updater.downloadUpdate()}
+            >
+              <Download className="w-4 h-4 stroke-[2.5]" />
+              <span>
+                {isDownloading ? `Baixando ${downloadPct}%` : "Baixar Atualização"}
+              </span>
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export const AppUpdaterCard: React.FC = () => {
   // O hook mora aqui de propósito: cada tick de progresso re-renderiza só
   // este card, não a tela de Settings inteira.
@@ -33,8 +157,14 @@ export const AppUpdaterCard: React.FC = () => {
   const downloadPct = updater.progress?.percent ?? 0;
   const isDownloading = updater.status === "downloading";
   const isChecking = updater.status === "checking";
+  const isMobileApk = isMobileDevice();
 
   const isStoreBuild = import.meta.env.VITE_TARGET_STORE === "microsoft";
+
+  // Em builds .aab (Google Play Store), o card não deve ser exibido
+  if (isMobileApk && !updater.isApkUpdaterSupported) {
+    return null;
+  }
 
   // Na versão distribuída pela Microsoft Store, a entrega e atualização são gerenciadas pelo SO
   if (isStoreBuild) {
@@ -75,18 +205,30 @@ export const AppUpdaterCard: React.FC = () => {
               <span>Reiniciar e Aplicar</span>
             </Button>
           ) : updater.status === "available" ? (
-            <Button
-              type="button"
-              variant="primary"
-              size="md"
-              isLoading={isDownloading}
-              onClick={() => updater.downloadUpdate()}
-            >
-              <Download className="w-4 h-4 stroke-[2.5]" />
-              <span>
-                {isDownloading ? `Baixando ${downloadPct}%` : "Baixar Atualização"}
-              </span>
-            </Button>
+            isMobileApk ? (
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                onClick={() => void updater.openApkDownload()}
+              >
+                <Download className="w-4 h-4 stroke-[2.5]" />
+                <span>Baixar APK (v{updater.updateInfo?.version})</span>
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                isLoading={isDownloading}
+                onClick={() => updater.downloadUpdate()}
+              >
+                <Download className="w-4 h-4 stroke-[2.5]" />
+                <span>
+                  {isDownloading ? `Baixando ${downloadPct}%` : "Baixar Atualização"}
+                </span>
+              </Button>
+            )
           ) : (
             <Button
               type="button"

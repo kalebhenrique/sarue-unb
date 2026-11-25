@@ -165,6 +165,27 @@ class SharePlugin(private val activity: Activity) : Plugin(activity) {
     return Bitmap.createBitmap(src, cropX, cropY, cropW, cropH)
   }
   @Command
+  fun isPlayStoreInstall(invoke: Invoke) {
+    try {
+      val pm = activity.packageManager
+      val pkg = activity.packageName
+      val installer = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+        pm.getInstallSourceInfo(pkg).installingPackageName
+      } else {
+        @Suppress("DEPRECATION")
+        pm.getInstallerPackageName(pkg)
+      }
+      val ret = JSObject()
+      ret.put("isPlayStore", installer == "com.android.vending")
+      invoke.resolve(ret)
+    } catch (_: Exception) {
+      val ret = JSObject()
+      ret.put("isPlayStore", false)
+      invoke.resolve(ret)
+    }
+  }
+
+  @Command
   fun shareImage(invoke: Invoke) {
     val args = try {
       invoke.parseArgs(ShareImageArgs::class.java)

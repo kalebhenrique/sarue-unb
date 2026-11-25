@@ -20,6 +20,13 @@ pub struct RenderedStudentCard {
 }
 
 #[cfg(target_os = "android")]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PlayStoreCheckResponse {
+    is_play_store: bool,
+}
+
+#[cfg(target_os = "android")]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RenderStudentCardArgs {
@@ -114,6 +121,21 @@ impl<R: Runtime> Share<R> {
             )
             .map(Some)
             .map_err(Into::into)
+    }
+
+    /// Verifica se o app no Android foi instalado via Google Play Store (`com.android.vending`, ou seja, bundle `.aab`).
+    /// Retorna `Ok(false)` quando instalado via `.apk` (sideload) ou fora do Android.
+    #[cfg(not(target_os = "android"))]
+    pub fn is_play_store_install(&self) -> Result<bool> {
+        Ok(false)
+    }
+
+    #[cfg(target_os = "android")]
+    pub fn is_play_store_install(&self) -> Result<bool> {
+        self.mobile_plugin_handle
+            .run_mobile_plugin::<PlayStoreCheckResponse>("isPlayStoreInstall", ())
+            .map(|r| r.is_play_store)
+            .or(Ok(false))
     }
 }
 

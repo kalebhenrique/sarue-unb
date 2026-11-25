@@ -17,7 +17,9 @@ import {
   toast,
   EmptyState,
 } from "@/components/ui";
-import { Archive, CheckSquare, Home, MoreVertical } from "lucide-react";
+import { Archive, CheckSquare, Download, Home, MoreVertical } from "lucide-react";
+import { useAppUpdater } from "../hooks/useAppUpdater";
+import { AppUpdateDialog } from "../components/settings/AppUpdaterCard";
 
 export const DashboardScreen: React.FC = () => {
   const {
@@ -41,6 +43,8 @@ export const DashboardScreen: React.FC = () => {
   } = useFeed();
 
   const PAGE_SIZE = 25;
+  const { hasUpdateAvailable, updateInfo } = useAppUpdater();
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const filterKey = `${selectedPlatform}|${selectedType}|${searchQuery}|${showArchived}`;
   const [page, setPage] = useState(1);
   const [lastFilterKey, setLastFilterKey] = useState(filterKey);
@@ -175,36 +179,56 @@ export const DashboardScreen: React.FC = () => {
         count={hasLoadedOnce ? totalItems : null}
         subtitle={hasLoadedOnce ? `(${resultLabel})` : null}
         mobileActions={
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <HeaderIconButton
-                  aria-label="Mais ações"
-                  hasActiveIndicator={showArchived || isSelecting}
-                >
-                  <MoreVertical className="w-4 h-4 stroke-[2.5]" />
-                </HeaderIconButton>
-              }
-            />
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => setShowArchived(!showArchived)}
+          <>
+            {hasUpdateAvailable ? (
+              <HeaderIconButton
+                aria-label={
+                  updateInfo?.version
+                    ? `Nova atualização v${updateInfo.version} disponível`
+                    : "Nova atualização disponível"
+                }
+                title={
+                  updateInfo?.version
+                    ? `Nova atualização v${updateInfo.version} disponível`
+                    : "Nova atualização disponível"
+                }
+                onClick={() => setUpdateDialogOpen(true)}
+                className="bg-neo-yellow text-ink hover:bg-neo-yellowHover"
               >
-                <Archive className="w-4 h-4 stroke-[2.5]" />
-                {showArchived ? "Ver itens ativos" : "Arquivados"}
-              </DropdownMenuItem>
-              {items.length > 0 ? (
+                <Download className="w-4 h-4 stroke-[2.5]" />
+              </HeaderIconButton>
+            ) : null}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <HeaderIconButton
+                    aria-label="Mais ações"
+                    hasActiveIndicator={showArchived || isSelecting}
+                  >
+                    <MoreVertical className="w-4 h-4 stroke-[2.5]" />
+                  </HeaderIconButton>
+                }
+              />
+              <DropdownMenuContent align="end">
                 <DropdownMenuItem
-                  onClick={
-                    isSelecting ? selection.exit : selection.enter
-                  }
+                  onClick={() => setShowArchived(!showArchived)}
                 >
-                  <CheckSquare className="w-4 h-4 stroke-[2.5]" />
-                  {isSelecting ? "Sair da seleção" : "Selecionar itens"}
+                  <Archive className="w-4 h-4 stroke-[2.5]" />
+                  {showArchived ? "Ver itens ativos" : "Arquivados"}
                 </DropdownMenuItem>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {items.length > 0 ? (
+                  <DropdownMenuItem
+                    onClick={
+                      isSelecting ? selection.exit : selection.enter
+                    }
+                  >
+                    <CheckSquare className="w-4 h-4 stroke-[2.5]" />
+                    {isSelecting ? "Sair da seleção" : "Selecionar itens"}
+                  </DropdownMenuItem>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
         }
       />
 
@@ -242,6 +266,14 @@ export const DashboardScreen: React.FC = () => {
         onBatchComplete={handleBatchComplete}
         onBatchArchive={handleBatchArchive}
         onBatchRestore={handleBatchRestore}
+        hasUpdateAvailable={hasUpdateAvailable}
+        updateVersion={updateInfo?.version}
+        onOpenUpdateDialog={() => setUpdateDialogOpen(true)}
+      />
+
+      <AppUpdateDialog
+        open={updateDialogOpen}
+        onOpenChange={setUpdateDialogOpen}
       />
 
       {/* Lista do Feed Cronológico */}

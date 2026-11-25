@@ -221,6 +221,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           STORAGE_KEYS.NOTIFICATION_SETTINGS,
           STORAGE_KEYS.RU_NOTIFIED_MEALS,
           STORAGE_KEYS.RU_SCHEDULED_NOTIF_IDS,
+          STORAGE_KEYS.RU_SCHEDULED_MEAL_TIMES,
           "unb_aggregator_academic_profile_v1",
           "unb_aggregator_ira_scenario_v1",
           "unb_grade_deptId",
@@ -662,8 +663,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           </div>
         </SettingsSection>
 
-        {/* Atualizações do Aplicativo */}
-        {!isMobileDevice() && <AppUpdaterCard />}
+        {/* Atualizações do Aplicativo (Desktop e Android APK; oculto em builds .aab da Play Store) */}
+        <AppUpdaterCard />
 
         {/* Zona de Perigo — logo após Atualizações, com respiro maior antes */}
         <div className="pt-6">
