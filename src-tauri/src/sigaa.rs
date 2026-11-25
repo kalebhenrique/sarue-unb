@@ -47,12 +47,36 @@ impl SigaaClient {
         let client = reqwest::Client::builder()
             .cookie_store(true)
             .default_headers(default_headers)
-            .timeout(std::time::Duration::from_secs(30))
+            .connect_timeout(std::time::Duration::from_secs(12))
+            .timeout(std::time::Duration::from_secs(25))
             .redirect(reqwest::redirect::Policy::limited(10))
             .build()
             .expect("Falha ao criar cliente HTTP reqwest para SIGAA");
 
         Self { client }
+    }
+
+    async fn update_or_clear_session_cache(
+        client: &reqwest::Client,
+        candidate_portal_html: Option<String>,
+    ) {
+        let refreshed = match candidate_portal_html {
+            Some(html)
+                if html.contains("menu:form_menu_discente")
+                    && html.contains("javax.faces.ViewState") =>
+            {
+                Some(html)
+            }
+            _ => Self::reload_portal_discente(client).await.ok(),
+        };
+
+        let mut lock = sigaa_session_cache().lock().await;
+        if let (Some(cached), Some(valid_html)) = (lock.as_mut(), refreshed) {
+            cached.portal_html = valid_html;
+            cached.created_at = std::time::Instant::now();
+        } else {
+            *lock = None;
+        }
     }
 
     async fn get_authenticated_portal(
@@ -80,22 +104,41 @@ impl SigaaClient {
             }
         }
 
-        let (page_html, aviso_item) = self
-            .login_to_portal_with_client(&self.client, matricula, senha)
-            .await?;
+        let mut active_client = self.client.clone();
+        let (page_html, aviso_item) = match self
+            .login_to_portal_with_client(&active_client, matricula, senha)
+            .await
+        {
+            Ok(res) => res,
+            Err(first_err) => {
+                let is_auth_rejection = first_err.contains("Credenciais inválidas")
+                    || first_err.contains("Matrícula ou senha");
+                if is_auth_rejection {
+                    return Err(first_err);
+                }
+                log::warn!(
+                    "[SigaaClient] Falha transitória no login SIGAA ({}). Tentando novamente em 1.5s...",
+                    first_err
+                );
+                tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+                active_client = Self::new().client;
+                self.login_to_portal_with_client(&active_client, matricula, senha)
+                    .await?
+            }
+        };
 
         {
             let mut lock = sigaa_session_cache().lock().await;
             *lock = Some(CachedSigaaPortal {
                 matricula: clean_matricula.to_string(),
                 senha_hash: pwd_hash,
-                client: self.client.clone(),
+                client: active_client.clone(),
                 portal_html: page_html.clone(),
                 created_at: std::time::Instant::now(),
             });
         }
 
-        Ok((self.client.clone(), page_html, aviso_item))
+        Ok((active_client, page_html, aviso_item))
     }
 
     /// Realiza a autenticação CAS SSO, contorna eventuais telas de aviso e garante que o portal discente esteja carregado
@@ -269,11 +312,18 @@ impl SigaaClient {
         out.trim().to_string()
     }
 
-    /// Extrai o token de horário (ex.: "35T45", "235M34") do campo de horário do portal
+    /// Extrai o token de horário (ex.: "35T45", "235M34", "3M12 56M12") do campo de horário do portal
     fn extract_schedule_token(schedule: &str) -> Option<String> {
         let re = Regex::new(r"([2-7]{1,6}[MTN][1-6]{1,6})").unwrap();
-        re.captures(schedule)
-            .map(|c| c.get(1).unwrap().as_str().to_string())
+        let tokens: Vec<&str> = re
+            .captures_iter(schedule)
+            .filter_map(|c| c.get(1).map(|m| m.as_str()))
+            .collect();
+        if tokens.is_empty() {
+            None
+        } else {
+            Some(tokens.join(" "))
+        }
     }
 
     /// "02" -> "Turma 2"; códigos não numéricos passam como estão
@@ -457,21 +507,54 @@ impl SigaaClient {
     }
 
     /// Estima a quantidade de créditos/slots semanais a partir do código de horário SIGAA (ex: 24M34, 35T45).
+    /// Quando o SIGAA separa dois blocos com exatamente o mesmo sufixo de turno e períodos (ex.: "3M12 56M12"
+    /// em vez do bloco único "356M12") ou intervalos de datas distintos, trata-se de uma disciplina de 60h
+    /// (4 créditos) com vigências ou subturmas separadas no portal.
     fn estimate_slots_from_schedule(code: &str) -> u32 {
-        let Ok(re) = Regex::new(r"([2-7]+)[MTN]([1-6]+)") else {
+        let Ok(block_re) = Regex::new(
+            r"([2-7]+)(?:([MTN][1-6]+))(?:\s*\((\d{2}/\d{2}/\d{4}\s*-\s*\d{2}/\d{2}/\d{4})\))?",
+        ) else {
             return 4;
         };
-        let mut total = 0;
-        for cap in re.captures_iter(code) {
+
+        let mut total = 0u32;
+        let mut max_block = 0u32;
+        let mut suffixes: Vec<String> = Vec::new();
+        let mut date_ranges: Vec<String> = Vec::new();
+
+        for cap in block_re.captures_iter(code) {
             let days = cap.get(1).map(|m| m.as_str().len() as u32).unwrap_or(0);
-            let periods = cap.get(2).map(|m| m.as_str().len() as u32).unwrap_or(0);
-            total += days * periods;
+            let suffix = cap.get(2).map(|m| m.as_str()).unwrap_or("");
+            let periods = suffix.len().saturating_sub(1) as u32;
+            let block_slots = days * periods;
+            total += block_slots;
+            if block_slots > max_block {
+                max_block = block_slots;
+            }
+            suffixes.push(suffix.to_string());
+            if let Some(dr) = cap.get(3) {
+                let dr_str = dr.as_str().trim().to_string();
+                if !date_ranges.contains(&dr_str) {
+                    date_ranges.push(dr_str);
+                }
+            }
         }
-        if total > 0 {
-            total
-        } else {
-            4
+
+        if total == 0 {
+            return 4;
         }
+
+        // Se houver intervalos de datas distintos entre os blocos ou blocos separados que
+        // repetem o mesmo turno+período (ex.: "3M12 56M12" -> ambos "M12"), usa o bloco principal (4 créditos).
+        let has_duplicate_suffix = suffixes.len() > 1 && {
+            let mut seen = std::collections::HashSet::new();
+            suffixes.iter().any(|s| !seen.insert(s.as_str()))
+        };
+        if date_ranges.len() > 1 || (has_duplicate_suffix && total == 6 && max_block == 4) {
+            return max_block;
+        }
+
+        total
     }
 
     /// Busca a oferta de turmas (dataset estático) e linka com as matriculadas.
@@ -879,8 +962,17 @@ impl SigaaClient {
     /// Realiza o parse da tabela do relatório oficial "Consultar Minhas Notas" (Boletim)
     /// extraindo o total de faltas consolidado por componente curricular / código.
     pub fn parse_minhas_notas_html(html: &str) -> HashMap<String, u32> {
+        Self::parse_minhas_notas_with_workload_html(html).0
+    }
+
+    /// Extrai simultaneamente o mapa de faltas e o mapa de carga horária (`CH`, ex.: 60h -> 60)
+    /// da tabela do relatório oficial "Consultar Minhas Notas" (Boletim).
+    pub fn parse_minhas_notas_with_workload_html(
+        html: &str,
+    ) -> (HashMap<String, u32>, HashMap<String, u32>) {
         let clean = decode_html_entities(html);
         let mut results = HashMap::new();
+        let mut workloads = HashMap::new();
 
         let table_re = Regex::new(r#"(?is)<table\b[^>]*>(.*?)</table>"#).unwrap();
         let tr_re = Regex::new(r#"(?is)<tr\b[^>]*>(.*?)</tr>"#).unwrap();
@@ -898,6 +990,7 @@ impl SigaaClient {
             let mut header_falta_idx: Option<usize> = None;
             let mut header_name_idx: Option<usize> = None;
             let mut header_code_idx: Option<usize> = None;
+            let mut header_ch_idx: Option<usize> = None;
 
             let mut rows = Vec::new();
 
@@ -927,6 +1020,12 @@ impl SigaaClient {
                             header_name_idx = Some(idx);
                         } else if lower.contains("código") || lower.contains("codigo") {
                             header_code_idx = Some(idx);
+                        } else if lower == "ch"
+                            || lower == "c.h."
+                            || lower == "ch."
+                            || lower.contains("carga hor")
+                        {
+                            header_ch_idx = Some(idx);
                         }
                     }
                     continue;
@@ -958,6 +1057,12 @@ impl SigaaClient {
                                 header_name_idx = Some(idx);
                             } else if lower.contains("código") || lower.contains("codigo") {
                                 header_code_idx = Some(idx);
+                            } else if lower == "ch"
+                                || lower == "c.h."
+                                || lower == "ch."
+                                || lower.contains("carga hor")
+                            {
+                                header_ch_idx = Some(idx);
                             }
                         }
                         continue;
@@ -968,6 +1073,37 @@ impl SigaaClient {
 
             if let Some(falta_idx) = header_falta_idx {
                 for cells in &rows {
+                    let mut row_keys: Vec<String> = Vec::new();
+                    if let Some(name_idx) = header_name_idx {
+                        if name_idx < cells.len() {
+                            let raw_name = &cells[name_idx];
+                            let norm = Self::normalize_discipline_name(raw_name);
+                            if !norm.is_empty() {
+                                row_keys.push(norm);
+                            }
+                            for sep in &['-', '–', '—'] {
+                                if let Some((code_part, name_part)) = raw_name.split_once(*sep) {
+                                    let norm_code = Self::normalize_discipline_name(code_part);
+                                    let norm_subname = Self::normalize_discipline_name(name_part);
+                                    if !norm_code.is_empty() {
+                                        row_keys.push(norm_code);
+                                    }
+                                    if !norm_subname.is_empty() {
+                                        row_keys.push(norm_subname);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if let Some(code_idx) = header_code_idx {
+                        if code_idx < cells.len() {
+                            let norm_code = Self::normalize_discipline_name(&cells[code_idx]);
+                            if !norm_code.is_empty() {
+                                row_keys.push(norm_code);
+                            }
+                        }
+                    }
+
                     if falta_idx < cells.len() {
                         let falta_str = &cells[falta_idx];
                         let absences = falta_str
@@ -978,37 +1114,24 @@ impl SigaaClient {
                             .ok();
 
                         if let Some(abs) = absences {
-                            if let Some(name_idx) = header_name_idx {
-                                if name_idx < cells.len() {
-                                    let raw_name = &cells[name_idx];
-                                    let norm = Self::normalize_discipline_name(raw_name);
-                                    if !norm.is_empty() {
-                                        results.insert(norm, abs);
-                                    }
-                                    for sep in &['-', '–', '—'] {
-                                        if let Some((code_part, name_part)) =
-                                            raw_name.split_once(*sep)
-                                        {
-                                            let norm_code =
-                                                Self::normalize_discipline_name(code_part);
-                                            let norm_subname =
-                                                Self::normalize_discipline_name(name_part);
-                                            if !norm_code.is_empty() {
-                                                results.insert(norm_code, abs);
-                                            }
-                                            if !norm_subname.is_empty() {
-                                                results.insert(norm_subname, abs);
-                                            }
-                                        }
-                                    }
-                                }
+                            for key in &row_keys {
+                                results.insert(key.clone(), abs);
                             }
-                            if let Some(code_idx) = header_code_idx {
-                                if code_idx < cells.len() {
-                                    let norm_code =
-                                        Self::normalize_discipline_name(&cells[code_idx]);
-                                    if !norm_code.is_empty() {
-                                        results.insert(norm_code, abs);
+                        }
+                    }
+
+                    if let Some(ch_idx) = header_ch_idx {
+                        if ch_idx < cells.len() {
+                            let ch_val = cells[ch_idx]
+                                .chars()
+                                .filter(|c| c.is_ascii_digit())
+                                .collect::<String>()
+                                .parse::<u32>()
+                                .ok();
+                            if let Some(ch) = ch_val {
+                                if (15..=600).contains(&ch) {
+                                    for key in &row_keys {
+                                        workloads.insert(key.clone(), ch);
                                     }
                                 }
                             }
@@ -1018,7 +1141,7 @@ impl SigaaClient {
             }
         }
 
-        results
+        (results, workloads)
     }
 
     /// Auxiliar para extrair o action URL de um formulário específico no HTML
@@ -1057,36 +1180,16 @@ impl SigaaClient {
         client: &reqwest::Client,
         portal_html: &str,
     ) -> HashMap<String, u32> {
-        let vs_re = Regex::new(r#"(?:id|name)="javax\.faces\.ViewState"[^>]*value="([^"]+)""#)
-            .or_else(|_| {
-                Regex::new(r#"value="([^"]+)"[^>]*(?:id|name)="javax\.faces\.ViewState""#)
-            });
-        let vs = vs_re
-            .ok()
-            .and_then(|re| re.captures(portal_html))
-            .and_then(|c| c.get(1))
-            .map(|m| m.as_str().to_string())
-            .unwrap_or_else(|| "j_id1".to_string());
+        Self::fetch_absences_and_workload_from_minhas_notas(client, portal_html)
+            .await
+            .0
+    }
 
-        let id_re = Regex::new(
-            r#"(?:name="id"[^>]*value="([^"]+)"|value="([^"]+)"[^>]*name="id"|<input[^>]*id="id"[^>]*value="([^"]+)")"#,
-        );
-        let mut id_val = id_re
-            .ok()
-            .and_then(|re| re.captures(portal_html))
-            .and_then(|c| c.get(1).or_else(|| c.get(2)).or_else(|| c.get(3)))
-            .map(|m| m.as_str().to_string())
-            .unwrap_or_default();
-
-        if id_val.is_empty() {
-            if let Ok(discente_id_re) = Regex::new(r#"(?:id_discente|idDiscente)=(\d+)"#) {
-                if let Some(c) = discente_id_re.captures(portal_html) {
-                    if let Some(m) = c.get(1) {
-                        id_val = m.as_str().to_string();
-                    }
-                }
-            }
-        }
+    pub async fn fetch_absences_and_workload_from_minhas_notas(
+        client: &reqwest::Client,
+        portal_html: &str,
+    ) -> (HashMap<String, u32>, HashMap<String, u32>) {
+        let (vs, id_val) = Self::extract_portal_viewstate_and_id(portal_html);
 
         let jscook_re = Regex::new(
             r#"(menu_form_menu_discente_discente_menu:A\]#\{[^}]*(?:consultarNotas|relatorioNotasAluno[^}]*gerarRelatorio|gerarRelatorio)[^}]*\})"#,
@@ -1114,6 +1217,7 @@ impl SigaaClient {
 
         log::info!("[SigaaClient] Submetendo requisição para Consultar Minhas Notas...");
         let mut map = HashMap::new();
+        let mut workloads = HashMap::new();
 
         if let Ok(res_notas) = client
             .post(DISCENTE_URL)
@@ -1123,7 +1227,7 @@ impl SigaaClient {
             .await
         {
             if let Ok(notas_html) = res_notas.text().await {
-                map = Self::parse_minhas_notas_html(&notas_html);
+                (map, workloads) = Self::parse_minhas_notas_with_workload_html(&notas_html);
             }
         }
 
@@ -1144,16 +1248,52 @@ impl SigaaClient {
                 .await
             {
                 if let Ok(notas_html) = res_notas2.text().await {
-                    map = Self::parse_minhas_notas_html(&notas_html);
+                    (map, workloads) = Self::parse_minhas_notas_with_workload_html(&notas_html);
                 }
             }
         }
 
         log::info!(
-            "[SigaaClient] Minhas Notas retornou {} disciplinas com faltas mapeadas.",
-            map.len()
+            "[SigaaClient] Minhas Notas retornou {} disciplinas com faltas e {} com CH mapeadas.",
+            map.len(),
+            workloads.len()
         );
-        map
+        (map, workloads)
+    }
+
+    /// Extrai de forma resiliente o `javax.faces.ViewState` e o `id` (idDiscente) do HTML do Portal Discente.
+    pub fn extract_portal_viewstate_and_id(portal_html: &str) -> (String, String) {
+        let vs_re = Regex::new(
+            r#"(?:(?:id|name)="javax\.faces\.ViewState"[^>]*value="([^"]+)"|value="([^"]+)"[^>]*(?:id|name)="javax\.faces\.ViewState")"#,
+        );
+        let vs = vs_re
+            .ok()
+            .and_then(|re| re.captures(portal_html))
+            .and_then(|c| c.get(1).or_else(|| c.get(2)))
+            .map(|m| m.as_str().to_string())
+            .unwrap_or_else(|| "j_id1".to_string());
+
+        let id_re = Regex::new(
+            r#"(?:name="id"[^>]*value="([^"]+)"|value="([^"]+)"[^>]*name="id"|<input[^>]*id="id"[^>]*value="([^"]+)")"#,
+        );
+        let mut id_val = id_re
+            .ok()
+            .and_then(|re| re.captures(portal_html))
+            .and_then(|c| c.get(1).or_else(|| c.get(2)).or_else(|| c.get(3)))
+            .map(|m| m.as_str().to_string())
+            .unwrap_or_default();
+
+        if id_val.is_empty() {
+            if let Ok(discente_id_re) = Regex::new(r#"(?:id_discente|idDiscente)=(\d+)"#) {
+                if let Some(c) = discente_id_re.captures(portal_html) {
+                    if let Some(m) = c.get(1) {
+                        id_val = m.as_str().to_string();
+                    }
+                }
+            }
+        }
+
+        (vs, id_val)
     }
 
     /// Extrai o valor de um atributo HTML específico de uma string de atributos.
@@ -1545,12 +1685,12 @@ impl SigaaClient {
         // garantindo que course.code (ex: "MAT0027"), professor e max_absences já estejam populados
         let mut courses = Self::enrich_courses_with_offer(courses).await;
 
-        // 2. Consulta o Boletim Consolidado (Minhas Notas) para pré-popular as faltas.
+        // 2. Consulta o Boletim Consolidado (Minhas Notas) para pré-popular as faltas e a Carga Horária (CH).
         // Funciona como fallback: o Boletim pode estar desatualizado (professor ainda
         // não consolidou faltas lá), enquanto o Mapa de Frequências é o registro oficial.
-        log::info!("[SigaaClient] Consultando Boletim Oficial (Minhas Notas) para capturar faltas consolidadas...");
-        let consolidated_absences =
-            Self::fetch_absences_from_minhas_notas(&active_client, &page_html).await;
+        log::info!("[SigaaClient] Consultando Boletim Oficial (Minhas Notas) para capturar faltas e CH consolidadas...");
+        let (consolidated_absences, consolidated_workloads) =
+            Self::fetch_absences_and_workload_from_minhas_notas(&active_client, &page_html).await;
         for course in courses.iter_mut() {
             let norm_name = Self::normalize_discipline_name(&course.name);
             let norm_code = Self::normalize_discipline_name(&course.code);
@@ -1567,6 +1707,22 @@ impl SigaaClient {
                     course.name,
                     abs
                 );
+            }
+
+            if let Some(&ch_hours) = consolidated_workloads
+                .get(&norm_code)
+                .or_else(|| consolidated_workloads.get(&norm_name))
+            {
+                let credits = (ch_hours / 15).max(1);
+                let hours_per_class = course
+                    .schedule
+                    .as_deref()
+                    .map(Self::estimate_hours_per_class_from_schedule)
+                    .unwrap_or(2);
+                course.max_absences = Some(Self::calculate_max_absences_for_course(
+                    credits,
+                    hours_per_class,
+                ));
             }
         }
 
@@ -1629,11 +1785,9 @@ impl SigaaClient {
             }
         }
 
-        // Invalida o ViewState do cache após requisições POST para evitar conflito na próxima sincronização
-        {
-            let mut lock = sigaa_session_cache().lock().await;
-            *lock = None;
-        }
+        // Atualiza o portal_html no cache de sessão com o último HTML recarregado do portal discente,
+        // permitindo que o histórico escolar e a carteirinha reutilizem a mesma sessão CAS.
+        Self::update_or_clear_session_cache(&active_client, Some(current_portal_html)).await;
 
         log::info!(
             "[SigaaClient] Sincronização concluída com sucesso em {:?}: {} turmas e {} itens de feed.",
@@ -1795,20 +1949,7 @@ impl SigaaClient {
         let (active_client, page_html, _) = self.get_authenticated_portal(matricula, senha).await?;
         let mut profile = Self::parse_discente_profile(&page_html, matricula);
 
-        let vs_re = Regex::new(r#"id="javax\.faces\.ViewState"[^>]*value="([^"]+)""#)
-            .map_err(|e| e.to_string())?;
-        let id_re = Regex::new(r#"<input type="hidden" name="id" value="([^"]+)""#)
-            .map_err(|e| e.to_string())?;
-
-        let vs = vs_re
-            .captures(&page_html)
-            .map(|c| c.get(1).unwrap().as_str().to_string())
-            .unwrap_or_else(|| "j_id1".into());
-
-        let id_val = id_re
-            .captures(&page_html)
-            .map(|c| c.get(1).unwrap().as_str().to_string())
-            .unwrap_or_default();
+        let (vs, id_val) = Self::extract_portal_viewstate_and_id(&page_html);
 
         let mut form_data = HashMap::new();
         form_data.insert("menu:form_menu_discente", "menu:form_menu_discente");
@@ -1830,16 +1971,44 @@ impl SigaaClient {
             .await
             .map_err(|e| format!("Falha ao conectar para emitir histórico escolar: {}", e))?;
 
-        let bytes = res_hist
+        let mut bytes = res_hist
             .bytes()
             .await
             .map_err(|e| format!("Falha ao baixar PDF do histórico: {}", e))?;
 
-        // Invalida o ViewState do cache após POST para evitar conflito em chamadas subsequentes
-        {
-            let mut lock = sigaa_session_cache().lock().await;
-            *lock = None;
+        if !bytes.starts_with(b"%PDF") {
+            if let Ok(fresh_html) = Self::reload_portal_discente(&active_client).await {
+                let (fresh_vs, fresh_id) = Self::extract_portal_viewstate_and_id(&fresh_html);
+                let final_id = if !fresh_id.is_empty() {
+                    fresh_id
+                } else {
+                    id_val.clone()
+                };
+                let mut retry_form = HashMap::new();
+                retry_form.insert("menu:form_menu_discente", "menu:form_menu_discente");
+                retry_form.insert("id", &final_id);
+                retry_form.insert(
+                    "jscook_action",
+                    "menu_form_menu_discente_discente_menu:A]#{ portalDiscente.historico }",
+                );
+                retry_form.insert("javax.faces.ViewState", &fresh_vs);
+
+                if let Ok(retry_res) = active_client
+                    .post(DISCENTE_URL)
+                    .header(REFERER, DISCENTE_URL)
+                    .form(&retry_form)
+                    .send()
+                    .await
+                {
+                    if let Ok(retry_bytes) = retry_res.bytes().await {
+                        bytes = retry_bytes;
+                    }
+                }
+            }
         }
+
+        // Atualiza ou limpa o cache de sessão após o POST
+        Self::update_or_clear_session_cache(&active_client, None).await;
 
         if !bytes.starts_with(b"%PDF") {
             log::warn!("[SigaaClient] Resposta do histórico não iniciou com %PDF.");
@@ -1914,33 +2083,24 @@ impl SigaaClient {
     pub fn parse_ru_statement_html(
         html: &str,
     ) -> Option<(f64, Option<u32>, Vec<RuStatementEntry>)> {
-        let doc = scraper::Html::parse_document(html);
-        let h4_sel = scraper::Selector::parse("h4").ok()?;
-        let has_statement = doc.select(&h4_sel).any(|el| {
-            el.text()
-                .collect::<Vec<_>>()
-                .join(" ")
-                .contains("Extrato no Restaurante Universitário")
-        });
-        if !has_statement {
-            return None;
-        }
+        let clean_html = decode_html_entities(html);
+        let header_re = Regex::new(r"(?i)Extrato\s+no\s+Restaurante\s+Universit[áa]rio").ok()?;
+        let header_match = header_re.find(&clean_html)?;
 
         // Find the table right after "Extrato no Restaurante Universitário"
-        let idx = html.find("Extrato no Restaurante Universitário")?;
-        let after = &html[idx..];
+        let after = &clean_html[header_match.start()..];
         let table_start = after.find("<table")?;
         let table_end = after[table_start..].find("</table>")? + table_start + 8;
         let table_html = &after[table_start..table_end];
         let table_doc = scraper::Html::parse_fragment(table_html);
         let tr_sel = scraper::Selector::parse("tr").ok()?;
-        let td_sel = scraper::Selector::parse("td").ok()?;
+        let cell_sel = scraper::Selector::parse("td, th").ok()?;
         let group_re = Regex::new(r"(?i)\bgrupo\s*([1234])\b").ok()?;
 
         let mut entries = Vec::new();
         for tr in table_doc.select(&tr_sel) {
             let cells: Vec<String> = tr
-                .select(&td_sel)
+                .select(&cell_sel)
                 .map(|td| {
                     td.text()
                         .collect::<Vec<_>>()
@@ -1950,12 +2110,20 @@ impl SigaaClient {
                         .join(" ")
                 })
                 .collect();
-            if cells.len() != 3 {
+
+            let (raw_dt, desc, raw_amount_cell) = if cells.len() >= 3 {
+                (
+                    cells[0].clone(),
+                    cells[1].clone(),
+                    cells[cells.len() - 1].as_str(),
+                )
+            } else if cells.len() == 2 {
+                (String::new(), cells[0].clone(), cells[1].as_str())
+            } else {
                 continue;
-            }
-            let raw_dt = &cells[0];
-            let desc = &cells[1];
-            let raw_amount = cells[2]
+            };
+
+            let raw_amount = raw_amount_cell
                 .replace("R$", "")
                 .chars()
                 .filter(|c| !c.is_whitespace())
@@ -1966,13 +2134,14 @@ impl SigaaClient {
                 continue;
             };
             entries.push(RuStatementEntry {
-                occurred_at: raw_dt.clone(),
-                description: desc.clone(),
+                occurred_at: raw_dt,
+                description: desc,
                 amount,
             });
         }
 
-        // Sort entries descending by occurred_at (dd/mm/yyyy HH:MM) to find latest balance & group
+        // Sort entries descending by occurred_at (dd/mm/yyyy HH:MM) to find latest balance & group,
+        // preserving table order on ties.
         let parse_dt_key = |s: &str| -> (i32, u32, u32, u32, u32) {
             // "20/09/2026 12:23"
             let parts: Vec<&str> = s.split_whitespace().collect();
@@ -1997,24 +2166,35 @@ impl SigaaClient {
             }
         };
 
-        let mut sorted = entries.clone();
-        sorted.sort_by_key(|b| std::cmp::Reverse(parse_dt_key(&b.occurred_at)));
+        let mut indexed: Vec<(usize, RuStatementEntry)> =
+            entries.iter().cloned().enumerate().collect();
+        indexed.sort_by_key(|(idx, b)| (std::cmp::Reverse(parse_dt_key(&b.occurred_at)), *idx));
 
-        let balance = sorted.iter().find_map(|e| {
-            let k = e
-                .description
-                .trim()
-                .trim_end_matches(':')
-                .trim()
-                .to_lowercase();
-            if k == "saldo" || k == "saldo atual" {
-                Some(e.amount)
-            } else {
-                None
-            }
-        })?;
+        let is_current_balance_label = |desc: &str| -> bool {
+            let k = desc.trim().trim_end_matches(':').trim().to_lowercase();
+            k == "saldo" || k == "saldo atual"
+        };
 
-        let group = sorted.iter().find_map(|e| {
+        let balance = indexed
+            .iter()
+            .find_map(|(_, e)| {
+                if is_current_balance_label(&e.description) {
+                    Some(e.amount)
+                } else {
+                    None
+                }
+            })
+            .or_else(|| {
+                entries.iter().find_map(|e| {
+                    if is_current_balance_label(&e.description) {
+                        Some(e.amount)
+                    } else {
+                        None
+                    }
+                })
+            })?;
+
+        let group = indexed.iter().find_map(|(_, e)| {
             group_re
                 .captures(&e.description)
                 .and_then(|c| c[1].parse::<u32>().ok())
@@ -2283,6 +2463,40 @@ impl SigaaClient {
         Ok((token, valid_until))
     }
 
+    /// Extrai os parâmetros de submissão do formulário `formExibirExtrato` do Portal Discente,
+    /// suportando o ID dinâmico JSF (`formExibirExtrato:j_id_jsp_*`) presente no `onclick="...jsfcljs(...)"`.
+    pub fn extract_ru_statement_form_params(portal_html: &str) -> HashMap<String, String> {
+        let (vs, _) = Self::extract_portal_viewstate_and_id(portal_html);
+        let mut form_data = HashMap::new();
+        form_data.insert(
+            "formExibirExtrato".to_string(),
+            "formExibirExtrato".to_string(),
+        );
+        form_data.insert("javax.faces.ViewState".to_string(), vs);
+
+        let form_re = Regex::new(r#"(?is)<form\b[^>]*id="formExibirExtrato"[^>]*>(.*?)</form>"#);
+        let form_slice = form_re
+            .ok()
+            .and_then(|re| re.captures(portal_html))
+            .and_then(|c| c.get(1))
+            .map(|m| m.as_str())
+            .unwrap_or(portal_html);
+
+        let jsf_params = Self::extract_jsf_params_from_onclick(form_slice);
+        if !jsf_params.is_empty() {
+            for (k, v) in jsf_params {
+                form_data.insert(k, v);
+            }
+        } else {
+            form_data.insert(
+                "formExibirExtrato:botao".to_string(),
+                "formExibirExtrato:botao".to_string(),
+            );
+        }
+
+        form_data
+    }
+
     pub async fn fetch_student_wallet(
         &self,
         matricula: &str,
@@ -2291,20 +2505,10 @@ impl SigaaClient {
         let (active_client, mut page_html, _) =
             self.get_authenticated_portal(matricula, senha).await?;
 
-        let vs_re = Regex::new(r#"id="javax\.faces\.ViewState"[^>]*value="([^"]+)""#).unwrap();
-        let id_re = Regex::new(r#"<input type="hidden" name="id" value="([^"]+)""#).unwrap();
-
         // 1. Extrato do RU (se ainda não aberto na página, envia postback de formExibirExtrato)
         let mut statement = Self::parse_ru_statement_html(&page_html);
         if statement.is_none() && page_html.contains("formExibirExtrato") {
-            let vs = vs_re
-                .captures(&page_html)
-                .map(|c| c[1].to_string())
-                .unwrap_or_else(|| "j_id1".into());
-            let mut form_data = HashMap::new();
-            form_data.insert("formExibirExtrato", "formExibirExtrato");
-            form_data.insert("formExibirExtrato:botao", "formExibirExtrato:botao");
-            form_data.insert("javax.faces.ViewState", &vs);
+            let form_data = Self::extract_ru_statement_form_params(&page_html);
 
             if let Ok(res_ext) = active_client
                 .post(DISCENTE_URL)
@@ -2315,73 +2519,88 @@ impl SigaaClient {
             {
                 if let Ok(ext_html) = res_ext.text().await {
                     statement = Self::parse_ru_statement_html(&ext_html);
-                    if ext_html.contains("menu:form_menu_discente") {
+                    if ext_html.contains("menu:form_menu_discente")
+                        && ext_html.contains("javax.faces.ViewState")
+                    {
                         page_html = ext_html;
+                    } else if let Ok(reloaded) = Self::reload_portal_discente(&active_client).await
+                    {
+                        page_html = reloaded;
                     }
                 }
             }
         }
 
         // 2. Carteirinha estudantil (PDF + QR Code)
-        let vs = vs_re
-            .captures(&page_html)
-            .map(|c| c[1].to_string())
-            .unwrap_or_else(|| "j_id1".into());
-        let id_val = id_re
-            .captures(&page_html)
-            .map(|c| c[1].to_string())
-            .unwrap_or_default();
-
-        let mut card_form = HashMap::new();
-        card_form.insert("menu:form_menu_discente", "menu:form_menu_discente");
-        card_form.insert("id", &id_val);
-        card_form.insert(
-            "jscook_action",
-            "menu_form_menu_discente_discente_menu:A]#{ portalDiscente.emitiCarteiraEstudantilUnb }",
+        let jscook_card_re = Regex::new(
+            r#"(menu_form_menu_discente_discente_menu:A\]#\{[^}]*emiti[r]?CarteiraEstudantil[^}]*\})"#,
         );
-        card_form.insert("javax.faces.ViewState", &vs);
+        let card_action = jscook_card_re
+            .ok()
+            .and_then(|re| re.captures(&page_html))
+            .and_then(|c| c.get(1))
+            .map(|m| m.as_str().to_string())
+            .unwrap_or_else(|| {
+                "menu_form_menu_discente_discente_menu:A]#{ portalDiscente.emitiCarteiraEstudantilUnb }"
+                    .to_string()
+            });
 
         let mut ru_token = None;
         let mut ru_valid_until = None;
         let mut ru_card_pdf_base64 = None;
 
-        if let Ok(res_card) = active_client
-            .post(DISCENTE_URL)
-            .header(REFERER, DISCENTE_URL)
-            .form(&card_form)
-            .send()
-            .await
-        {
-            if let Ok(bytes) = res_card.bytes().await {
-                if let Some(pdf_start) = bytes.windows(5).take(256).position(|w| w == b"%PDF-") {
-                    let clean_slice = &bytes[pdf_start..];
-                    ru_card_pdf_base64 = Some(base64_encode(clean_slice));
-                    let bytes_vec = clean_slice.to_vec();
-                    if let Ok(Ok((tok, val))) = tokio::task::spawn_blocking(move || {
-                        Self::parse_student_card_pdf(&bytes_vec)
-                    })
-                    .await
+        for attempt in 0..2 {
+            if attempt == 1 {
+                if let Ok(reloaded) = Self::reload_portal_discente(&active_client).await {
+                    page_html = reloaded;
+                }
+            }
+
+            let (vs, id_val) = Self::extract_portal_viewstate_and_id(&page_html);
+            let mut card_form = HashMap::new();
+            card_form.insert("menu:form_menu_discente", "menu:form_menu_discente");
+            card_form.insert("id", &id_val);
+            card_form.insert("jscook_action", &card_action);
+            card_form.insert("javax.faces.ViewState", &vs);
+
+            if let Ok(res_card) = active_client
+                .post(DISCENTE_URL)
+                .header(REFERER, DISCENTE_URL)
+                .form(&card_form)
+                .send()
+                .await
+            {
+                if let Ok(bytes) = res_card.bytes().await {
+                    if let Some(pdf_start) = bytes.windows(5).take(256).position(|w| w == b"%PDF-")
                     {
-                        ru_token = Some(tok);
-                        ru_valid_until = Some(val);
-                    }
-                } else {
-                    let body_str = String::from_utf8_lossy(&bytes);
-                    if body_str.to_lowercase().contains("possui foto") {
-                        return Err(
-                            "Você ainda não possui foto cadastrada no perfil do SIGAA. Atualize sua foto no portal discente para emitir a carteirinha do RU."
-                                .into(),
-                        );
+                        let clean_slice = &bytes[pdf_start..];
+                        ru_card_pdf_base64 = Some(base64_encode(clean_slice));
+                        let bytes_vec = clean_slice.to_vec();
+                        if let Ok(Ok((tok, val))) = tokio::task::spawn_blocking(move || {
+                            Self::parse_student_card_pdf(&bytes_vec)
+                        })
+                        .await
+                        {
+                            ru_token = Some(tok);
+                            ru_valid_until = Some(val);
+                        }
+                        break;
+                    } else {
+                        let body_str = String::from_utf8_lossy(&bytes);
+                        if body_str.to_lowercase().contains("possui foto") {
+                            Self::update_or_clear_session_cache(&active_client, None).await;
+                            return Err(
+                                "Você ainda não possui foto cadastrada no perfil do SIGAA. Atualize sua foto no portal discente para emitir a carteirinha do RU."
+                                    .into(),
+                            );
+                        }
                     }
                 }
             }
         }
 
-        // Invalidate cached ViewState after POST
-        {
-            let mut lock = sigaa_session_cache().lock().await;
-            *lock = None;
-        }
+        // Atualiza ou invalida o cache de sessão após o POST
+        Self::update_or_clear_session_cache(&active_client, None).await;
 
         let (ru_balance, ru_group, ru_entries) = match statement {
             Some((b, g, e)) => (Some(b), g, e),
@@ -2597,7 +2816,7 @@ impl SigaaClient {
             let course_name = decode_html_entities(raw_name);
             let classroom = decode_html_entities(raw_local);
 
-            // Limpa o HTML do horário (tag_strip + decode) e mantém apenas o prefixo
+            // Limpa o HTML do horário (tag_strip + decode) e mantém todos os blocos
             // "TOKEN (dd/mm/aaaa - dd/mm/aaaa)", descartando o texto do popup de ajuda
             let horario_clean = decode_html_entities(
                 &tag_strip_re
@@ -2606,13 +2825,18 @@ impl SigaaClient {
                     .collect::<Vec<_>>()
                     .join(" "),
             );
-            let schedule = schedule_prefix_re
-                .captures(&horario_clean)
+            let schedule_blocks: Vec<String> = schedule_prefix_re
+                .captures_iter(&horario_clean)
                 .map(|c| match c.get(2) {
                     Some(dates) => format!("{} {}", c.get(1).unwrap().as_str(), dates.as_str()),
                     None => c.get(1).unwrap().as_str().to_string(),
                 })
-                .unwrap_or_else(|| horario_clean.trim().to_string());
+                .collect();
+            let schedule = if schedule_blocks.is_empty() {
+                horario_clean.trim().to_string()
+            } else {
+                schedule_blocks.join(" ")
+            };
 
             // As faltas devem ser obtidas estritamente do Mapa de Frequências (AVA) ou do Boletim (Minhas Notas)
             let absences: Option<u32> = None;
@@ -3974,5 +4198,84 @@ mod tests {
         );
         // 235M34 -> 3 dias * 2 horários = 6 créditos -> regra UnB: 6 * 2 - 1 = 11 faltas
         assert_eq!(courses[0].max_absences, Some(11));
+    }
+
+    #[test]
+    fn test_parse_ru_statement_html_and_form_params_real_sigaa() {
+        let portal_form_html = r##"
+            <form id="formExibirExtrato" name="formExibirExtrato" method="post" action="/sigaa/portais/discente/discente.jsf" enctype="application/x-www-form-urlencoded">
+                <input type="hidden" name="formExibirExtrato" value="formExibirExtrato" />
+                <p style="text-align: center; font-size: x-small">
+                    <a href="#" onclick="var a=function(){return prevenirDuploClique();};var b=function(){if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('formExibirExtrato'),{'formExibirExtrato:j_id_jsp_340461267_282':'formExibirExtrato:j_id_jsp_340461267_282'},'');}return false};return (a()==false) ? false : b();">Mostrar Extrato do Restaurante</a>
+                </p>
+                <input type="hidden" name="javax.faces.ViewState" id="javax.faces.ViewState" value="j_id3" />
+            </form>
+        "##;
+
+        let form_params = SigaaClient::extract_ru_statement_form_params(portal_form_html);
+        assert_eq!(
+            form_params
+                .get("formExibirExtrato:j_id_jsp_340461267_282")
+                .map(|s| s.as_str()),
+            Some("formExibirExtrato:j_id_jsp_340461267_282")
+        );
+        assert_eq!(
+            form_params.get("javax.faces.ViewState").map(|s| s.as_str()),
+            Some("j_id3")
+        );
+
+        let ext_html = r##"
+            <div style="background: #EFF3FA; margin: 5px">
+                <h4 style="text-align: center; color: #555; padding-top: 5px">
+                    Extrato no Restaurante Universit&#225;rio
+                </h4>
+                <p style="text-align: center; font-size: x-small">
+                    (&#218;ltimos 7 dias)
+                </p>
+                <table width="100%" style="color: #444">
+                    <tr>
+                        <td align="right"><div style="font-size: x-small">24/11/2026 20:23</div></td>
+                        <td align="right"><div style="margin-right:15px; font-size: x-small">Saldo</div></td>
+                        <td align="right"><div style="margin-right:15px; font-size: x-small">R$ 0,00</div></td>
+                    </tr>
+                    <tr>
+                        <td align="right"><div style="font-size: x-small">24/11/2026 11:49</div></td>
+                        <td align="right"><div style="margin-right:15px; font-size: x-small">Grupo 1 Almo&#231;o</div></td>
+                        <td align="right"><div style="margin-right:15px; font-size: x-small">R$ 0,00</div></td>
+                    </tr>
+                    <tr>
+                        <td align="right"><div style="font-size: x-small">19/11/2026 17:34</div></td>
+                        <td align="right"><div style="margin-right:15px; font-size: x-small">Grupo 1 Jantar</div></td>
+                        <td align="right"><div style="margin-right:15px; font-size: x-small">R$ 0,00</div></td>
+                    </tr>
+                    <tr>
+                        <td align="right"><div style="font-size: x-small">17/11/2026 20:23</div></td>
+                        <td align="right"><div style="margin-right:15px; font-size: x-small">Saldo Anterior</div></td>
+                        <td align="right"><div style="margin-right:15px; font-size: x-small">R$ 12,20</div></td>
+                    </tr>
+                </table>
+            </div>
+        "##;
+
+        let (balance, group, entries) = SigaaClient::parse_ru_statement_html(ext_html).unwrap();
+        assert_eq!(balance, 0.0);
+        assert_eq!(group, Some(1));
+        assert_eq!(entries.len(), 4);
+        assert_eq!(entries[1].description, "Grupo 1 Almoço");
+    }
+
+    #[test]
+    fn test_estimate_slots_and_max_absences_for_60h_multi_block_3m12_56m12() {
+        assert_eq!(SigaaClient::estimate_slots_from_schedule("3M12 56M12"), 4);
+        assert_eq!(
+            SigaaClient::calculate_max_absences_for_course(
+                SigaaClient::estimate_slots_from_schedule("3M12 56M12"),
+                SigaaClient::estimate_hours_per_class_from_schedule("3M12 56M12")
+            ),
+            7
+        );
+        // Blocos genuínos de 90h com sufixos distintos continuam somando 6 créditos (11 faltas)
+        assert_eq!(SigaaClient::estimate_slots_from_schedule("24M34 6M12"), 6);
+        assert_eq!(SigaaClient::estimate_slots_from_schedule("235M34"), 6);
     }
 }
