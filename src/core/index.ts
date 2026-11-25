@@ -19,6 +19,7 @@ export * from './domain/utils/semester';
 export * from './domain/utils/profanity-filter';
 export * from './domain/utils/ru-menu-formatter';
 export * from './domain/utils/ru-menu-notification';
+export * from './domain/utils/ru-statement';
 
 // Interfaces / Ports
 export * from './domain/interfaces/credentials-repo.interface';
@@ -54,6 +55,7 @@ export * from './application/get-academic-calendar.use-case';
 export * from './application/get-professor-evaluations.use-case';
 export * from './application/manage-user-events.use-case';
 export * from './application/get-unified-calendar-events.use-case';
+export * from './application/enter-demo-mode.use-case';
 
 // DI Container
 // Nota: repositórios concretos (adapters) não são exportados aqui de propósito.
@@ -62,6 +64,8 @@ export * from './container';
 
 // Seeds
 export * from './seeds/academic-profile.seed';
+export * from './seeds/demo-data.seed';
+export * from './infrastructure/demo-mode.service';
 export * from './infrastructure/ru-wallet.service';
 export * from './infrastructure/network-sync-settings.service';
 export * from './infrastructure/notification-settings.service';

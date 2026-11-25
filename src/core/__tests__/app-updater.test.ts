@@ -28,6 +28,7 @@ describe('App Updater & Sidebar Indicator', () => {
       progress: null,
       errorMessage: null,
       currentVersion: '0.1.1',
+      isPlayStoreBuild: false,
     });
   });
 

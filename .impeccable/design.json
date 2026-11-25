@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-15T00:15:00Z",
+  "generatedAt": "2026-11-25T04:29:53Z",
   "title": "Design System: Saruê UnB",
   "extensions": {
     "colorMeta": {
@@ -851,6 +851,16 @@
         "name": "A Regra da Sombra Mobile",
         "body": "Cards vestem neo-sm (2px) no mobile e neo (4px) a partir de md — em 360px o offset de 4px rouba espaço de conteúdo. A regra vive no componente: Card, Alert, EmptyState e ErrorBoundary nascem shadow-neo-sm md:shadow-(--neo-card-shadow); sombras costuradas a mao em telas usam o par shadow-neo-sm md:shadow-neo (banido shadow-neo fixo). Acao 2px, micro 1px; a fisica acompanha a escala do adesivo.",
         "section": "elevation"
+      },
+      {
+        "name": "A Regra do Trilho Sem Fim",
+        "body": "Pills/chips de seleção que não cabem em uma linha não quebram em fileiras de flex-wrap: rodam em trilho horizontal de linha única (flex flex-nowrap overflow-x-auto gap-2 pb-1 no-scrollbar) — o utilitário .no-scrollbar esconde a barra sem matar o gesto.",
+        "section": "layout"
+      },
+      {
+        "name": "A Regra do Resultado que Não Desmonta",
+        "body": "Fórmula temporariamente inválida durante a digitação nunca desmonta as seções de Notas Obtidas e Resultados/Metas: um ref guarda o último estado válido e o render continua com ele, esmaecido e inerte (opacity-45 pointer-events-none transition-opacity). Layout shift durante edição é bug, não estado.",
+        "section": "components"
       }
     ],
     "dos": [

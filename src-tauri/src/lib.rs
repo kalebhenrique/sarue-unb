@@ -84,6 +84,8 @@ pub fn builder() -> Builder<tauri::Wry> {
         commands::set_max_brightness,
         commands::share_image,
         commands::render_student_card_pdf,
+        commands::is_play_store_install,
+        commands::check_apk_release_update,
     ])
 }
 

@@ -27,6 +27,7 @@ import { GetAcademicCalendarUseCase } from './application/get-academic-calendar.
 import { CalculateIraUseCase } from './application/calculate-ira.use-case';
 import { BuildIraScenarioUseCase } from './application/build-ira-scenario.use-case';
 import { ManageIraScenarioUseCase } from './application/manage-ira-scenario.use-case';
+import { EnterDemoModeUseCase } from './application/enter-demo-mode.use-case';
 import { GetProfessorEvaluationsUseCase } from './application/get-professor-evaluations.use-case';
 import { ManageUserEventsUseCase } from './application/manage-user-events.use-case';
 import { GetUnifiedCalendarEventsUseCase } from './application/get-unified-calendar-events.use-case';
@@ -91,6 +92,7 @@ export interface UseCases {
   getProfessorEvaluations: GetProfessorEvaluationsUseCase;
   manageUserEvents: ManageUserEventsUseCase;
   getUnifiedCalendarEvents: GetUnifiedCalendarEventsUseCase;
+  enterDemoMode: EnterDemoModeUseCase;
 }
 
 export interface Container {
@@ -162,6 +164,8 @@ export function createContainer(overrides?: ContainerOverrides): Container {
 
   const getAcademicCalendar = new GetAcademicCalendarUseCase();
 
+  const manageGradeUseCase = new ManageGradeUseCase(gradeRepo);
+
   const useCases: UseCases = {
     saveCredentials: new SaveCredentialsUseCase(credentialsRepo, feedRepo),
     getCredentials: new GetCredentialsUseCase(credentialsRepo),
@@ -178,7 +182,7 @@ export function createContainer(overrides?: ContainerOverrides): Container {
     getSemesters: new GetSemestersUseCase(gradeRepo),
     scrapeClasses: new ScrapeClassesUseCase(gradeRepo),
     solveSchedule: new SolveScheduleUseCase(gradeRepo),
-    manageGrade: new ManageGradeUseCase(gradeRepo),
+    manageGrade: manageGradeUseCase,
     manageAcademicProfile: new ManageAcademicProfileUseCase(
       academicProfileRepo,
       gradeRepo
@@ -198,6 +202,12 @@ export function createContainer(overrides?: ContainerOverrides): Container {
       userEventsRepo,
       getAcademicCalendar,
       feedRepo,
+    ),
+    enterDemoMode: new EnterDemoModeUseCase(
+      feedRepo,
+      academicProfileRepo,
+      iraScenarioRepo,
+      manageGradeUseCase,
     ),
   };
 

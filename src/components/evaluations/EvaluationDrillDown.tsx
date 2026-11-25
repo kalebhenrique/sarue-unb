@@ -122,45 +122,37 @@ export const EvaluationDrillDown: React.FC<EvaluationDrillDownProps> = ({
           )}
         </div>
 
-        {/* Indicadores centralizados: faixa única, colunas com divisores */}
-        <div className="grid grid-cols-3 divide-x-2 divide-black/10">
-          <div className="px-2 text-center">
-            <span className="block text-[11px] font-black uppercase tracking-wider text-neutral-600">
+        {/* Indicadores centralizados: faixa única, colunas com divisores.
+            Mobile estreito: 2 colunas (Relatos vive na badge do PageHeader). */}
+        <div className="grid grid-cols-2 sm:grid-cols-3">
+          <div className="min-w-0 px-2 flex flex-col items-center justify-center">
+            <span className="block text-[11px] font-semibold uppercase tracking-normal text-neutral-600">
               Didática Média
             </span>
-            <span className="flex items-center justify-center gap-1 text-2xl font-black text-black">
+            <span className="flex items-center justify-center gap-1 text-2xl font-black text-black tabular-nums">
               {avgDisplay}
               {summary.averageDidatica !== null && (
                 <span className="text-sm font-bold text-neutral-600">/10</span>
               )}
             </span>
-            <span className="block text-[11px] font-bold text-neutral-600">
-              em todas as disciplinas
-            </span>
           </div>
 
-          <div className="px-2 text-center">
-            <span className="block text-[11px] font-black uppercase tracking-wider text-neutral-600">
+          <div className="min-w-0 px-2 border-l-2 border-black/10 flex flex-col items-center justify-center">
+            <span className="block text-[11px] font-semibold uppercase tracking-normal text-neutral-600">
               Recomendação
             </span>
-            <span className="flex items-center justify-center gap-1 text-2xl font-black text-black">
+            <span className="flex items-center justify-center gap-1 text-2xl font-black text-black tabular-nums">
               <ThumbsUp className="w-4 h-4 stroke-[2.5] text-ink-success shrink-0" />
               {summary.recommendationRate}%
             </span>
-            <span className="block text-[11px] font-bold text-neutral-600">
-              em todas as disciplinas
-            </span>
           </div>
 
-          <div className="px-2 text-center">
-            <span className="block text-[11px] font-black uppercase tracking-wider text-neutral-600">
+          <div className="hidden sm:flex min-w-0 px-2 border-l-2 border-black/10 flex-col items-center justify-center">
+            <span className="block text-[11px] font-semibold uppercase tracking-normal text-neutral-600">
               Relatos
             </span>
-            <span className="flex items-center justify-center text-2xl font-black text-black">
+            <span className="flex items-center justify-center text-2xl font-black text-black tabular-nums">
               {summary.evaluationsCount}
-            </span>
-            <span className="block text-[11px] font-bold text-neutral-600">
-              no total
             </span>
           </div>
         </div>
@@ -182,7 +174,7 @@ export const EvaluationDrillDown: React.FC<EvaluationDrillDownProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 pt-3 border-t-2 border-black/10 text-xs font-bold">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:gap-x-4 pt-3 border-t-2 border-black/10 text-xs font-bold">
           <span className="inline-flex items-center gap-1.5 text-ink-success">
             <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
             {summary.recommendYesCount}{" "}

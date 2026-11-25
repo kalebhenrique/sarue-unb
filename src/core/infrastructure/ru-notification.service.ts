@@ -1,5 +1,6 @@
 import { isMobileDevice } from '@/lib/platform';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
+import type { AcademicCalendar } from '../domain/entities/academic-calendar';
 import {
   getBrasiliaTodayIso,
   type RawRuDailyMenu,
@@ -9,12 +10,15 @@ import {
   RU_NOTIFICATION_ID_MAX,
   RU_NOTIFICATION_ID_MIN,
   findDueRuMealsForTimestamp,
+  getRuNotificationId,
   planMobileRuSchedules,
+  ruMealNotificationKey,
 } from '../domain/utils/ru-menu-notification';
 import {
   getNotificationSettings,
   loadNotifiedRuMealKeys,
   markRuMealNotified,
+  saveNotificationSettings,
 } from './notification-settings.service';
 import {
   fetchAndCacheRuMenus,
@@ -59,6 +63,65 @@ function writeStoredScheduledIds(ids: number[]): void {
       );
     }
   } catch {}
+}
+
+function readScheduledMealFireTimes(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(
+      STORAGE_KEYS.RU_SCHEDULED_MEAL_TIMES,
+    );
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeScheduledMealFireTimes(map: Record<string, string>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (Object.keys(map).length === 0) {
+      window.localStorage.removeItem(STORAGE_KEYS.RU_SCHEDULED_MEAL_TIMES);
+    } else {
+      window.localStorage.setItem(
+        STORAGE_KEYS.RU_SCHEDULED_MEAL_TIMES,
+        JSON.stringify(map),
+      );
+    }
+  } catch {}
+}
+
+/**
+ * Reconcilia refeições agendadas via `Schedule.at` no SO mobile cujo horário de disparo
+ * já passou (ex.: agendado para 10:45 e o app foi aberto às 10:57), marcando-as como
+ * já notificadas para evitar um segundo disparo imediato duplicado.
+ */
+export function reconcileFiredMobileRuSchedules(now: Date = new Date()): void {
+  const scheduled = readScheduledMealFireTimes();
+  const entries = Object.entries(scheduled);
+  if (entries.length === 0) return;
+
+  const nowMs = now.getTime();
+  const remaining: Record<string, string> = {};
+  let changed = false;
+
+  for (const [dedupeKey, fireAtIso] of entries) {
+    const fireMs = new Date(fireAtIso).getTime();
+    if (!Number.isNaN(fireMs) && fireMs <= nowMs) {
+      markRuMealNotified(dedupeKey);
+      changed = true;
+    } else if (!Number.isNaN(fireMs)) {
+      remaining[dedupeKey] = fireAtIso;
+    } else {
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    writeScheduledMealFireTimes(remaining);
+  }
 }
 
 async function ensureRuChannel(): Promise<void> {
@@ -123,6 +186,10 @@ async function notifyDueRuMealsNow(
   const settings = getNotificationSettings().ruMenu;
   if (!settings.enabled || settings.weekdays.length === 0) return;
 
+  if (isMobileDevice()) {
+    reconcileFiredMobileRuSchedules();
+  }
+
   const due = findDueRuMealsForTimestamp(
     menus,
     settings,
@@ -143,6 +210,7 @@ async function notifyDueRuMealsNow(
     for (const item of due) {
       markRuMealNotified(item.dedupeKey);
       sendNotification({
+        id: getRuNotificationId(item.dateIso, item.meal),
         title: item.payload.title,
         body: item.payload.body,
         ...(isMobile
@@ -199,9 +267,14 @@ export async function syncRuMenuNotifications(
         const settings = getNotificationSettings().ruMenu;
         const campus = opts.campus ?? getSavedRuCampus();
 
+        if (isMobileDevice()) {
+          reconcileFiredMobileRuSchedules();
+        }
+
         await cancelPendingMobileRuNotifications();
 
         if (!settings.enabled || settings.weekdays.length === 0) {
+          writeScheduledMealFireTimes({});
           continue;
         }
 
@@ -246,6 +319,7 @@ export async function syncRuMenuNotifications(
           await ensureRuChannel();
           const planned = planMobileRuSchedules(menus, settings, campus);
           const scheduledIds: number[] = [];
+          const scheduledTimes: Record<string, string> = {};
 
           for (const item of planned) {
             sendNotification({
@@ -258,9 +332,13 @@ export async function syncRuMenuNotifications(
               schedule: Schedule.at(item.fireAt, false, true),
             });
             scheduledIds.push(item.id);
+            scheduledTimes[
+              ruMealNotificationKey(campus, item.dateIso, item.meal)
+            ] = item.fireAt.toISOString();
           }
 
           writeStoredScheduledIds(scheduledIds);
+          writeScheduledMealFireTimes(scheduledTimes);
         }
       } catch (err) {
         console.warn(
@@ -289,4 +367,95 @@ export async function checkDueRuMenuNotification(): Promise<void> {
   const { menus } = await loadCachedRuMenus(campus);
   if (menus.length === 0) return;
   await notifyDueRuMealsNow(menus, campus);
+}
+
+export function getRuSemesterEndStorageKey(semester: string): string {
+  return `sarue_ru_semester_end_disabled_${semester}`;
+}
+
+/**
+ * Avalia se o período de aulas do semestre atual (`periodoAulas.fim`, com fallback para
+ * `periodoLetivo.fim`) já encerrou. Caso tenha encerrado e os alertas do RU estejam ativos,
+ * desativa-os uma única vez para o semestre (permitindo que o estudante reative manualmente
+ * nas Configurações durante as férias) e envia uma notificação informativa.
+ */
+export async function checkAndDisableRuNotificationsOnSemesterEnd(
+  calendar: AcademicCalendar | null,
+  now: Date = new Date(),
+): Promise<boolean> {
+  if (!calendar || isOnboardingNotificationsBlocked()) return false;
+  const endDateIso =
+    calendar.periodoAulas?.fim || calendar.periodoLetivo?.fim || null;
+  if (!endDateIso) return false;
+
+  const todayIso = getBrasiliaTodayIso(now);
+  if (todayIso <= endDateIso) return false;
+
+  const flagKey = getRuSemesterEndStorageKey(calendar.semester);
+  if (typeof window !== 'undefined') {
+    try {
+      if (window.localStorage.getItem(flagKey) === 'true') {
+        return false;
+      }
+    } catch {}
+  }
+
+  const currentSettings = getNotificationSettings();
+  if (!currentSettings.ruMenu.enabled) {
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(flagKey, 'true');
+      } catch {}
+    }
+    return false;
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem(flagKey, 'true');
+    } catch {}
+  }
+
+  await saveNotificationSettings({
+    ...currentSettings,
+    ruMenu: {
+      ...currentSettings.ruMenu,
+      enabled: false,
+    },
+  });
+
+  await cancelPendingMobileRuNotifications();
+  writeScheduledMealFireTimes({});
+
+  if (isTauriRuntime()) {
+    try {
+      const { isPermissionGranted, sendNotification } = await import(
+        '@tauri-apps/plugin-notification'
+      );
+      if (await isPermissionGranted()) {
+        await ensureRuChannel();
+        const isMobile = isMobileDevice();
+        const title = 'Período de aulas encerrado · Alertas do RU pausados';
+        const body = `O período de aulas de ${calendar.semester} terminou e as notificações do cardápio do RU foram desativadas. Você pode reativá-las nas Configurações se continuar indo ao RU nas férias.`;
+        sendNotification({
+          title,
+          body,
+          ...(isMobile
+            ? {
+                channelId: RU_NOTIFICATION_CHANNEL_ID,
+                largeBody: body,
+                autoCancel: true,
+              }
+            : {}),
+        });
+      }
+    } catch (err) {
+      console.warn(
+        '[ru-notification] Falha ao notificar encerramento do período letivo:',
+        err,
+      );
+    }
+  }
+
+  return true;
 }

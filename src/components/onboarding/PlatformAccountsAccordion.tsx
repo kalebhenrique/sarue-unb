@@ -24,7 +24,17 @@ import {
 } from "lucide-react";
 import type { PlatformType } from "@/core";
 import { useOptionalSync } from "@/context/SyncContext";
+import { useContainer } from "@/context/ContainerContext";
 import { notifyFeedListeners } from "@/hooks/useFeed";
+import { resetGradeCache } from "@/hooks/useGrade";
+import { resetMyCourseCache } from "@/hooks/useMyCourse";
+import { resetStudentWalletCache } from "@/hooks/useStudentWallet";
+import {
+  exitDemoMode,
+  isDemoModeActive,
+  isDemoSigaaCredentials,
+  setDemoMode,
+} from "@/core";
 import { isMobileDevice } from "@/lib/platform";
 
 export interface PlatformAccountsAccordionProps {
@@ -83,6 +93,7 @@ export const PlatformAccountsAccordion: React.FC<
     error,
   } = useCredentials();
   const syncContext = useOptionalSync();
+  const { repos, useCases } = useContainer();
   const reduced = useReducedMotion();
 
   // Adesivo aberto no momento (accordion: sempre um aberto)
@@ -146,6 +157,33 @@ export const PlatformAccountsAccordion: React.FC<
     });
   };
 
+  /**
+   * Login de teste do revisor do Google Play (credenciais em demo-mode.service):
+   * não toca no CAS da UnB — ativa o Modo Demonstração (dados fictícios) e
+   * segue o fluxo normal do wizard.
+   */
+  const enterDemoViaSigaaForm = async (): Promise<void> => {
+    setDemoMode(true);
+    await useCases.enterDemoMode.execute();
+    notifyFeedListeners();
+    resetGradeCache();
+    resetMyCourseCache();
+    resetStudentWalletCache();
+    setSigaaSaved(true);
+    setSigaaSuccessMsg(
+      "Modo de teste ativado: dados fictícios para avaliação do app.",
+    );
+    setOpenPlatform(
+      !aprenderSaved
+        ? "aprender3"
+        : showTeams && !teamsConnected
+          ? "teams"
+          : closeWhenAllConnected
+            ? null
+            : "sigaa",
+    );
+  };
+
   const handleConnectSigaa = async () => {
     setFormError(null);
     if (!sigaaMatricula.trim()) {
@@ -154,6 +192,22 @@ export const PlatformAccountsAccordion: React.FC<
     }
     if (!sigaaSenha) {
       setFormError("Informe sua senha do SIGAA.");
+      return;
+    }
+    // Porta do revisor do Google Play: credenciais de teste ativam o Modo
+    // Demonstração sem tocar no CAS da UnB.
+    if (
+      isDemoSigaaCredentials(sigaaMatricula.trim(), sigaaSenha) &&
+      !sigaaSaved &&
+      !aprenderSaved &&
+      !teamsConnected
+    ) {
+      setIsVerifying(true);
+      try {
+        await enterDemoViaSigaaForm();
+      } finally {
+        setIsVerifying(false);
+      }
       return;
     }
     setIsVerifying(true);
@@ -165,6 +219,21 @@ export const PlatformAccountsAccordion: React.FC<
       if (res.success) {
         setSigaaSaved(true);
         setSigaaSuccessMsg(res.detail || "Conectado ao SIGAA com sucesso!");
+        // Login real encerra o Modo Demonstração: limpa os dados fictícios
+        // para o sync real não conviver com o conteúdo do demo.
+        if (isDemoModeActive()) {
+          await exitDemoMode({
+            feedRepo: repos.feedRepo,
+            academicProfileRepo: repos.academicProfileRepo,
+            iraScenarioRepo: repos.iraScenarioRepo,
+            gradeRepo: repos.gradeRepo,
+            deadlineNotificationRepo: repos.deadlineNotificationRepo,
+          });
+          resetGradeCache();
+          resetMyCourseCache();
+          resetStudentWalletCache();
+          notifyFeedListeners();
+        }
         // Gaveta seguinte: SIGAA fica marcado como conectado e abre a próxima pendente;
         // sem pendente e com closeWhenAllConnected, fecha as gavetas
         setOpenPlatform(
@@ -336,6 +405,21 @@ export const PlatformAccountsAccordion: React.FC<
       }
       if (!sigaaSenha) {
         setFormError("Informe sua senha do SIGAA.");
+        return;
+      }
+      // Porta do revisor do Google Play: credenciais de teste ativam o Modo
+      // Demonstração sem tocar no CAS da UnB.
+      if (
+        isDemoSigaaCredentials(sigaaMatricula.trim(), sigaaSenha) &&
+        !aprenderSaved &&
+        !teamsConnected
+      ) {
+        setIsVerifying(true);
+        try {
+          await enterDemoViaSigaaForm();
+        } finally {
+          setIsVerifying(false);
+        }
         return;
       }
       setIsVerifying(true);

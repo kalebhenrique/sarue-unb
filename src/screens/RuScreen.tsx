@@ -17,6 +17,9 @@ import {
   ChevronLeft,
   ChevronRight,
   IdCard,
+  Wallet,
+  ArrowUpCircle,
+  Moon,
 } from "lucide-react";
 import {
   RU_CAMPUSES,
@@ -24,6 +27,8 @@ import {
   formatMealMenu,
   getBrasiliaTodayIso,
   resolveInitialMealAndDate,
+  cleanRuStatement,
+  type CleanRuStatementEntry,
   type RuCampus,
   type RuMealType,
   type FormattedCompositionGroup,
@@ -44,7 +49,10 @@ import {
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useRuMenu } from "../hooks/useRuMenu";
-import { useStudentWallet } from "../hooks/useStudentWallet";
+import {
+  useStudentWallet,
+  formatCurrencyBrl,
+} from "../hooks/useStudentWallet";
 import { useCredentials } from "../hooks/useCredentials";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
@@ -145,6 +153,26 @@ function getDietStyle(diet: FormattedDishVariation["diet"]) {
   }
 }
 
+/** Ícone e adesivo sólido do bloco de ícone da linha do extrato, pela descrição limpa.
+ *  Segue A Regra do bloco de ícone (DESIGN.md): adesivo vibrante nos dois temas,
+ *  ícone text-ink fixo, border-2 border-ink, sem sombra. */
+function getStatementEntryVisual(entry: CleanRuStatementEntry): {
+  Icon: React.ComponentType<{ className?: string }>;
+  iconBg: string;
+} {
+  const d = entry.description.toLowerCase();
+  if (entry.kind === "credit" || d.includes("recarga")) {
+    return { Icon: ArrowUpCircle, iconBg: "bg-neo-green text-ink" };
+  }
+  if (d.includes("desjejum") || d.includes("café")) {
+    return { Icon: Coffee, iconBg: "bg-neo-yellow text-ink" };
+  }
+  if (d.includes("jantar")) {
+    return { Icon: Moon, iconBg: "bg-neo-purple text-ink" };
+  }
+  return { Icon: Utensils, iconBg: "bg-sticker-blue text-ink" };
+}
+
 const MEAL_SEGMENT_OPTIONS: ReadonlyArray<SegmentedOption<RuMealType>> = [
   {
     value: "breakfast",
@@ -170,7 +198,7 @@ const MEAL_SEGMENT_OPTIONS: ReadonlyArray<SegmentedOption<RuMealType>> = [
     value: "dinner",
     label: (
       <>
-        <Soup className="w-4 h-4 stroke-[2.5]" />
+        <Moon className="w-4 h-4 stroke-[2.5]" />
         <span>Jantar</span>
       </>
     ),
@@ -343,6 +371,8 @@ const DesktopMealColumn: React.FC<DesktopMealColumnProps> = ({
   );
 };
 
+const RU_EXEMPT_GROUP_PREFIX = "Grupo 1";
+
 export const RuScreen: React.FC = () => {
   const { campus, setCampus, menus, isLoading, error } = useRuMenu();
   const { wallet } = useStudentWallet();
@@ -354,6 +384,11 @@ export const RuScreen: React.FC = () => {
 
   const todayIso = useMemo(() => getBrasiliaTodayIso(), []);
   const initialSelection = useMemo(() => resolveInitialMealAndDate(), []);
+  const cleanedStatement = useMemo(
+    () => cleanRuStatement(wallet.statement),
+    [wallet.statement],
+  );
+  const isGroupIsento = Boolean(wallet.ruGroup?.startsWith(RU_EXEMPT_GROUP_PREFIX));
   const [selectedMeal, setSelectedMeal] = useState<RuMealType>(
     initialSelection.meal,
   );
@@ -362,6 +397,7 @@ export const RuScreen: React.FC = () => {
   );
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const hasSnappedInitialDateRef = React.useRef(false);
+  const [statementExpanded, setStatementExpanded] = useState(false);
 
   // Agrupa os dias disponíveis em semanas de até 7 dias (Seg..Dom)
   const weeks = useMemo(() => {
@@ -608,7 +644,7 @@ export const RuScreen: React.FC = () => {
     : `(${activeDateMeta.weekdayFull}, ${activeDateMeta.dateShort})`;
 
   return (
-    <PageContainer className="pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-16">
+    <PageContainer>
       <PageHeader title="Cardápio RU" subtitle={headerSubtitle} />
 
       <div className="space-y-3 md:space-y-5">
@@ -966,6 +1002,126 @@ export const RuScreen: React.FC = () => {
             </section>
           )
         ) : null}
+
+        <section
+          aria-label="Saldo e extrato no Restaurante Universitário"
+          className="bg-paper border-2 border-ink rounded-lg p-4 sm:p-5 shadow-neo-sm md:shadow-neo space-y-3"
+        >
+          {/* Cabeçalho carteira: label + grupo tarifário, saldo como protagonista */}
+          <div className="border-b-2 border-black/15 pb-3 space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Wallet className="w-3.5 h-3.5 stroke-[2.5] shrink-0 text-neo-blue" />
+                <h2 className="text-xs font-extrabold uppercase tracking-wider text-neutral-500">
+                  Saldo no RU
+                </h2>
+              </div>
+
+              {wallet.ruGroup ? (
+                <span
+                  className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-lg border-2 border-ink text-[11px] font-extrabold uppercase tracking-wide ${
+                    isGroupIsento
+                      ? "bg-pastel-green text-ink dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700/60"
+                      : "bg-canvas text-neutral-600"
+                  }`}
+                >
+                  {wallet.ruGroup}
+                  {isGroupIsento ? " • Isento" : ""}
+                </span>
+              ) : (
+                <span className="shrink-0 text-[11px] font-bold text-neutral-500">
+                  Sincronize para ver
+                </span>
+              )}
+            </div>
+
+            <p
+              className={`text-3xl font-bold tracking-tight tabular-nums leading-none ${
+                wallet.ruBalance ? "text-black" : "text-neutral-400"
+              }`}
+            >
+              {wallet.ruBalance ?? "—"}
+            </p>
+          </div>
+
+          {cleanedStatement.length === 0 ? (
+            <div className="py-4 text-center">
+              <p className="text-xs font-bold text-neutral-500">
+                Nenhuma movimentação sincronizada ainda. Use o botão Sincronizar
+                do menu principal para atualizar.
+              </p>
+            </div>
+          ) : (
+            <>
+              <ul className="divide-y-2 divide-black/10">
+                {(statementExpanded
+                  ? cleanedStatement
+                  : cleanedStatement.slice(0, 3)
+                ).map((entry, idx) => {
+                  const { Icon, iconBg } = getStatementEntryVisual(entry);
+
+                  return (
+                    <li
+                      key={`${entry.occurredAt}-${idx}`}
+                      className="py-2.5 flex items-center gap-2.5"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`w-8 h-8 rounded-lg border-2 border-ink flex items-center justify-center shrink-0 ${iconBg}`}
+                      >
+                        <Icon className="w-4 h-4 stroke-[2.5]" />
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-black truncate">
+                          {entry.description}
+                        </p>
+                        <p className="text-[11px] font-semibold text-neutral-500 tabular-nums">
+                          {entry.occurredAtShort}
+                        </p>
+                      </div>
+
+                      <div className="shrink-0 text-right">
+                        {entry.isExempt ? (
+                          <p className="text-xs font-medium text-neutral-500 tabular-nums">
+                            Isento
+                          </p>
+                        ) : entry.amount === null ? (
+                          <p className="text-xs font-semibold text-neutral-500 tabular-nums">
+                            —
+                          </p>
+                        ) : entry.kind === "credit" ? (
+                          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                            + {formatCurrencyBrl(Math.abs(entry.amount)) ?? "—"}
+                          </p>
+                        ) : (
+                          <p className="text-xs font-semibold text-red-700 dark:text-red-300 tabular-nums">
+                            - {formatCurrencyBrl(Math.abs(entry.amount)) ?? "—"}
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {cleanedStatement.length > 3 && (
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setStatementExpanded((v) => !v)}
+                    aria-expanded={statementExpanded}
+                    className="cursor-pointer text-[11px] font-extrabold underline decoration-2 underline-offset-2 text-neutral-600 hover:text-black transition-colors duration-150 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neo-blue focus-visible:ring-offset-2"
+                  >
+                    {statementExpanded
+                      ? "Ver menos"
+                      : `Ver extrato completo (${cleanedStatement.length})`}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </section>
       </div>
 
       {showWalletFab && (

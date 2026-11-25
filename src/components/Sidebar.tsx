@@ -14,6 +14,7 @@ import {
   IdCard,
   AlignJustify,
   Bell,
+  FlaskConical,
 } from "lucide-react";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { AnimatePresence, motion } from "motion/react";
@@ -45,10 +46,13 @@ export interface SidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   isSyncing?: boolean;
+  isSlowConnection?: boolean;
   onSync?: () => void;
   lastSyncedAt?: string | null;
   hasConnectedAccounts?: boolean;
   hasUpdateAvailable?: boolean;
+  /** Modo Demonstração ativo: exibe o badge "Demo" e mantém o sync disponível */
+  isDemoMode?: boolean;
   syncSteps?: Record<
     "sigaa" | "aprender3" | "teams" | "myCourse" | "ghPages" | "planilha",
     SyncStepInfo
@@ -64,10 +68,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed,
   onToggleCollapse,
   isSyncing = false,
+  isSlowConnection = false,
   onSync,
   lastSyncedAt,
   hasConnectedAccounts = false,
   hasUpdateAvailable: propHasUpdateAvailable,
+  isDemoMode = false,
   syncSteps,
   syncPopoverOpen,
   onSyncPopoverOpenChange,
@@ -325,6 +331,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <SyncStatusTooltip
           steps={syncSteps}
           isSyncing={isSyncing || Boolean(activeSyncStep)}
+          isSlowConnection={isSlowConnection}
           lastSyncedAt={lastSyncedAt ?? null}
         />
       ) : null}
@@ -420,6 +427,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Badge do Modo Demonstração (desktop expandido e recolhido) */}
+          {isDemoMode ? (
+            <div className={isCollapsed ? "px-2 pt-2 flex justify-center" : "px-4 pt-2"}>
+              <div
+                title="Modo Demonstração: dados fictícios para conhecer o app"
+                aria-label="Modo Demonstração ativo"
+                className={`flex items-center justify-center rounded-full border-2 border-ink bg-neo-yellow text-black text-[10px] font-black uppercase tracking-wide shadow-[2px_2px_0px_0px_var(--neo-shadow)] ${
+                  isCollapsed ? "w-7 h-7" : "gap-1.5 px-2.5 py-1 w-fit"
+                }`}
+              >
+                <FlaskConical className="w-3 h-3 stroke-[2.5] shrink-0" />
+                {!isCollapsed && <span>Demo</span>}
+              </div>
+            </div>
+          ) : null}
 
           {/* Lista de Navegação com som fofo/macio tátil (apenas ao alternar para aba inativa) */}
           <nav className="min-h-0 overflow-y-auto border-b-2 border-ink">
@@ -574,20 +597,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Unidade Inferior Mobile: Bottom Sheet "Mais" (arrastável para baixo) + Bottom Tab Bar.
         Quando aberto, a borda superior fica no topo do sheet e não há linha entre o menu e a tabbar. */}
-      <div className="fixed bottom-0 inset-x-0 z-40 flex flex-col md:hidden select-none">
+      <div className="order-2 md:hidden shrink-0 relative z-40 flex flex-col select-none">
         <BottomSheet
           open={isMoreOpen}
           onClose={() => setIsMoreOpen(false)}
           backdrop
           backdropClassName="md:hidden -z-10"
           handleClassName="bg-neutral-50"
-          className="relative z-10"
+          className="absolute bottom-full inset-x-0 z-10"
           id="mobile-more-menu"
           role="navigation"
           aria-label="Mais opções de navegação"
         >
               {/* Topo: Botão de Sincronizar (sem popover no mobile) + Progress Verde Contínuo com Checks */}
               <div className="px-4 pt-2 pb-3.5 bg-neutral-50 border-b-2 border-ink space-y-2.5">
+                {isDemoMode ? (
+                  <div className="flex items-center justify-between gap-2 px-2.5 py-1 rounded-lg border-2 border-ink bg-neo-yellow text-black text-[11px] font-black uppercase tracking-wide">
+                    <span className="inline-flex items-center gap-1.5">
+                      <FlaskConical className="w-3.5 h-3.5 stroke-[2.5]" />
+                      Modo Demonstração
+                    </span>
+                    <span className="text-[10px] font-bold normal-case">Dados fictícios</span>
+                  </div>
+                ) : null}
                 <button
                   type="button"
                   disabled={!hasConnectedAccounts}
@@ -842,6 +874,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         onOpenChange={setMobileSyncDialogOpen}
         steps={syncSteps}
         isSyncing={isSyncing || Boolean(activeSyncStep)}
+        isSlowConnection={isSlowConnection}
         lastSyncedAt={lastSyncedAt ?? null}
       />
     </>

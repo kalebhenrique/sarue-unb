@@ -1134,6 +1134,233 @@ pub async fn render_student_card_pdf(
     }))
 }
 
+#[command]
+#[specta::specta]
+pub async fn is_play_store_install(app: AppHandle) -> Result<bool, String> {
+    use tauri_plugin_share::ShareExt;
+    app.share()
+        .is_play_store_install()
+        .map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ApkReleaseUpdateDto {
+    pub version: String,
+    pub current_version: String,
+    pub date: Option<String>,
+    pub body: Option<String>,
+    pub apk_download_url: String,
+    pub release_page_url: String,
+}
+
+pub fn parse_semver_tuple(ver: &str) -> Option<(u32, u32, u32)> {
+    let clean = ver.trim().trim_start_matches('v').trim_start_matches('V');
+    let core = clean.split(['-', '+']).next().unwrap_or(clean);
+    let mut parts = core.split('.');
+    let major = parts.next()?.parse::<u32>().ok()?;
+    let minor = parts.next().unwrap_or("0").parse::<u32>().ok()?;
+    let patch = parts.next().unwrap_or("0").parse::<u32>().ok()?;
+    Some((major, minor, patch))
+}
+
+/// Lê `android.apk_url` do manifesto `latest.json` (gerado por consolidate-latest-json.mjs).
+pub fn apk_url_from_manifest(manifest: &serde_json::Value) -> Option<String> {
+    manifest
+        .get("android")
+        .and_then(|a| a.get("apk_url"))
+        .and_then(|v| v.as_str())
+        .filter(|u| u.starts_with("https://") && u.ends_with(".apk"))
+        .map(|u| u.to_string())
+}
+
+pub fn is_newer_semver(current: &str, candidate: &str) -> bool {
+    match (parse_semver_tuple(current), parse_semver_tuple(candidate)) {
+        (Some(curr), Some(cand)) => cand > curr,
+        _ => false,
+    }
+}
+
+#[command]
+#[specta::specta]
+pub async fn check_apk_release_update(
+    app: AppHandle,
+) -> Result<Option<ApkReleaseUpdateDto>, String> {
+    let current_version = app.package_info().version.to_string();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .user_agent("Sarue-UnB-Updater/1.0 (Tauri)")
+        .build()
+        .map_err(|e| format!("Falha ao inicializar cliente HTTP: {}", e))?;
+
+    let release_page_default =
+        "https://github.com/kalebhenrique/sarue-unb/releases/latest".to_string();
+
+    // 0. Fonte primária: latest.json da release (sem rate limit), com bloco `android.apk_url`
+    if let Ok(resp) = client
+        .get("https://github.com/kalebhenrique/sarue-unb/releases/latest/download/latest.json")
+        .send()
+        .await
+    {
+        if resp.status().is_success() {
+            if let Ok(json) = resp.json::<serde_json::Value>().await {
+                let remote_version = json
+                    .get("version")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .trim_start_matches('v')
+                    .to_string();
+                if !remote_version.is_empty() {
+                    if !is_newer_semver(&current_version, &remote_version) {
+                        return Ok(None);
+                    }
+                    if let Some(apk_download_url) = apk_url_from_manifest(&json) {
+                        return Ok(Some(ApkReleaseUpdateDto {
+                            version: remote_version,
+                            current_version,
+                            date: json
+                                .get("pub_date")
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string()),
+                            body: json
+                                .get("notes")
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string()),
+                            apk_download_url,
+                            release_page_url: release_page_default,
+                        }));
+                    }
+                }
+            }
+        }
+    }
+
+    // 1. Fallback: API oficial do GitHub Releases para obter o asset .apk exato
+    if let Ok(resp) = client
+        .get("https://api.github.com/repos/kalebhenrique/sarue-unb/releases/latest")
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await
+    {
+        if resp.status().is_success() {
+            if let Ok(json) = resp.json::<serde_json::Value>().await {
+                let tag_name = json
+                    .get("tag_name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let clean_version = tag_name.trim_start_matches('v').to_string();
+                if !clean_version.is_empty() && is_newer_semver(&current_version, &clean_version) {
+                    let body = json
+                        .get("body")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    let date = json
+                        .get("published_at")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    let html_url = json
+                        .get("html_url")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| release_page_default.clone());
+
+                    let mut apk_url: Option<String> = None;
+                    if let Some(assets) = json.get("assets").and_then(|v| v.as_array()) {
+                        for asset in assets {
+                            let name = asset
+                                .get("name")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default();
+                            let url = asset
+                                .get("browser_download_url")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default();
+                            if name.ends_with(".apk") && !url.is_empty() {
+                                apk_url = Some(url.to_string());
+                                if name.contains("arm64") || name.contains("aarch64") {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    let final_apk_url = apk_url.unwrap_or_else(|| {
+                        format!(
+                            "https://github.com/kalebhenrique/sarue-unb/releases/download/v{}/Sarue.UnB_{}_android_arm64.apk",
+                            clean_version, clean_version
+                        )
+                    });
+
+                    return Ok(Some(ApkReleaseUpdateDto {
+                        version: clean_version,
+                        current_version,
+                        date,
+                        body,
+                        apk_download_url: final_apk_url,
+                        release_page_url: html_url,
+                    }));
+                } else if !clean_version.is_empty() {
+                    return Ok(None);
+                }
+            }
+        }
+    }
+
+    // 2. Fallback: consulta latest.json da release (não sofre rate-limit da API do GitHub)
+    let latest_json_url =
+        "https://github.com/kalebhenrique/sarue-unb/releases/latest/download/latest.json";
+    let resp = client
+        .get(latest_json_url)
+        .send()
+        .await
+        .map_err(|e| format!("Falha ao consultar latest.json: {}", e))?;
+
+    if !resp.status().is_success() {
+        return Err(format!(
+            "Servidor de atualizações retornou status HTTP {}",
+            resp.status()
+        ));
+    }
+
+    let json = resp
+        .json::<serde_json::Value>()
+        .await
+        .map_err(|e| format!("Falha ao ler manifesto latest.json: {}", e))?;
+
+    let remote_version = json
+        .get("version")
+        .and_then(|v| v.as_str())
+        .unwrap_or_default()
+        .trim_start_matches('v')
+        .to_string();
+
+    if remote_version.is_empty() || !is_newer_semver(&current_version, &remote_version) {
+        return Ok(None);
+    }
+
+    let body = json
+        .get("notes")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let date = json
+        .get("pub_date")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let apk_download_url = format!(
+        "https://github.com/kalebhenrique/sarue-unb/releases/download/v{}/Sarue.UnB_{}_android_arm64.apk",
+        remote_version, remote_version
+    );
+
+    Ok(Some(ApkReleaseUpdateDto {
+        version: remote_version,
+        current_version,
+        date,
+        body,
+        apk_download_url,
+        release_page_url: release_page_default,
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1158,6 +1385,22 @@ mod tests {
         assert!(!is_valid_vault_filename("../unb_vault.hold"));
         assert!(!is_valid_vault_filename("random.hold"));
         assert!(!is_valid_vault_filename("unb_vault.key"));
+    }
+
+    #[test]
+    fn test_apk_url_from_manifest_and_semver() {
+        let m = serde_json::json!({
+            "version": "0.5.2",
+            "android": { "apk_url": "https://github.com/x/y/releases/download/v0.5.2/Sarue.UnB_0.5.2_android_arm64.apk" }
+        });
+        assert!(apk_url_from_manifest(&m).unwrap().ends_with(".apk"));
+        assert!(apk_url_from_manifest(&serde_json::json!({"version": "1"})).is_none());
+        assert!(apk_url_from_manifest(
+            &serde_json::json!({"android": {"apk_url": "http://evil/x.exe"}})
+        )
+        .is_none());
+        assert!(is_newer_semver("0.5.1", "0.5.2"));
+        assert!(!is_newer_semver("0.5.2", "0.5.2"));
     }
 
     #[test]

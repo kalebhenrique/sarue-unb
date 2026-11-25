@@ -52,6 +52,15 @@ export const commands = {
 	croppedDataUrl: string,
 	fullPageDataUrl: string,
 } | null, string>(__TAURI_INVOKE("render_student_card_pdf", { pdfBase64 })),
+	isPlayStoreInstall: () => typedError<boolean, string>(__TAURI_INVOKE("is_play_store_install")),
+	checkApkReleaseUpdate: () => typedError<{
+	version: string,
+	currentVersion: string,
+	date: string | null,
+	body: string | null,
+	apkDownloadUrl: string,
+	releasePageUrl: string,
+} | null, string>(__TAURI_INVOKE("check_apk_release_update")),
 };
 
 /* Types */
@@ -59,6 +68,15 @@ export type AcademicHistoryPayload = {
 	profile: StudentProfile,
 	pdfBase64: string | null,
 	pdfText: string | null,
+};
+
+export type ApkReleaseUpdateDto = {
+	version: string,
+	currentVersion: string,
+	date: string | null,
+	body: string | null,
+	apkDownloadUrl: string,
+	releasePageUrl: string,
 };
 
 export type Aprender3Creds = {

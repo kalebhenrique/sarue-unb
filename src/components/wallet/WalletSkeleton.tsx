@@ -136,7 +136,7 @@ export const WalletSkeleton: React.FC = () => (
  * Skeleton de página inteira para a tela da Carteirinha Estudantil (primeira carga e Suspense).
  */
 export const WalletPageSkeleton: React.FC = () => (
-  <div className="max-w-4xl mx-auto pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-12 space-y-5">
+  <div className="max-w-4xl mx-auto pb-4 md:pb-12 space-y-5">
     <PageHeader title="Carteirinha Estudantil" />
     <WalletSkeleton />
   </div>
