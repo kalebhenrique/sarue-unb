@@ -4,13 +4,11 @@ import {
   IdCard,
   BookOpenCheck,
   Maximize2,
-  Receipt,
   FileText,
 } from "lucide-react";
 import {
   useStudentWallet,
   formatValidityDisplay,
-  formatCurrencyBrl,
 } from "../hooks/useStudentWallet";
 import { useCredentials } from "../hooks/useCredentials";
 import { PageHeader } from "@/components/ui/page-header";
@@ -104,7 +102,7 @@ export const WalletScreen: React.FC = () => {
   const disabledCardClasses = "cursor-default";
 
   return (
-    <div className="max-w-4xl mx-auto pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-12 space-y-5">
+    <div className="max-w-4xl mx-auto pb-4 md:pb-12 space-y-5">
       {/* PageHeader padrão do sistema (sem card, sem ícone; fonte menor no mobile) */}
       <PageHeader title="Carteirinha Estudantil" />
 
@@ -158,13 +156,6 @@ export const WalletScreen: React.FC = () => {
                   className="block max-h-full max-w-full object-contain bg-white"
                 />
               </div>
-              {wallet.ruBalance && (
-                <div className="w-full flex items-center justify-end px-3 pb-2">
-                  <span className="text-xs font-black text-ink">
-                    Saldo RU: {wallet.ruBalance}
-                  </span>
-                </div>
-              )}
             </div>
           ) : (
             <div className="h-52 p-4 flex flex-col justify-between gap-3">
@@ -312,72 +303,6 @@ export const WalletScreen: React.FC = () => {
         </button>
       </section>
 
-      {/* Seção de Saldo e Extrato no Restaurante Universitário */}
-      <section
-        aria-label="Saldo e extrato no Restaurante Universitário"
-        className="bg-paper border-2 border-ink rounded-2xl p-4 sm:p-5 shadow-neo-sm md:shadow-neo space-y-3"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b-2 border-ink pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-neo-yellow text-ink border-2 border-ink flex items-center justify-center shrink-0">
-              <Receipt className="w-4 h-4 stroke-[2.5]" />
-            </div>
-            <div>
-              <h2 className="text-sm sm:text-base font-black text-black">
-                Extrato no Restaurante Universitário
-              </h2>
-              <p className="text-xs font-bold text-neutral-500">
-                {wallet.ruGroup
-                  ? `Grupo tarifário: ${wallet.ruGroup}`
-                  : "Sincronizado junto com o botão Sincronizar da barra principal"}
-              </p>
-            </div>
-          </div>
-
-          {wallet.ruBalance && (
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-pastel-green border-2 border-ink self-start sm:self-auto">
-              <span className="text-xs font-extrabold text-neutral-600">
-                Saldo atual:
-              </span>
-              <span className="text-sm font-black text-black">
-                {wallet.ruBalance}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {wallet.statement.length === 0 ? (
-          <div className="py-4 text-center">
-            <p className="text-xs font-bold text-neutral-500">
-              Nenhuma movimentação sincronizada ainda. Use o botão Sincronizar
-              do menu principal para atualizar.
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y-2 divide-black/10">
-            {wallet.statement.slice(0, 12).map((entry, idx) => (
-              <div
-                key={`${entry.occurredAt}-${idx}`}
-                className="py-2 flex items-center justify-between gap-3 text-xs"
-              >
-                <div className="min-w-0">
-                  <p className="font-black text-black truncate">
-                    {entry.description}
-                  </p>
-                  <p className="text-xs font-semibold text-neutral-500">
-                    {entry.occurredAt}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-black text-black">
-                    {formatCurrencyBrl(entry.amount) ?? "—"}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
 
       {/* Modal Tela Cheia Vertical com Animação de Giro 90° (UnB e BCE) */}
       <StudentCardModal
