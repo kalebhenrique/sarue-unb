@@ -23,7 +23,11 @@ import { WelcomeSyncDialog } from './components/onboarding/WelcomeSyncDialog';
 import { FeedbackWidget } from './components/feedback/FeedbackWidget';
 import { WithdrawalDeadlineDialog } from './components/notifications/WithdrawalDeadlineDialog';
 import { useContainer } from './context/ContainerContext';
-import { setOnboardingNotificationsBlocked, type AcademicCalendar } from './core';
+import {
+  setOnboardingNotificationsBlocked,
+  isDemoModeActive,
+  type AcademicCalendar,
+} from './core';
 import { NAVIGATE_EVENT } from './lib/utils';
 import { initSoundEffectsListener } from './lib/sound-effects';
 import { AccessibilityProvider } from './context/AccessibilityContext';
@@ -73,6 +77,9 @@ const AppShell: React.FC = () => {
   // o popover de andamento abre ancorado no botão de Sincronização da Sidebar.
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [syncPopoverOpen, setSyncPopoverOpen] = useState(false);
+  // Modo Demonstração: entrado pelo botão do onboarding ou restaurado no boot
+  // (fast-path de dados locais) para o badge da Sidebar e o banner de Settings.
+  const [isDemoMode, setIsDemoMode] = useState(() => isDemoModeActive());
 
   // Inicializa o feedback sonoro de cliques mecânicos
   React.useEffect(() => {
@@ -127,8 +134,12 @@ const AppShell: React.FC = () => {
   // Fast-path Tauri 2: se o SQLite já confirmou dados locais (hasLocalData === true),
   // entra em 'main' imediatamente sem ficar preso no AppBootSkeleton esperando o
   // Argon2id do Stronghold terminar.
+  // useLayoutEffect: a decisão de entrar em 'main' precisa acontecer antes do
+  // paint. Com useEffect, o frame em que hasLocalData vira false (mas
+  // hasCredentials ainda é true) pintaria o OnboardingScreen por um instante
+  // (flick) antes do efeito rodar.
   const bootstrapped = React.useRef(false);
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (bootstrapped.current) return;
     if (hasLocalData === true) {
       bootstrapped.current = true;
@@ -190,6 +201,7 @@ const AppShell: React.FC = () => {
       <OnboardingScreen
         onComplete={() => {
           setOnboardingNotificationsBlocked(false);
+          setIsDemoMode(isDemoModeActive());
           setStep('main');
           // Ritual pós-cadastro: dialog abre; no desktop o popover abre ao dispensar o dialog
           setWelcomeOpen(true);
@@ -197,6 +209,7 @@ const AppShell: React.FC = () => {
         }}
         onExplore={() => {
           setOnboardingNotificationsBlocked(false);
+          setIsDemoMode(isDemoModeActive());
           setStep('main');
         }}
       />
@@ -207,7 +220,7 @@ const AppShell: React.FC = () => {
   return (
     <DeadlineProvider>
     <Toaster />
-    <div className="flex h-full bg-canvas bg-grid overflow-hidden">
+    <div className="flex flex-col md:flex-row h-full bg-canvas bg-grid overflow-hidden">
       {/* Sidebar Colapsável com Botão de Sincronização no Canto Inferior */}
       <Sidebar
         currentTab={currentTab}
@@ -218,15 +231,16 @@ const AppShell: React.FC = () => {
         isSlowConnection={isSlowConnection}
         onSync={syncAll}
         lastSyncedAt={lastSyncedAt}
-        hasConnectedAccounts={Boolean(hasCredentials)}
+        hasConnectedAccounts={Boolean(hasCredentials) || isDemoMode}
         hasUpdateAvailable={hasUpdateAvailable}
+        isDemoMode={isDemoMode}
         syncSteps={syncSteps}
         syncPopoverOpen={!isMobile && syncPopoverOpen}
         onSyncPopoverOpenChange={setSyncPopoverOpen}
       />
 
       {/* Área Central de Conteúdo (Sem Header global, títulos direto no corpo) */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="order-1 md:order-none flex-1 flex flex-col min-h-0 overflow-hidden">
         <main ref={mainRef} className="flex-1 overflow-y-auto px-2.5 pt-3 pb-6 md:px-4 md:py-8">
           <ErrorBoundary key={currentTab} onReset={() => setCurrentTab('home')}>
             {currentTab === 'home' && <DashboardScreen />}
@@ -244,6 +258,7 @@ const AppShell: React.FC = () => {
                   setOnboardingNotificationsBlocked(true);
                   setSyncPopoverOpen(false);
                   setWelcomeOpen(false);
+                  setIsDemoMode(isDemoModeActive());
                   setStep('onboarding');
                   setCurrentTab('home');
                 }}

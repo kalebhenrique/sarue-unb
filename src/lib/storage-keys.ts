@@ -25,4 +25,5 @@ export const STORAGE_KEYS = {
   FLOWCHART_OPEN_SEMESTERS: 'unb_flowchart_open_semesters',
   ONBOARDING_EXPLORED: 'unb_onboarding_explored',
   VAULT_CLEARED: 'unb_vault_cleared_v1',
+  DEMO_MODE: 'sarue_demo_mode_v1',
 } as const;
