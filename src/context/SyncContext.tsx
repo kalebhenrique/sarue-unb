@@ -26,10 +26,11 @@ import {
   loadNotificationSettings,
   syncRuMenuNotifications,
   type CurriculumStructure,
+  isDemoModeActive,
 } from "@/core";
 import { checkForUpdates } from "../hooks/useAppUpdater";
 
-export const SLOW_SCRAPING_THRESHOLD_MS = 8000;
+export const SLOW_SCRAPING_THRESHOLD_MS = 25000;
 
 export type SyncStepId =
   "sigaa" | "aprender3" | "teams" | "myCourse" | "ghPages" | "planilha";
@@ -234,14 +235,18 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         // Carrega credenciais em tempo real diretamente do cofre para evitar estados defasados de React
         const activeCreds = await useCases.getCredentials.getAllCredentials();
 
+        // Modo Demonstração: nenhum passo dependente de conta roda — mesmo que
+        // credenciais órfãs existam no cofre, nunca scraping com dados fictícios.
+        const isDemo = isDemoModeActive();
+
         // 1. Sincronização do Catálogo UnB (GitHub Pages / CDN).
         // Com SIGAA configurado, o passo espera o histórico (Meu Curso) criar o
         // perfil: é ele que diz qual curso baixar — sem isso a primeira
         // sincronização baixaria o catálogo inteiro (612 matrizes) sem precisar.
         const sigaaCreds = activeCreds.sigaa;
-        const hasSigaa = Boolean(
-          sigaaCreds?.matricula?.trim() && sigaaCreds?.senha,
-        );
+        const hasSigaa =
+          !isDemo &&
+          Boolean(sigaaCreds?.matricula?.trim() && sigaaCreds?.senha);
 
         const runGhPagesStep = async () => {
           try {
@@ -308,9 +313,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // 3. Sincronização do Aprender 3
         const aprenderCreds = activeCreds.aprender3;
-        const hasAprender = Boolean(
-          aprenderCreds?.cpf?.trim() && aprenderCreds?.senha,
-        );
+        const hasAprender =
+          !isDemo &&
+          Boolean(aprenderCreds?.cpf?.trim() && aprenderCreds?.senha);
 
         let aprenderSuccess = false;
         let aprenderError = false;
@@ -322,20 +327,20 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
             if (sigaaInFlight) {
               updateStep("sigaa", {
                 message:
-                  "Conexão lenta detectada (eduroam?) — aguardando resposta do SIGAA...",
+                  "Conexão muito lenta detectada — aguardando resposta do SIGAA...",
               });
             }
             if (aprenderInFlight) {
               updateStep("aprender3", {
                 message:
-                  "Conexão lenta detectada (eduroam?) — aguardando resposta do Aprender 3...",
+                  "Conexão muito lenta detectada — aguardando resposta do Aprender 3...",
               });
             }
             if (!options?.isAutoSync && !isOnboardingNotificationsBlocked()) {
               toast.add({
-                title: "Conexão lenta detectada",
+                title: "Conexão muito lenta detectada",
                 description:
-                  "A rede (ex.: eduroam) está demorando para responder ao scraping. A sincronização pode levar mais tempo.",
+                  "A internet está muito lenta para responder ao scraping. A sincronização pode levar mais tempo.",
                 type: "warning",
                 timeout: 6000,
               });
@@ -347,7 +352,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
           if (!hasSigaa) {
             updateStep("sigaa", {
               status: "skipped",
-              message: "Conta não configurada",
+              message: isDemo
+                ? "Indisponível no modo demonstração"
+                : "Conta não configurada",
             });
             return;
           }
@@ -411,7 +418,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
           if (!hasAprender) {
             updateStep("aprender3", {
               status: "skipped",
-              message: "Conta não configurada",
+              message: isDemo
+                ? "Indisponível no modo demonstração"
+                : "Conta não configurada",
             });
             return;
           }
@@ -473,11 +482,13 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Marca estado inicial do Teams antes de aguardar os canais HTTP rápidos
         const teamsCreds = activeCreds.teams;
-        const hasTeams = Boolean(teamsCreds?.isConnected);
+        const hasTeams = !isDemo && Boolean(teamsCreds?.isConnected);
         if (!hasTeams) {
           updateStep("teams", {
             status: "skipped",
-            message: "Conta não configurada",
+            message: isDemo
+              ? "Indisponível no modo demonstração"
+              : "Conta não configurada",
           });
         } else {
           updateStep("teams", {
@@ -508,7 +519,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!hasSigaa) {
           updateStep("myCourse", {
             status: "skipped",
-            message: "Requer conta do SIGAA configurada",
+            message: isDemo
+              ? "Indisponível no modo demonstração"
+              : "Requer conta do SIGAA configurada",
           });
         } else if (!sigaaSuccess) {
           updateStep("myCourse", {
