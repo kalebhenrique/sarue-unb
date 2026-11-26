@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-25T18:52:10.495Z",
+  "updatedAt": "2026-11-26T18:41:16.358Z",
   "campuses": {
     "Darcy Ribeiro": [
       {
@@ -707,7 +707,7 @@
             "key": "main_dish",
             "label": "PRATO PRINCIPAL PADRÃO",
             "items": [
-              "Cubos de frango ao molho sugo"
+              "Lagarto ao molho sugo"
             ]
           },
           {
@@ -1454,6 +1454,1462 @@
             "label": "BEBIDA (Refresco de)",
             "items": [
               "Limão"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-11-30",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Carne desfiada"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo muçarela"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Homus de grão de bico"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Abacaxi"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface lisa com agrião"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Picles de cebola"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Ácido"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Frango assado com manjericão"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Quiche de legumes e lentilha gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Refogado de lentilha, couve-flor e brócolis"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Jardineira verde (chuchu e abobrinha)"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Mix de doces OPÇÃO: Fruta"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Mix de folhas"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Beterraba ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Hortelã"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Lagarto ao molho escuro"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Baião de dois com queijo coalho"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Tomate recheado com soja"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de abóbora"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Laranja"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-01",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou"
+            ]
+          },
+          {
+            "key": "extra",
+            "label": "OPÇÃO EXTRA",
+            "items": [
+              "Pão de queijo"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Frango desfiado"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Pasta de amendoim"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Melancia"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface com chicória"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Abobrinha cozida com orégano"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Chipotle / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Suíno ao molho de bacon"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Ovos assados ao sugo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Berinjela recheada com homus de grão de bico"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Cenoura refogada com salsinha"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Maçã"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Acerola"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Acelga"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Salada de macarrão"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Manjericão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Frango assado ao molho mostarda e mel"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Escondidinho de ervilha gratinado"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Bolinho de ervilha"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Sopa de fubá"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Banana"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Acerola"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-02",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Ovos mexidos"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Pasta de ricota"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Caponata de berinjela"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Melão"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Mix de folhas"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Abóbora ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Salsa"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Strogonoff de frango"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Iscas de soja ao sugo gratinadas"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Polpetone de quinoa"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Batata sauté"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Mexerica"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Manga"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Repolho roxo"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Tomate"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Iogurte / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Filé de peixe ao molho de ervas"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Omelete caprese gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Bobó de legumes com soja"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de legumes"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Doce de banana OPÇÃO: Fruta"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Manga"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-03",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Patê de frango"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Ovos mexidos"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Homus de abóbora"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Maçã"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Acelga temperada"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Sunomono de rabanete"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Ácido"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Carne de sol"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Risoto de brócolis com couve e queijo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Almôndega de soja ao sugo"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Mandioca cozida"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Banana"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Limão"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface crespa"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Cenoura ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Chimichurri / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Isca de frango ao molho branco"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Quibe de legumes com quinoa gratinado"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Refogado de grão de bico"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Sopa de macarrão com legumes"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Melancia"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Limão"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-04",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou"
+            ]
+          },
+          {
+            "key": "extra",
+            "label": "OPÇÃO EXTRA",
+            "items": [
+              "Bolo"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Iogurte natural"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Geleia rústica de abacaxi e chia"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Banana"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Couve-manteiga"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Beterraba ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Vinagrete"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Feijoada"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Omelete de cebola ao forno com queijo gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Feijoada vegetariana"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Farofa crocante"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Laranja"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Uva"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface roxa"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Berinjela com azeitonas"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Chipotle"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Hambúrguer gratinado"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Nhoque ao molho branco com soja e queijo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Moqueca de banana da terra com proteína de soja"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de cebola e alho poró"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Abacaxi"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Uva"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-05",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Queijo muçarela"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Bebida láctea"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Pasta de batata doce com amendoim"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Salada de frutas"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Mostarda"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Tomate"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Mostarda e mel / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Bife de carne bovina ao molho"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Hambúrguer de ervilha gratinado"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Ervilha com couve- flor ao curry"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Milho cozido"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Melão"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Rúcula"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Abóbora ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Alho e limão / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Suíno com cebola caramelizada"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Ovos mexidos com castanhas"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Bolinho de grão de bico"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de mandioca"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Maçã"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-06",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Carne moída"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Maionese de abacate"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Mamão"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Repolho branco com gergelim"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Tabule"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Hortelã"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Torta de frango"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Delícia de lentilha"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Espaguete com abobrinha e soja ao sugo"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Beterraba com salsinha"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Abacaxi"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Laranja"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Chicória"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Pepino em cubos com gergelim"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Ácido"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Cubos de carne ao molho de vinho"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Cuscuz vegetariano com queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Batata recheada com quinoa"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme verde de ervilha e couve"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Melão"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Laranja"
             ]
           }
         ]
@@ -2631,6 +4087,1178 @@
           }
         ],
         "dinner": []
+      },
+      {
+        "date": "2026-11-30",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Carne desfiada"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo muçarela"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Homus de grão de bico"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Abacaxi"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface lisa com agrião"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Picles de cebola"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Ácido"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Frango assado com manjericão"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Quiche de legumes e lentilha gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Refogado de lentilha, couve-flor e brócolis"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Jardineira verde (chuchu e abobrinha)"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Mix de doces OPÇÃO: Fruta"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Mix de folhas"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Beterraba ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Hortelã"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Lagarto ao molho escuro"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Baião de dois com queijo coalho"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Tomate recheado com soja"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de abóbora"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Laranja"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-01",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca"
+            ]
+          },
+          {
+            "key": "extra",
+            "label": "OPÇÃO EXTRA",
+            "items": [
+              "Pão de queijo"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Frango desfiado"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Pasta de amendoim"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Melancia"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface com chicória"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Abobrinha cozida com orégano"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Chipotle / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Suíno ao molho de bacon"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Ovos assados ao sugo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Berinjela recheada com homus de grão de bico"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Cenoura refogada com salsinha"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Maçã"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Acerola"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Acelga"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Salada de macarrão"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Manjericão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Frango assado ao molho mostarda e mel"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Escondidinho de ervilha gratinado"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Bolinho de ervilha"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Sopa de fubá"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Banana"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Acerola"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-02",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Ovos mexidos"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Pasta de ricota"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Caponata de berinjela"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Melão"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Mix de folhas"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Abóbora ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Salsa"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Strogonoff de frango"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Iscas de soja ao sugo gratinadas"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Polpetone de quinoa"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Batata sauté"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Mexerica"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Manga"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Repolho roxo"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Tomate"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Iogurte / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Filé de peixe ao molho de ervas"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Omelete caprese gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Bobó de legumes com soja"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de legumes"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Doce de banana OPÇÃO: Fruta"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Manga"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-03",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Patê de frango"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Ovos mexidos"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Homus de abóbora"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Maçã"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Acelga temperada"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Sunomono de rabanete"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Ácido"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Carne de sol"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Risoto de brócolis com couve e queijo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Almôndega de soja ao sugo"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Mandioca cozida"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Banana"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Limão"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface crespa"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Cenoura ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Chimichurri / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Isca de frango ao molho branco"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Quibe de legumes com quinoa gratinado"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Refogado de grão de bico"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Sopa de macarrão com legumes"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Melancia"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Limão"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-04",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca"
+            ]
+          },
+          {
+            "key": "extra",
+            "label": "OPÇÃO EXTRA",
+            "items": [
+              "Bolo"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Iogurte natural"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Geleia rústica de abacaxi e chia"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Banana"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Couve-manteiga"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Beterraba ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Vinagrete"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Feijoada"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Omelete de cebola ao forno com queijo gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Feijoada vegetariana"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Farofa crocante"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Laranja"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Uva"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface roxa"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Berinjela com azeitonas"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Chipotle"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Hambúrguer gratinado"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Nhoque ao molho branco com soja e queijo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Moqueca de banana da terra com proteína de soja"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de cebola e alho poró"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Abacaxi"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Uva"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-05",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Queijo muçarela"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Bebida láctea"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Pasta de batata doce com amendoim"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Salada de frutas"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Mostarda"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Tomate"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Mostarda e mel / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Bife de carne bovina ao molho"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Hambúrguer de ervilha gratinado"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Ervilha com couve-flor ao curry"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Milho cozido"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Melão"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ],
+        "dinner": []
       }
     ],
     "Gama": [
@@ -3674,6 +6302,1050 @@
             "label": "BEBIDA (Refresco de)",
             "items": [
               "Maracujá"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-11-30",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Carne desfiada"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo muçarela"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Homus de grão de bico"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Abacaxi"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface lisa com agrião"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Picles de cebola"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Ácido"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Frango assado com manjericão"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Quiche de legumes e lentilha gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Refogado de lentilha, couve- flor e brócolis"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Jardineira verde (chuchu e abobrinha)"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Mix de doces OPÇÃO: Fruta"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Mix de folhas"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Beterraba ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Hortelã"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Lagarto ao molho escuro"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Baião de dois com queijo coalho"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Tomate recheado com soja"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de abóbora"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Laranja"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-01",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca"
+            ]
+          },
+          {
+            "key": "extra",
+            "label": "OPÇÃO EXTRA",
+            "items": [
+              "Pão de queijo"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Frango desfiado"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Pasta de amendoim"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Melancia"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface com chicória"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Abobrinha cozida com orégano"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Chipotle / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Suíno ao molho de bacon"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Ovos assados ao sugo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Berinjela recheada com homus de grão de bico"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Cenoura refogada com salsinha"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Maçã"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Acerola"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Acelga"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Salada de macarrão"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Manjericão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Frango assado ao molho mostarda e mel"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Escondidinho de ervilha gratinado"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Bolinho de ervilha"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Sopa de fubá"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Banana"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Acerola"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-02",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Ovos mexidos"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Pasta de ricota"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Caponata de berinjela"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Melão"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Mix de folhas"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Abóbora ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Salsa"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Strogonoff de frango"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Iscas de soja ao sugo gratinadas"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Polpetone de quinoa"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Batata sauté"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Mexerica"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Manga"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Repolho roxo"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Tomate"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Iogurte / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Filé de peixe ao molho de ervas"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Omelete caprese gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Bobó de legumes com soja"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de legumes"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Doce de banana OPÇÃO: Fruta"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Manga"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-03",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Patê de frango"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Ovos mexidos"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Homus de abóbora"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Maçã"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Acelga temperada"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Sunomono de rabanete"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Ácido"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Carne de sol"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Risoto de brócolis com couve e queijo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Almôndega de soja ao sugo"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Mandioca cozida"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Banana"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Limão"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface crespa"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Cenoura ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Chimichurri / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Isca de frango ao molho branco"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Quibe de legumes com quinoa gratinado"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Refogado de grão de bico"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Sopa de macarrão com legumes"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Melancia"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Limão"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-04",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca"
+            ]
+          },
+          {
+            "key": "extra",
+            "label": "OPÇÃO EXTRA",
+            "items": [
+              "Bolo"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Iogurte natural"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Geleia rústica de abacaxi e chia"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Banana"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Couve-manteiga"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Beterraba ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Vinagrete"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Feijoada"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Omelete de cebola ao forno com queijo gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Feijoada vegetariana"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Farofa crocante"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Laranja"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Uva"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface roxa"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Berinjela com azeitonas"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Chipotle"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Hambúrguer gratinado"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Nhoque ao molho branco com soja e queijo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Moqueca de banana da terra com proteína de soja"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de cebola e alho poró"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Abacaxi"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Uva"
             ]
           }
         ]
@@ -5135,6 +8807,1462 @@
             ]
           }
         ]
+      },
+      {
+        "date": "2026-11-30",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Carne desfiada"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo muçarela"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Homus de grão de bico"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Abacaxi"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface lisa com agrião"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Picles de cebola"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Ácido"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Frango assado com manjericão"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Quiche de legumes e lentilha gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Refogado de lentilha, couve-flor e brócolis"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Jardineira verde (chuchu e abobrinha)"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Mix de doces OPÇÃO: Fruta"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Mix de folhas"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Beterraba ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Hortelã"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Lagarto ao molho escuro"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Baião de dois com queijo coalho"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Tomate recheado com soja"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de abóbora"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Laranja"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-01",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou"
+            ]
+          },
+          {
+            "key": "extra",
+            "label": "OPÇÃO EXTRA",
+            "items": [
+              "Pão de queijo"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Frango desfiado"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Pasta de amendoim"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Melancia"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface com chicória"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Abobrinha cozida com orégano"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Chipotle / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Suíno ao molho de bacon"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Ovos assados ao sugo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Berinjela recheada com homus de grão de bico"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Cenoura refogada com salsinha"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Maçã"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Acerola"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Acelga"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Salada de macarrão"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Manjericão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Frango assado ao molho mostarda e mel"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Escondidinho de ervilha gratinado"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Bolinho de ervilha"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Sopa de fubá"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Banana"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Acerola"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-02",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Ovos mexidos"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Pasta de ricota"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Caponata de berinjela"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Melão"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Mix de folhas"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Abóbora ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Salsa"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Strogonoff de frango"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Iscas de soja ao sugo gratinadas"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Polpetone de quinoa"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Batata sauté"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Mexerica"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Manga"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Repolho roxo"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Tomate"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Iogurte / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Filé de peixe ao molho de ervas"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Omelete caprese gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Bobó de legumes com soja"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de legumes"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Doce de banana OPÇÃO: Fruta"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Manga"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-03",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Patê de frango"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Ovos mexidos"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Homus de abóbora"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Maçã"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Acelga temperada"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Sunomono de rabanete"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Ácido"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Carne de sol"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Risoto de brócolis com couve e queijo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Almôndega de soja ao sugo"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Mandioca cozida"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Banana"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Limão"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface crespa"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Cenoura ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Chimichurri / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Isca de frango ao molho branco"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Quibe de legumes com quinoa gratinado"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Refogado de grão de bico"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Sopa de macarrão com legumes"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Melancia"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Limão"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-04",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou"
+            ]
+          },
+          {
+            "key": "extra",
+            "label": "OPÇÃO EXTRA",
+            "items": [
+              "Bolo"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Iogurte natural"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Geleia rústica de abacaxi e chia"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Banana"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Couve-manteiga"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Beterraba ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Vinagrete"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Feijoada"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Omelete de cebola ao forno com queijo gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Feijoada vegetariana"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Farofa crocante"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Laranja"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Uva"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface roxa"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Berinjela com azeitonas"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Chipotle"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Hambúrguer gratinado"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Nhoque ao molho branco com soja e queijo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Moqueca de banana da terra com proteína de soja"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de cebola e alho poró"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Abacaxi"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Uva"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-05",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Queijo muçarela"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Bebida láctea"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Pasta de batata doce com amendoim"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Salada de frutas"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Mostarda"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Tomate"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Mostarda e mel / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Bife de carne bovina ao molho"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Hambúrguer de ervilha gratinado"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Ervilha com couve- flor ao curry"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Milho cozido"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Melão"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Rúcula"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Abóbora ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Alho e limão / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Suíno com cebola caramelizada"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Ovos mexidos com castanhas"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Bolinho de grão de bico"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme de mandioca"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Maçã"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ]
+      },
+      {
+        "date": "2026-12-06",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Carne moída"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Maionese de abacate"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Mamão"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Repolho branco com gergelim"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Tabule"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Hortelã"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Torta de frango"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Delícia de lentilha"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Espaguete com abobrinha e soja ao sugo"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Beterraba com salsinha"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Abacaxi"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Laranja"
+            ]
+          }
+        ],
+        "dinner": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Chicória"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Pepino em cubos com gergelim"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Ácido"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Cubos de carne ao molho de vinho"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Cuscuz vegetariano com queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Batata recheada com quinoa"
+            ]
+          },
+          {
+            "key": "soup",
+            "label": "SOPA",
+            "items": [
+              "Creme verde de ervilha e couve"
+            ]
+          },
+          {
+            "key": "toast",
+            "label": "TORRADA",
+            "items": [
+              "Torrada"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Melão"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Laranja"
+            ]
+          }
+        ]
       }
     ],
     "Fazenda Água Limpa": [
@@ -5787,6 +10915,660 @@
             "label": "BEBIDA (Refresco de)",
             "items": [
               "Maracujá"
+            ]
+          }
+        ],
+        "dinner": []
+      },
+      {
+        "date": "2026-11-30",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Carne desfiada"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo muçarela"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Homus de grão de bico"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Abacaxi"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface lisa com agrião"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Picles de cebola"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Ácido"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Frango assado com manjericão"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Quiche de legumes e lentilha gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Refogado de lentilha, couve- flor e brócolis"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Jardineira verde (chuchu e abobrinha)"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Mix de doces OPÇÃO: Fruta"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Morango"
+            ]
+          }
+        ],
+        "dinner": []
+      },
+      {
+        "date": "2026-12-01",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca"
+            ]
+          },
+          {
+            "key": "extra",
+            "label": "OPÇÃO EXTRA",
+            "items": [
+              "Pão de queijo"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Frango desfiado"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Pasta de amendoim"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Melancia"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Alface com chicória"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Abobrinha cozida com orégano"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Chipotle / Limão"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Suíno ao molho de bacon"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Ovos assados ao sugo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Berinjela recheada com homus de grão de bico"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Cenoura refogada com salsinha"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Maçã"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Acerola"
+            ]
+          }
+        ],
+        "dinner": []
+      },
+      {
+        "date": "2026-12-02",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Ovos mexidos"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Pasta de ricota"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Caponata de berinjela"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Melão"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Mix de folhas"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Abóbora ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Salsa"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Strogonoff de frango"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Iscas de soja ao sugo gratinadas"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Polpetone de quinoa"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Batata sauté"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Mexerica"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Manga"
+            ]
+          }
+        ],
+        "dinner": []
+      },
+      {
+        "date": "2026-12-03",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca ou Pão integral"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Patê de frango"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Ovos mexidos"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Homus de abóbora"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Maçã"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Acelga temperada"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Sunomono de rabanete"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Ácido"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Carne de sol"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Risoto de brócolis com couve e queijo"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Almôndega de soja ao sugo"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Mandioca cozida"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão carioca"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Banana"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Limão"
+            ]
+          }
+        ],
+        "dinner": []
+      },
+      {
+        "date": "2026-12-04",
+        "breakfast": [
+          {
+            "key": "hot_drink",
+            "label": "BEBIDAS",
+            "items": [
+              "Leite integral ou Bebida de soja",
+              "Café OU Chá"
+            ]
+          },
+          {
+            "key": "bakery",
+            "label": "PANIFICAÇÃO",
+            "items": [
+              "Pão francês ou Pão careca"
+            ]
+          },
+          {
+            "key": "extra",
+            "label": "OPÇÃO EXTRA",
+            "items": [
+              "Bolo"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "GORDURA",
+            "items": [
+              "Manteiga ou creme vegetal"
+            ]
+          },
+          {
+            "key": "breakfast_complement",
+            "label": "COMPLEMENTO PADRÃO",
+            "items": [
+              "Iogurte natural"
+            ]
+          },
+          {
+            "key": "ovolacto_complement",
+            "label": "COMPLEMENTO OVOLACTO-VEGETARIANO",
+            "items": [
+              "Queijo minas"
+            ]
+          },
+          {
+            "key": "vegan_complement",
+            "label": "COMPLEMENTO VEGETARIANO ESTRITO",
+            "items": [
+              "Geleia rústica de abacaxi e chia"
+            ]
+          },
+          {
+            "key": "fruit",
+            "label": "FRUTA",
+            "items": [
+              "Banana"
+            ]
+          }
+        ],
+        "lunch": [
+          {
+            "key": "salad_1",
+            "label": "SALADA 1",
+            "items": [
+              "Couve-manteiga"
+            ]
+          },
+          {
+            "key": "salad_2",
+            "label": "SALADA 2",
+            "items": [
+              "Beterraba ralada"
+            ]
+          },
+          {
+            "key": "salad_dressing",
+            "label": "MOLHO PARA SALADA",
+            "items": [
+              "Vinagrete"
+            ]
+          },
+          {
+            "key": "main_dish",
+            "label": "PRATO PRINCIPAL PADRÃO",
+            "items": [
+              "Feijoada"
+            ]
+          },
+          {
+            "key": "ovolacto_dish",
+            "label": "PRATO PRINCIPAL OVOLACTO-VEGETARIANO",
+            "items": [
+              "Omelete de cebola ao forno com queijo gratinada"
+            ]
+          },
+          {
+            "key": "vegan_dish",
+            "label": "PRATO PRINCIPAL VEGETARIANO ESTRITO",
+            "items": [
+              "Feijoada vegetariana"
+            ]
+          },
+          {
+            "key": "side_dish",
+            "label": "GUARNIÇÃO",
+            "items": [
+              "Farofa crocante"
+            ]
+          },
+          {
+            "key": "accompaniments",
+            "label": "ACOMPANHAMENTOS",
+            "items": [
+              "Arroz branco e integral Feijão preto"
+            ]
+          },
+          {
+            "key": "dessert",
+            "label": "SOBREMESA",
+            "items": [
+              "Laranja"
+            ]
+          },
+          {
+            "key": "drink",
+            "label": "BEBIDA (Refresco de)",
+            "items": [
+              "Uva"
             ]
           }
         ],
