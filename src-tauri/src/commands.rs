@@ -393,6 +393,12 @@ pub async fn get_sigaa_departments() -> Result<Vec<crate::grade_scraper::Departm
 
 #[command]
 #[specta::specta]
+pub async fn get_sigaa_semesters() -> Result<Vec<crate::grade_scraper::SemesterOption>, String> {
+    crate::grade_scraper::SigaaGradeScraper::fetch_semesters().await
+}
+
+#[command]
+#[specta::specta]
 pub async fn get_sigaa_professors() -> Result<Vec<crate::grade_scraper::ScrapedProfessor>, String> {
     crate::grade_scraper::SigaaGradeScraper::fetch_professors().await
 }

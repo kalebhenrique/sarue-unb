@@ -16,6 +16,7 @@ export const commands = {
 } | null) => typedError<SyncResult, string>(__TAURI_INVOKE("sync_platforms", { platforms, sigaa, aprender3, teams })),
 	checkVaultStatus: () => __TAURI_INVOKE<VaultStatus>("check_vault_status"),
 	getSigaaDepartments: () => typedError<Department[], string>(__TAURI_INVOKE("get_sigaa_departments")),
+	getSigaaSemesters: () => typedError<SemesterOption[], string>(__TAURI_INVOKE("get_sigaa_semesters")),
 	getSigaaProfessors: () => typedError<ScrapedProfessor[], string>(__TAURI_INVOKE("get_sigaa_professors")),
 	scrapeSigaaClasses: (departmentId: string, year: string, period: string) => typedError<ScrapedDiscipline[], string>(__TAURI_INVOKE("scrape_sigaa_classes", { departmentId, year, period })),
 	getCoursesCatalog: () => typedError<CourseCatalogItem[], string>(__TAURI_INVOKE("get_courses_catalog")),
@@ -230,6 +231,14 @@ export type ScrapedProfessor = {
 	department_ids?: string[],
 	discipline_codes?: string[],
 	photo_url?: string | null,
+};
+
+export type SemesterOption = {
+	value: string,
+	year: string,
+	period: string,
+	label: string,
+	is_current?: boolean,
 };
 
 export type SigaaCreds = {

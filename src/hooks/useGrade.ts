@@ -484,13 +484,16 @@ export function useGrade() {
     return map;
   }, [departments]);
 
-  // Coleta todas as turmas da UnB com suporte a cache global em memória
+  // Coleta todas as turmas da UnB com suporte a cache global em memória por semestre
+  const loadedSemesterKeyRef = useRef<string | null>(null);
+
   const fetchClasses = useCallback(
     async (deptId = selectedDeptId, y = year, p = period, force = false) => {
       const allKey = `all-${y}-${p}`;
 
       if (!force && disciplinesCache.has(allKey)) {
         const all = disciplinesCache.get(allKey)!;
+        loadedSemesterKeyRef.current = `${y}-${p}`;
         setAllDisciplines(all);
         const deptList =
           deptId === 'ALL' ? all : all.filter((d) => d.departmentId === deptId);
@@ -503,6 +506,7 @@ export function useGrade() {
       try {
         const result = await container.useCases.scrapeClasses.execute('ALL', y, p);
         disciplinesCache.set(allKey, result);
+        loadedSemesterKeyRef.current = `${y}-${p}`;
         setAllDisciplines(result);
         const deptList =
           deptId === 'ALL' ? result : result.filter((d) => d.departmentId === deptId);
@@ -524,13 +528,14 @@ export function useGrade() {
 
   // Atualiza ou carrega disciplinas ao alterar departamento ou semestre
   useEffect(() => {
-    if (allDisciplines.length > 0) {
+    const currentSemKey = `${year}-${period}`;
+    if (loadedSemesterKeyRef.current === currentSemKey && allDisciplines.length > 0) {
       const deptList =
         selectedDeptId === 'ALL'
           ? allDisciplines
           : allDisciplines.filter((d) => d.departmentId === selectedDeptId);
       setDisciplines(deptList);
-    } else {
+    } else if (loadedSemesterKeyRef.current !== currentSemKey) {
       fetchClasses(selectedDeptId, year, period, false);
     }
   }, [selectedDeptId, year, period, allDisciplines, fetchClasses]);

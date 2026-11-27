@@ -7,13 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       year:
-        description: 'Ano letivo a ser extraído'
+        description: 'Ano letivo específico (vazio = raspa semestre atual + próximo)'
         required: false
-        default: '2026'
+        default: ''
       period:
-        description: 'Período letivo a ser extraído (1 ou 2)'
+        description: 'Período letivo específico (1 ou 2; vazio = raspa semestre atual + próximo)'
         required: false
-        default: '2'
+        default: ''
 
 concurrency:
   group: scrape-sigaa-data
@@ -45,11 +45,20 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Executar scraping de turmas e departamentos
+        env:
+          INPUT_YEAR: ${{ inputs.year }}
+          INPUT_PERIOD: ${{ inputs.period }}
         run: |
-          pnpm run scrape:grade \
-            --year "${{ inputs.year || '2026' }}" \
-            --period "${{ inputs.period || '2' }}" \
-            --out-dir ./dist-data
+          if [ -n "$INPUT_YEAR" ] && [ -n "$INPUT_PERIOD" ]; then
+            pnpm run scrape:grade \
+              --year "$INPUT_YEAR" \
+              --period "$INPUT_PERIOD" \
+              --out-dir ./dist-data
+          else
+            pnpm run scrape:grade \
+              --all-semesters \
+              --out-dir ./dist-data
+          fi
 
       - name: Executar scraping de calendários acadêmicos (SAA UnB)
         run: |
