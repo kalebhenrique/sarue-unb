@@ -47,7 +47,14 @@ import { GradeFormulaSection } from "../components/course";
 import { FeedList } from "../components/feed/FeedList";
 import { FeedToolbar } from "../components/feed/FeedToolbar";
 import { useFeedSelection } from "../hooks/useFeedSelection";
-import { getDefaultAcademicSemester, calculateAbsenceRisk, convertSigaaHoursToClassAbsences } from "@/core";
+import {
+  getDefaultAcademicSemester,
+  calculateAbsenceRisk,
+  convertSigaaHoursToClassAbsences,
+  isDisciplineUserDataHydrated,
+  loadDisciplineUserData,
+  subscribeToDisciplineUserData,
+} from "@/core";
 import type { Course, Discipline, FeedItemType, PlatformType } from "@/core";
 
 const PLATFORM_LABELS: Record<PlatformType, string> = {
@@ -118,18 +125,28 @@ export const CoursesScreen: React.FC = () => {
     setDetailsSheetOpen(false);
   }, [selectedDiscipline]);
 
-  const selectedDisciplineId = selectedDiscipline?.id;
-  // Trocou de disciplina: carrega o ajuste manual de faltas da persistência
+  // Hidrata notas e ajustes de faltas do SQLite ao montar a tela de disciplinas
+  useEffect(() => {
+    const unsubscribe = subscribeToDisciplineUserData(() => {
+      setAbsenceOverridesVersion((v) => v + 1);
+    });
+    if (!isDisciplineUserDataHydrated()) {
+      void loadDisciplineUserData();
+    }
+    return unsubscribe;
+  }, []);
+
+  // Trocou de disciplina ou hidratou do SQLite: carrega o ajuste manual de faltas
   useEffect(() => {
     setAbsenceOverride(
-      selectedDisciplineId ? readAbsenceOverride(selectedDisciplineId) : null,
+      selectedDiscipline ? readAbsenceOverride(selectedDiscipline) : null,
     );
-  }, [selectedDisciplineId]);
+  }, [selectedDiscipline, absenceOverridesVersion]);
 
   // Ajuste manual editado: persiste e invalida os badges/notificações da lista
   const handleAbsenceOverrideChange = (value: number | null) => {
-    if (selectedDisciplineId) {
-      writeAbsenceOverride(selectedDisciplineId, value);
+    if (selectedDiscipline) {
+      writeAbsenceOverride(selectedDiscipline, value);
       setAbsenceOverridesVersion((v) => v + 1);
     }
     setAbsenceOverride(value);
@@ -137,7 +154,7 @@ export const CoursesScreen: React.FC = () => {
 
   // Faltas efetivas de uma disciplina: ajuste manual (em aulas) > SIGAA convertido de horas-falta para aulas > undefined
   const getEffectiveAbsences = (d: Discipline): number | undefined => {
-    const overrideValue = readAbsenceOverride(d.id);
+    const overrideValue = readAbsenceOverride(d);
     if (overrideValue !== null) return overrideValue;
     const rawSigaa = d.absences ?? d.sigaaCourse?.absences ?? undefined;
     if (rawSigaa === undefined) return undefined;

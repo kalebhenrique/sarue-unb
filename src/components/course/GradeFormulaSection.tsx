@@ -14,6 +14,12 @@ import {
   extractVariables,
   calculateApprovalRequirements,
   COMMON_UNB_FORMULA_PRESETS,
+  DEFAULT_GRADE_FORMULA,
+  getDisciplineGradeData,
+  isDisciplineUserDataHydrated,
+  loadDisciplineUserData,
+  saveDisciplineGradeData,
+  subscribeToDisciplineUserData,
 } from "@/core";
 import type { Discipline, CalculationResult } from "@/core";
 
@@ -42,50 +48,117 @@ export const GradeFormulaSection: React.FC<GradeFormulaSectionProps> = ({
   hideHeader = false,
   onSummaryChange,
 }) => {
-  const storagePrefix = `sarue:discipline_grades:${discipline.id}`;
-  const formulaStorageKey = `${storagePrefix}:formula`;
-  const valuesStorageKey = `${storagePrefix}:values`;
-  const expandedStorageKey = `${storagePrefix}:expanded`;
+  const expandedStorageKey = `sarue:discipline_grades:${discipline.id}:expanded`;
 
-  // Fórmula matemática
-  const [formula, setFormula] = useState<string>(() => {
-    return localStorage.getItem(formulaStorageKey) || "(P1 + P2) / 2";
+  // Fórmula matemática e notas hidratadas do cache local + SQLite (app_settings)
+  const [formula, setFormulaState] = useState<string>(() => {
+    return getDisciplineGradeData(discipline).formula || DEFAULT_GRADE_FORMULA;
   });
 
   // Notas informadas por variável: { P1: 7.5, P2: null }
-  const [grades, setGrades] = useState<Record<string, number | null>>(() => {
-    try {
-      const saved = localStorage.getItem(valuesStorageKey);
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
+  const [grades, setGradesState] = useState<Record<string, number | null>>(() => {
+    return getDisciplineGradeData(discipline).values;
   });
+
+  const dirtyRef = React.useRef(false);
+  const pendingSaveRef = React.useRef<{
+    discipline: Discipline;
+    formula: string;
+    grades: Record<string, number | null>;
+  } | null>(null);
+
+  const flushPendingSave = React.useCallback(() => {
+    const pending = pendingSaveRef.current;
+    if (!pending) return;
+    pendingSaveRef.current = null;
+    dirtyRef.current = false;
+    void saveDisciplineGradeData(pending.discipline, {
+      formula: pending.formula,
+      values: pending.grades,
+    });
+  }, []);
+
+  const setFormula = React.useCallback(
+    (next: React.SetStateAction<string>) => {
+      dirtyRef.current = true;
+      setFormulaState(next);
+    },
+    [],
+  );
+
+  const setGrades = React.useCallback(
+    (next: React.SetStateAction<Record<string, number | null>>) => {
+      dirtyRef.current = true;
+      setGradesState(next);
+    },
+    [],
+  );
+
+  // Recarrega estado ao trocar de disciplina (fazendo flush de edição pendente antes)
+  useEffect(() => {
+    flushPendingSave();
+    dirtyRef.current = false;
+    const initial = getDisciplineGradeData(discipline);
+    setFormulaState(initial.formula || DEFAULT_GRADE_FORMULA);
+    setGradesState(initial.values);
+  }, [discipline, flushPendingSave]);
+
+  // Hidrata do SQLite assim que disponível (sem sobrescrever edições em curso)
+  useEffect(() => {
+    const syncFromStore = () => {
+      if (dirtyRef.current) return;
+      const stored = getDisciplineGradeData(discipline);
+      if (stored.found) {
+        setFormulaState(stored.formula || DEFAULT_GRADE_FORMULA);
+        setGradesState(stored.values);
+      }
+    };
+    const unsubscribe = subscribeToDisciplineUserData(syncFromStore);
+    if (!isDisciplineUserDataHydrated()) {
+      void loadDisciplineUserData();
+    }
+    return unsubscribe;
+  }, [discipline]);
 
   // Estado de expansão da seção
   const [isExpanded, setIsExpanded] = useState<boolean>(() => {
-    const saved = localStorage.getItem(expandedStorageKey);
-    // Expandido por padrão se não houver preferência anterior
-    return saved !== null ? saved === "true" : true;
+    try {
+      const saved = localStorage.getItem(expandedStorageKey);
+      // Expandido por padrão se não houver preferência anterior
+      return saved !== null ? saved === "true" : true;
+    } catch {
+      return true;
+    }
   });
 
   const [isFormulaFocused, setIsFormulaFocused] = useState(false);
 
-  // Salva fórmula no localStorage
+  // Persiste fórmula e notas no SQLite + localStorage apenas quando houve edição do usuário
   useEffect(() => {
-    localStorage.setItem(formulaStorageKey, formula);
-  }, [formulaStorageKey, formula]);
+    if (!dirtyRef.current) return;
+    pendingSaveRef.current = { discipline, formula, grades };
+    const timer = window.setTimeout(() => {
+      flushPendingSave();
+    }, 200);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [discipline, formula, grades, flushPendingSave]);
 
-  // Salva notas no localStorage
+  // Garante flush imediato ao desmontar se houver edição pendente
   useEffect(() => {
-    localStorage.setItem(valuesStorageKey, JSON.stringify(grades));
-  }, [valuesStorageKey, grades]);
+    return () => {
+      flushPendingSave();
+    };
+  }, [flushPendingSave]);
 
   // Salva estado de expansão
   const toggleExpanded = () => {
     setIsExpanded((prev) => {
       const next = !prev;
-      localStorage.setItem(expandedStorageKey, String(next));
+      try {
+        localStorage.setItem(expandedStorageKey, String(next));
+      } catch {}
       return next;
     });
   };

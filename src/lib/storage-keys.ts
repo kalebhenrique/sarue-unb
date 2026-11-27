@@ -20,6 +20,7 @@ export const STORAGE_KEYS = {
   RU_NOTIFIED_MEALS: 'sarue_ru_notified_meals_v1',
   RU_SCHEDULED_NOTIF_IDS: 'sarue_ru_scheduled_notif_ids_v1',
   RU_SCHEDULED_MEAL_TIMES: 'sarue_ru_scheduled_meal_times_v1',
+  DISCIPLINE_GRADES: 'sarue_discipline_grades_v2',
   GRADE_YEAR: 'unb_grade_year',
   GRADE_PERIOD: 'unb_grade_period',
   FLOWCHART_OPEN_SEMESTERS: 'unb_flowchart_open_semesters',

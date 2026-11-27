@@ -69,9 +69,11 @@ export * from './infrastructure/demo-mode.service';
 export * from './infrastructure/ru-wallet.service';
 export * from './infrastructure/network-sync-settings.service';
 export * from './infrastructure/notification-settings.service';
+export * from './infrastructure/discipline-grades.service';
 export * from './infrastructure/ru-notification.service';
 export {
   isOnboardingNotificationsBlocked,
   setOnboardingNotificationsBlocked,
+  subscribeOnboardingNotificationsGate,
 } from './infrastructure/tauri-os-notifier';
 
