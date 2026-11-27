@@ -341,10 +341,14 @@ export const GradeBuilderScreen: React.FC = () => {
         if (res.status === "error") {
           throw new Error(res.error);
         }
-        // `true` = compartilhado nativamente no mobile; `false` = fallback desktop (download)
-        if (res.data) {
-          return;
+        if (res.data.outcome === "saved") {
+          toast.add({
+            title: "Grade exportada",
+            description: `Imagem ${filename} salva com sucesso.`,
+            type: "success",
+          });
         }
+        return;
       } else if (isMobileDevice() && typeof navigator !== "undefined" && typeof navigator.share === "function") {
         const blob = await (await fetch(dataUrl)).blob();
         const file = new File([blob], filename, { type: "image/png" });

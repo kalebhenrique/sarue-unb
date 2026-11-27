@@ -84,6 +84,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         commands::fetch_student_wallet,
         commands::set_max_brightness,
         commands::share_image,
+        commands::share_text_file,
         commands::render_student_card_pdf,
         commands::is_play_store_install,
         commands::check_apk_release_update,
@@ -225,6 +226,7 @@ pub fn run() {
                 app.handle()
                     .plugin(tauri_plugin_updater::Builder::new().build())?;
                 app.handle().plugin(tauri_plugin_process::init())?;
+                app.handle().plugin(tauri_plugin_dialog::init())?;
                 app.handle().plugin(tauri_plugin_autostart::init(
                     tauri_plugin_autostart::MacosLauncher::LaunchAgent,
                     None,

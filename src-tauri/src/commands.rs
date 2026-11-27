@@ -1102,6 +1102,59 @@ pub async fn set_max_brightness(app: AppHandle, enable: bool) -> Result<(), Stri
         .map_err(|e| e.to_string())
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, specta::Type)]
+#[serde(rename_all = "lowercase")]
+pub enum FileExportOutcome {
+    Saved,
+    Shared,
+    Cancelled,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FileExportResult {
+    /// `"saved"` (desktop), `"shared"` (mobile) ou `"cancelled"` (usuário fechou o diálogo).
+    pub outcome: FileExportOutcome,
+    pub path: Option<String>,
+}
+
+#[cfg(desktop)]
+async fn pick_desktop_save_path(
+    app: &AppHandle,
+    filename: &str,
+    title: Option<&str>,
+    filter_name: &str,
+    filter_extensions: &[&str],
+) -> Result<Option<std::path::PathBuf>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    let mut builder = app
+        .dialog()
+        .file()
+        .set_file_name(filename)
+        .add_filter(filter_name, filter_extensions);
+    if let Some(t) = title {
+        builder = builder.set_title(t);
+    }
+
+    builder.save_file(move |file_path| {
+        let _ = tx.send(file_path);
+    });
+
+    let picked = rx
+        .await
+        .map_err(|_| "Diálogo de salvamento interrompido".to_string())?;
+
+    match picked {
+        Some(fp) => fp
+            .into_path()
+            .map(Some)
+            .map_err(|e| format!("Caminho inválido selecionado: {e}")),
+        None => Ok(None),
+    }
+}
+
 #[command]
 #[specta::specta]
 pub async fn share_image(
@@ -1109,11 +1162,106 @@ pub async fn share_image(
     base64_png: String,
     filename: String,
     title: Option<String>,
-) -> Result<bool, String> {
-    use tauri_plugin_share::ShareExt;
-    app.share()
-        .share_image(base64_png, filename, title)
-        .map_err(|e| e.to_string())
+) -> Result<FileExportResult, String> {
+    #[cfg(desktop)]
+    {
+        use base64::Engine as _;
+
+        let Some(path) = pick_desktop_save_path(
+            &app,
+            &filename,
+            title.as_deref().or(Some("Salvar imagem")),
+            "Imagem PNG",
+            &["png"],
+        )
+        .await?
+        else {
+            return Ok(FileExportResult {
+                outcome: FileExportOutcome::Cancelled,
+                path: None,
+            });
+        };
+
+        let clean_b64 = base64_png
+            .split_once("base64,")
+            .map(|(_, rest)| rest)
+            .unwrap_or(&base64_png)
+            .trim();
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(clean_b64)
+            .map_err(|e| format!("Imagem PNG inválida: {e}"))?;
+
+        tokio::fs::write(&path, bytes)
+            .await
+            .map_err(|e| format!("Falha ao salvar arquivo: {e}"))?;
+
+        Ok(FileExportResult {
+            outcome: FileExportOutcome::Saved,
+            path: Some(path.to_string_lossy().into_owned()),
+        })
+    }
+
+    #[cfg(not(desktop))]
+    {
+        use tauri_plugin_share::ShareExt;
+        app.share()
+            .share_image(base64_png, filename, title)
+            .map_err(|e| e.to_string())?;
+        Ok(FileExportResult {
+            outcome: FileExportOutcome::Shared,
+            path: None,
+        })
+    }
+}
+
+#[command]
+#[specta::specta]
+pub async fn share_text_file(
+    app: AppHandle,
+    content: String,
+    filename: String,
+    mime_type: String,
+    title: Option<String>,
+) -> Result<FileExportResult, String> {
+    #[cfg(desktop)]
+    {
+        let _ = mime_type;
+        let Some(path) = pick_desktop_save_path(
+            &app,
+            &filename,
+            title.as_deref().or(Some("Salvar backup")),
+            "Backup JSON",
+            &["json"],
+        )
+        .await?
+        else {
+            return Ok(FileExportResult {
+                outcome: FileExportOutcome::Cancelled,
+                path: None,
+            });
+        };
+
+        tokio::fs::write(&path, content.as_bytes())
+            .await
+            .map_err(|e| format!("Falha ao salvar arquivo: {e}"))?;
+
+        Ok(FileExportResult {
+            outcome: FileExportOutcome::Saved,
+            path: Some(path.to_string_lossy().into_owned()),
+        })
+    }
+
+    #[cfg(not(desktop))]
+    {
+        use tauri_plugin_share::ShareExt;
+        app.share()
+            .share_text_file(content, filename, mime_type, title)
+            .map_err(|e| e.to_string())?;
+        Ok(FileExportResult {
+            outcome: FileExportOutcome::Shared,
+            path: None,
+        })
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]

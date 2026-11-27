@@ -48,7 +48,8 @@ export const commands = {
 	fetchRuMenusCdn: () => typedError<string, string>(__TAURI_INVOKE("fetch_ru_menus_cdn")),
 	fetchStudentWallet: (matricula: string, senha: string) => typedError<StudentWalletSyncPayload, string>(__TAURI_INVOKE("fetch_student_wallet", { matricula, senha })),
 	setMaxBrightness: (enable: boolean) => typedError<null, string>(__TAURI_INVOKE("set_max_brightness", { enable })),
-	shareImage: (base64Png: string, filename: string, title: string | null) => typedError<boolean, string>(__TAURI_INVOKE("share_image", { base64Png, filename, title })),
+	shareImage: (base64Png: string, filename: string, title: string | null) => typedError<FileExportResult, string>(__TAURI_INVOKE("share_image", { base64Png, filename, title })),
+	shareTextFile: (content: string, filename: string, mimeType: string, title: string | null) => typedError<FileExportResult, string>(__TAURI_INVOKE("share_text_file", { content, filename, mimeType, title })),
 	renderStudentCardPdf: (pdfBase64: string) => typedError<{
 	croppedDataUrl: string,
 	fullPageDataUrl: string,
@@ -162,6 +163,14 @@ export type FeedItem = {
 };
 
 export type FeedItemType = "post" | "assignment";
+
+export type FileExportOutcome = "saved" | "shared" | "cancelled";
+
+export type FileExportResult = {
+	/**  `"saved"` (desktop), `"shared"` (mobile) ou `"cancelled"` (usuário fechou o diálogo). */
+	outcome: FileExportOutcome,
+	path: string | null,
+};
 
 export type NetworkStatus = {
 	connectionType: ConnectionType,
