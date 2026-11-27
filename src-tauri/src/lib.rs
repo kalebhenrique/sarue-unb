@@ -51,6 +51,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         commands::sync_platforms,
         commands::check_vault_status,
         commands::get_sigaa_departments,
+        commands::get_sigaa_semesters,
         commands::get_sigaa_professors,
         commands::scrape_sigaa_classes,
         commands::get_courses_catalog,
@@ -233,6 +234,20 @@ pub fn run() {
                 if let Err(e) = tray::setup_tray(app.handle()) {
                     log::warn!("Não foi possível inicializar o System Tray: {}", e);
                 }
+
+                // Tarefa em segundo plano: pulso de 60s em Rust para alertas do RU no desktop
+                // (não sofre throttling de App Nap / WebView2 / WebKitGTK quando minimizado na bandeja)
+                let ru_app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    use tauri::Emitter;
+                    let mut interval =
+                        tokio::time::interval(std::time::Duration::from_secs(60));
+                    interval.tick().await;
+                    loop {
+                        interval.tick().await;
+                        let _ = ru_app_handle.emit("check-ru-notifications", ());
+                    }
+                });
 
                 // Tarefa em segundo plano: timer de 6 horas para sincronização automática
                 let app_handle = app.handle().clone();

@@ -24,6 +24,7 @@ import {
   getSavedRuCampus,
   isOnboardingNotificationsBlocked,
   loadNotificationSettings,
+  subscribeOnboardingNotificationsGate,
   syncRuMenuNotifications,
   type CurriculumStructure,
   isDemoModeActive,
@@ -784,6 +785,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     let disposed = false;
     let unlistenManual: (() => void) | undefined;
     let unlistenAuto: (() => void) | undefined;
+    let unlistenRuTick: (() => void) | undefined;
 
     if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
       void import("@tauri-apps/api/event").then(({ listen }) => {
@@ -795,10 +797,25 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         });
 
         void listen("request-auto-sync", () => {
+          const isBgEnabled =
+            localStorage.getItem("sarue_background_run_enabled") !== "false";
+          const last = localStorage.getItem("sarue_last_synced_at");
+          if (!shouldTriggerPeriodicSync(last, Date.now(), isBgEnabled)) {
+            return;
+          }
           void syncAllRef.current({ isAutoSync: true });
         }).then((fn) => {
           if (disposed) fn();
           else unlistenAuto = fn;
+        });
+
+        void listen("check-ru-notifications", () => {
+          if (!isOnboardingNotificationsBlocked()) {
+            void checkDueRuMenuNotification();
+          }
+        }).then((fn) => {
+          if (disposed) fn();
+          else unlistenRuTick = fn;
         });
       });
     }
@@ -851,12 +868,26 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch {}
     };
 
-    void loadNotificationSettings().then(async () => {
-      if (!isOnboardingNotificationsBlocked()) {
-        await evaluateRuSemesterEndAndSync();
-        void syncRuMenuNotifications();
-      }
+    const runRuNotificationSync = async () => {
+      if (disposed || isOnboardingNotificationsBlocked()) return;
+      await evaluateRuSemesterEndAndSync();
+      void syncRuMenuNotifications({ fetchIfMissing: true });
+    };
+
+    void loadNotificationSettings().then(() => {
+      void runRuNotificationSync();
     });
+
+    const unsubscribeOnboardingGate = subscribeOnboardingNotificationsGate(
+      (blocked) => {
+        if (!blocked) {
+          void loadNotificationSettings().then(() => {
+            void runRuNotificationSync();
+          });
+        }
+      },
+    );
+
     const ruNotifIntervalId = setInterval(() => {
       if (!isOnboardingNotificationsBlocked()) {
         void evaluateRuSemesterEndAndSync();
@@ -868,6 +899,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
       disposed = true;
       if (unlistenManual) unlistenManual();
       if (unlistenAuto) unlistenAuto();
+      if (unlistenRuTick) unlistenRuTick();
+      unsubscribeOnboardingGate();
       clearInterval(intervalId);
       clearInterval(ruNotifIntervalId);
     };

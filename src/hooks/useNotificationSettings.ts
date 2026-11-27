@@ -87,7 +87,7 @@ export function useNotificationSettings() {
         deadlines: enabled,
       };
       if (enabled) {
-        void ensurePermissionOnEnable();
+        await ensurePermissionOnEnable();
       }
       await applyUpdate(next);
     },
@@ -102,7 +102,7 @@ export function useNotificationSettings() {
         backgroundSync: enabled,
       };
       if (enabled) {
-        void ensurePermissionOnEnable();
+        await ensurePermissionOnEnable();
       }
       await applyUpdate(next);
     },
@@ -120,7 +120,7 @@ export function useNotificationSettings() {
         },
       };
       if (enabled) {
-        void ensurePermissionOnEnable();
+        await ensurePermissionOnEnable();
       }
       await applyUpdate(next, {
         resyncRu: true,

@@ -63,6 +63,9 @@ export function useRuMenu() {
           });
           setMenus(fresh.menus);
           setLastUpdatedAt(fresh.updatedAt);
+          if (getNotificationSettings().ruMenu.enabled) {
+            void syncRuMenuNotifications({ campus: targetCampus });
+          }
         } catch {
           // Mantém o cache offline silenciosamente se estiver sem rede
         }
@@ -80,6 +83,9 @@ export function useRuMenu() {
       });
       setMenus(fresh.menus);
       setLastUpdatedAt(fresh.updatedAt);
+      if (getNotificationSettings().ruMenu.enabled) {
+        void syncRuMenuNotifications({ campus: targetCampus });
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg || 'Cardápio indisponível offline. Sincronize quando estiver conectado.');

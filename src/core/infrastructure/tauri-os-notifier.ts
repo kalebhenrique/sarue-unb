@@ -4,10 +4,25 @@ import type {
 } from '../domain/interfaces/os-notifier.interface';
 
 let onboardingNotificationsBlocked = false;
+const onboardingGateListeners = new Set<(blocked: boolean) => void>();
 
 /** Bloqueia ou libera notificações do SO e do app durante o onboarding. */
 export function setOnboardingNotificationsBlocked(blocked: boolean): void {
+  const prev = onboardingNotificationsBlocked;
   onboardingNotificationsBlocked = blocked;
+  if (prev !== blocked) {
+    onboardingGateListeners.forEach((fn) => fn(blocked));
+  }
+}
+
+/** Assina mudanças no bloqueio de notificações do onboarding. */
+export function subscribeOnboardingNotificationsGate(
+  listener: (blocked: boolean) => void,
+): () => void {
+  onboardingGateListeners.add(listener);
+  return () => {
+    onboardingGateListeners.delete(listener);
+  };
 }
 
 /** Indica se notificações estão bloqueadas pelo fluxo de onboarding. */
