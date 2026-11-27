@@ -54,12 +54,15 @@ import {
   RU_MEAL_NOTIFICATION_TIMES,
   RU_MEAL_ORDER,
   WEEKDAY_OPTIONS,
+  clearAllLocalUserData,
   clearCachedStudentWallet,
   getSavedRuCampus,
   syncRuMenuNotifications,
   type RuMealType,
+  type UserBackupSettings,
 } from "@/core";
 import { AppUpdaterCard } from "@/components/settings/AppUpdaterCard";
+import { DataBackupSection } from "@/components/settings/DataBackupSection";
 import { PatchNotesView } from "@/components/settings/PatchNotesView";
 import { ContributorsDialog } from "@/components/settings/ContributorsDialog";
 import { FeedbackWidget } from "@/components/feedback/FeedbackWidget";
@@ -184,6 +187,46 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     }
   };
 
+  const handleSettingsRestored = async (restored: UserBackupSettings) => {
+    if (restored.theme) {
+      setThemeMode(restored.theme);
+    }
+    if (typeof restored.reduceAnimations === "boolean") {
+      setReduceAnimations(restored.reduceAnimations);
+    }
+    if (typeof restored.uiZoom === "number") {
+      setUiZoom(restored.uiZoom);
+      setZoomPercent(Math.round(restored.uiZoom * 100));
+    }
+    if (typeof restored.soundEffects === "boolean") {
+      setIsSoundActive(restored.soundEffects);
+    }
+    if (typeof restored.hideRuDesktopSidebar === "boolean") {
+      setRuHiddenInDesktopSidebar(restored.hideRuDesktopSidebar);
+    }
+    if (
+      isMobileDevice() &&
+      typeof restored.syncOnlyOnWifi === "boolean" &&
+      restored.syncOnlyOnWifi !== isSyncOnlyOnWifiEnabled
+    ) {
+      await toggleSyncOnlyOnWifi(restored.syncOnlyOnWifi);
+    }
+    if (
+      !isMobileDevice() &&
+      typeof restored.backgroundRun === "boolean" &&
+      restored.backgroundRun !== isBackgroundRunEnabled
+    ) {
+      await toggleBackgroundRun(restored.backgroundRun);
+    }
+    if (
+      !isMobileDevice() &&
+      typeof restored.autostart === "boolean" &&
+      restored.autostart !== isAutostartEnabled
+    ) {
+      await toggleAutostart(restored.autostart);
+    }
+  };
+
   const handleConfirmWipe = async () => {
     setIsWiping(true);
     try {
@@ -206,7 +249,16 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       resetStudentWalletCache();
       await clearCachedStudentWallet();
       await useCases.getProfessorEvaluations.clearCache();
-      // 6. Limpa preferências auxiliares e caches dinâmicos do localStorage
+      // 6. Apaga notas/faltas manuais, eventos pessoais do calendário e app_settings (SQLite + localStorage + memória)
+      await clearAllLocalUserData(repos);
+      // 7. Reseta preferências locais da interface e caches dinâmicos do localStorage
+      setThemeMode("system");
+      setReduceAnimations(false);
+      setUiZoom(1);
+      setZoomPercent(100);
+      setIsSoundActive(false);
+      setSoundEffectsEnabled(false);
+      setRuHiddenInDesktopSidebar(true);
       try {
         const targetKeys = new Set<string>([
           STORAGE_KEYS.ACADEMIC_PROFILE,
@@ -214,6 +266,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           STORAGE_KEYS.LAST_SYNCED_AT,
           STORAGE_KEYS.EVALUATIONS_ENRICHED,
           STORAGE_KEYS.EVALUATIONS_FILTER_BY_COURSE,
+          STORAGE_KEYS.THEME,
+          STORAGE_KEYS.UI_ZOOM,
+          STORAGE_KEYS.REDUCED_MOTION,
+          STORAGE_KEYS.SOUND_EFFECTS,
+          STORAGE_KEYS.HIDE_RU_DESKTOP_SIDEBAR,
+          STORAGE_KEYS.SYNC_ONLY_ON_WIFI,
+          STORAGE_KEYS.BACKGROUND_RUN,
+          STORAGE_KEYS.AUTOSTART,
+          STORAGE_KEYS.DISCIPLINE_GRADES,
           STORAGE_KEYS.GRADE_YEAR,
           STORAGE_KEYS.GRADE_PERIOD,
           STORAGE_KEYS.FLOWCHART_OPEN_SEMESTERS,
@@ -233,7 +294,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           const key = localStorage.key(i);
           if (
             key &&
-            (key.startsWith("sarue_curricula_course_") || targetKeys.has(key))
+            (key.startsWith("sarue_curricula_course_") ||
+              key.startsWith("sarue_withdrawal_dismissed_") ||
+              targetKeys.has(key))
           ) {
             keysToRemove.push(key);
           }
@@ -241,7 +304,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         keysToRemove.forEach((k) => localStorage.removeItem(k));
         void syncRuMenuNotifications();
       } catch {}
-      // 7. Fecha o diálogo e redireciona imediatamente para o onboarding
+      // 8. Fecha o diálogo e redireciona imediatamente para o onboarding
       setIsConfirmDialogOpen(false);
       onResetCredentials();
     } catch (err) {
@@ -663,6 +726,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             )}
           </div>
         </SettingsSection>
+
+        {/* Backup e Dados: exportação e importação local */}
+        <DataBackupSection
+          appVersion={appVersion}
+          onSettingsRestored={handleSettingsRestored}
+        />
 
         {/* Atualizações do Aplicativo (Desktop e Android APK; oculto em builds .aab da Play Store) */}
         <AppUpdaterCard />
