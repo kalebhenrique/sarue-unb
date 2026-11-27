@@ -499,6 +499,92 @@ export function saveDisciplineAbsenceOverride(
   void persistMapToSqlite(map);
 }
 
+/** Sanitiza um mapa externo (ex.: importação de backup) removendo entradas inválidas. */
+export function sanitizeDisciplineUserDataMap(raw: unknown): DisciplineUserDataMap {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const result: DisciplineUserDataMap = {};
+  for (const [key, val] of Object.entries(raw as Record<string, unknown>)) {
+    const trimmedKey = key.trim();
+    if (!trimmedKey) continue;
+    const entry = sanitizeEntry(val);
+    if (entry) result[trimmedKey] = entry;
+  }
+  return result;
+}
+
+/** Exporta uma cópia limpa de todas as notas e faltas manuais persistidas. */
+export async function exportAllDisciplineUserData(): Promise<DisciplineUserDataMap> {
+  const map = await loadDisciplineUserData();
+  const snapshot: DisciplineUserDataMap = {};
+  for (const [key, entry] of Object.entries(map)) {
+    snapshot[key] = {
+      ...(entry.formula !== undefined ? { formula: entry.formula } : {}),
+      ...(entry.values !== undefined ? { values: { ...entry.values } } : {}),
+      ...(entry.absenceOverride !== undefined
+        ? { absenceOverride: entry.absenceOverride }
+        : {}),
+      updatedAt: entry.updatedAt,
+    };
+  }
+  return snapshot;
+}
+
+/** Importa notas e faltas manuais em modo `merge` (padrão) ou `replace`. */
+export async function importDisciplineUserData(
+  incoming: DisciplineUserDataMap,
+  mode: 'merge' | 'replace',
+): Promise<number> {
+  const sanitized = sanitizeDisciplineUserDataMap(incoming);
+  const current = await loadDisciplineUserData();
+  const next = mode === 'replace' ? sanitized : mergeMaps(current, sanitized);
+
+  inMemoryMap = next;
+  hydratedFromSqlite = true;
+  writeLocalStorageMirror(next);
+  await persistMapToSqlite(next);
+  notifyListeners();
+
+  return Object.keys(sanitized).length;
+}
+
+/** Apaga completamente todas as notas e faltas manuais (memória, localStorage v2/legado e SQLite). */
+export async function clearAllDisciplineUserData(): Promise<void> {
+  inMemoryMap = {};
+  hydratedFromSqlite = true;
+  loadPromise = null;
+
+  if (typeof window !== 'undefined') {
+    try {
+      const storage = window.localStorage;
+      const toRemove: string[] = [STORAGE_KEYS.DISCIPLINE_GRADES];
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        if (
+          key &&
+          (key.startsWith('sarue:discipline_grades:') ||
+            key.startsWith('sarue:discipline_absences:'))
+        ) {
+          toRemove.push(key);
+        }
+      }
+      toRemove.forEach((k) => storage.removeItem(k));
+    } catch {}
+  }
+
+  try {
+    const db = await getDatabase();
+    if (db) {
+      await db.execute('DELETE FROM app_settings WHERE key = $1;', [
+        DISCIPLINE_USER_DATA_SQLITE_KEY,
+      ]);
+    }
+  } catch (err) {
+    console.warn('[discipline-grades] Falha ao limpar app_settings:', err);
+  }
+
+  notifyListeners();
+}
+
 /** Apenas para testes unitários: limpa o estado em memória do módulo. */
 export function resetDisciplineUserDataCacheForTests(): void {
   inMemoryMap = null;
