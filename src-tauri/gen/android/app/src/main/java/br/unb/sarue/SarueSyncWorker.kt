@@ -35,6 +35,7 @@ class SarueSyncWorker : JobService() {
 
   companion object {
     private const val JOB_ID = 414106
+    private const val PERIODIC_INTERVAL_MS = 6L * 60L * 60L * 1000L
 
     @Volatile
     private var nativeLibraryLoaded = false
@@ -101,10 +102,27 @@ class SarueSyncWorker : JobService() {
           JobInfo.NETWORK_TYPE_ANY
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+          val existing = scheduler.getPendingJob(JOB_ID)
+          if (existing != null) {
+            @Suppress("DEPRECATION")
+            val sameNetwork = existing.networkType == networkType
+            val sameBattery = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+              existing.isRequireBatteryNotLow
+            } else {
+              true
+            }
+            val sameInterval = existing.intervalMillis == PERIODIC_INTERVAL_MS
+            if (sameNetwork && sameBattery && sameInterval) {
+              return
+            }
+          }
+        }
+
         val component = ComponentName(context.applicationContext, SarueSyncWorker::class.java)
         val builder = JobInfo.Builder(JOB_ID, component)
           .setRequiredNetworkType(networkType)
-          .setPeriodic(6L * 60L * 60L * 1000L)
+          .setPeriodic(PERIODIC_INTERVAL_MS)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
           builder.setRequiresBatteryNotLow(true)
