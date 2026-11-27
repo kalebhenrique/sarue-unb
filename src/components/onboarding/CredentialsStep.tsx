@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Lock } from 'lucide-react';
+import { isMobileDevice } from '@/lib/platform';
 import { PlatformAccountsAccordion } from './PlatformAccountsAccordion';
 
 export interface CredentialsStepProps {
@@ -34,7 +35,7 @@ export const CredentialsStep: React.FC<CredentialsStepProps> = ({
         <h2 className="text-2xl font-black tracking-tight text-black">Conecte suas plataformas</h2>
         <p className="text-sm font-medium text-neutral-600 mt-1 flex items-center gap-1.5">
           <Lock className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />
-          Suas credenciais ficam no cofre local do seu computador.
+          Suas credenciais ficam no cofre local do seu {isMobileDevice() ? 'celular' : 'computador'}.
         </p>
       </motion.div>
 
