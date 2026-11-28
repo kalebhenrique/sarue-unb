@@ -1,16 +1,23 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useProfessorEvaluations } from "../hooks/useProfessorEvaluations";
 import { useScrollRestore } from "../hooks/useScrollRestore";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useContainer } from "../context/ContainerContext";
 import { subscribeToSyncComplete } from "../context/SyncContext";
 import { resolveCourseIdForProfile } from "../hooks/useMyCourse";
+import { STORAGE_KEYS } from "../lib/storage-keys";
 import {
   PageContainer,
   PageHeader,
   Card,
   Button,
   Alert,
-  BottomSheet,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -76,7 +83,39 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
     retry,
   } = useProfessorEvaluations();
   const { useCases, repos } = useContainer();
-  const [aboutSheetOpen, setAboutSheetOpen] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 767px)");
+  const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
+  const hasAutoOpenedAboutRef = useRef(false);
+
+  const handleAboutDialogOpenChange = useCallback((open: boolean) => {
+    setAboutDialogOpen(open);
+    if (!open) {
+      try {
+        window.localStorage.setItem(STORAGE_KEYS.EVALUATIONS_ABOUT_SEEN, "true");
+      } catch {}
+    }
+  }, []);
+
+  // Na primeira visita em dispositivos mobile, exibe automaticamente o aviso
+  // "Sobre os relatos" (no desktop o Alert amarelo já fica visível na página).
+  useEffect(() => {
+    if (
+      hasAutoOpenedAboutRef.current ||
+      !isMobile ||
+      (isLoading && !hasLoadedOnce) ||
+      (error && !hasLoadedOnce)
+    ) {
+      return;
+    }
+    try {
+      if (window.localStorage.getItem(STORAGE_KEYS.EVALUATIONS_ABOUT_SEEN) === "true") {
+        hasAutoOpenedAboutRef.current = true;
+        return;
+      }
+    } catch {}
+    hasAutoOpenedAboutRef.current = true;
+    setAboutDialogOpen(true);
+  }, [isMobile, isLoading, hasLoadedOnce, error]);
 
   // Valor inicial vem do localStorage; o setter grava a escolha para as
   // próximas visitas. Sem preferência salva (ou storage bloqueado), liga.
@@ -438,7 +477,7 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
               }
             />
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setAboutSheetOpen(true)}>
+              <DropdownMenuItem onClick={() => setAboutDialogOpen(true)}>
                 <Info className="w-4 h-4 stroke-[2.5]" />
                 Sobre os relatos
               </DropdownMenuItem>
@@ -506,58 +545,68 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
         }
       />
 
-      {/* Mobile BottomSheet: "Sobre os relatos" */}
-      <BottomSheet
-        open={aboutSheetOpen}
-        onClose={() => setAboutSheetOpen(false)}
-        role="dialog"
-        aria-label="Sobre os relatos"
-        backdrop
-        backdropClassName="z-40 md:hidden"
-        className="fixed inset-x-0 bottom-0 w-full z-50 md:hidden"
-        portal
-        dragOnlyOnHandle
-      >
-        <div className="px-4 max-h-[calc(85dvh-2rem)] overflow-y-auto overflow-x-hidden pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-3">
-          <div className="flex items-center gap-2 pb-2 border-b-2 border-ink/10">
-            <Info className="w-5 h-5 text-amber-600 stroke-[2.5] shrink-0" />
-            <h2 className="text-base font-black text-black">
-              Sobre os relatos
-            </h2>
-          </div>
-          <p className="text-xs font-medium leading-relaxed text-neutral-700">
-            Estes relatos vêm de uma fonte externa: uma planilha pública mantida
-            pela própria comunidade de estudantes, sem moderação prévia:{" "}
-            <strong className="font-bold text-black">
-              palavrões e palavras de baixo calão são censurados
-              automaticamente pela plataforma
-            </strong>
-            . Cada opinião reflete a visão de quem escreveu — pode vir
-            enviesada, desatualizada ou até conter ofensas. Use as avaliações
-            como apoio na sua decisão, e não como verdade absoluta.
-          </p>
-          <div className="grid grid-cols-2 gap-2 pt-1">
+      {/* Modal mobile: "Sobre os relatos" (abre automaticamente na 1ª visita e via menu) */}
+      <Dialog open={aboutDialogOpen} onOpenChange={handleAboutDialogOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2.5 mb-1">
+              <div
+                className="w-9 h-9 rounded-lg bg-neo-yellow text-ink border-2 border-ink flex items-center justify-center shrink-0"
+                aria-hidden="true"
+              >
+                <Info className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <DialogTitle>Sobre os relatos</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs font-medium leading-relaxed text-neutral-700 pt-1">
+              Estes relatos vêm de uma fonte externa: uma planilha pública mantida
+              pela própria comunidade de estudantes, sem moderação prévia:{" "}
+              <strong className="font-bold text-black">
+                palavrões e palavras de baixo calão são censurados
+                automaticamente pela plataforma
+              </strong>
+              . Cada opinião reflete a visão de quem escreveu — pode vir
+              enviesada, desatualizada ou até conter ofensas. Use as avaliações
+              como apoio na sua decisão, e não como verdade absoluta.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => openExternalUrl(PROFESSOR_EVALUATIONS_SHEET_URL)}
+              className="min-h-11 md:min-h-8"
             >
               <span>Planilha</span>
               <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
             </Button>
             <Button
               type="button"
-              variant="primary"
+              variant="outline"
               size="sm"
               onClick={() => openExternalUrl(PROFESSOR_EVALUATIONS_FORM_URL)}
+              className="min-h-11 md:min-h-8"
             >
               <span>Formulário</span>
               <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
             </Button>
           </div>
-        </div>
-      </BottomSheet>
+
+          <DialogFooter className="pt-0">
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={() => handleAboutDialogOpenChange(false)}
+              className="w-full sm:w-auto min-h-11 md:min-h-10"
+            >
+              Entendi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Barra de Busca e Filtros */}
       <EvaluationsToolbar

@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   LAST_SYNCED_AT: 'sarue_last_synced_at',
   EVALUATIONS_ENRICHED: 'sarue_persisted_enriched_evaluations_v1',
   EVALUATIONS_FILTER_BY_COURSE: 'sarue_evaluations_filter_by_course',
+  EVALUATIONS_ABOUT_SEEN: 'sarue_evaluations_about_seen',
   THEME: 'sarue_theme',
   UI_ZOOM: 'sarue_ui_zoom',
   REDUCED_MOTION: 'sarue_reduced_motion',
