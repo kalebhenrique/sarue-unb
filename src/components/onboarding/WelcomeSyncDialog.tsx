@@ -16,6 +16,10 @@ export interface WelcomeSyncDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Plataformas de fato conectadas, na ordem do cofre (SIGAA, Aprender 3, Teams) */
   platforms: string[];
+  /** Indica se a sincronização ainda está em andamento ao abrir o dialog */
+  isSyncing?: boolean;
+  /** Indica se alguma etapa falhou durante a pré-sincronização */
+  hasSyncError?: boolean;
 }
 
 /** Adesivo por plataforma (identidade fixa): cheio nos dois temas, tinta
@@ -37,6 +41,8 @@ export const WelcomeSyncDialog: React.FC<WelcomeSyncDialogProps> = ({
   open,
   onOpenChange,
   platforms,
+  isSyncing = true,
+  hasSyncError = false,
 }) => {
   const reduced = useReducedMotion();
   const springy = reduced
@@ -99,8 +105,11 @@ export const WelcomeSyncDialog: React.FC<WelcomeSyncDialogProps> = ({
           </div>
 
           <DialogDescription className="text-sm font-medium text-neutral-600 leading-relaxed pt-1">
-            Estamos sincronizando suas plataformas agora — isso pode levar um
-            tempo. Enquanto isso, fique à vontade para explorar o app.
+            {isSyncing
+              ? "Estamos sincronizando suas plataformas agora — isso pode levar um tempo. Enquanto isso, fique à vontade para explorar o app."
+              : hasSyncError
+                ? "Não foi possível concluir a sincronização de todas as plataformas. Você pode tentar novamente pelo botão Sincronizar."
+                : "Suas plataformas já foram sincronizadas! Fique à vontade para explorar o app."}
           </DialogDescription>
         </DialogHeader>
 

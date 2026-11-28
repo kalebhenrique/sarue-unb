@@ -57,6 +57,8 @@ export interface PlatformAccountsAccordionProps {
   showTeams?: boolean;
   /** Fecha as gavetas automaticamente quando todas as plataformas estiverem conectadas (onboarding) */
   closeWhenAllConnected?: boolean;
+  /** Inicia scraping silencioso em segundo plano assim que SIGAA/Aprender 3 conectarem (onboarding) */
+  preSyncOnConnect?: boolean;
   /**
    * Anatomia das gavetas: "stickers" (padrão, onboarding — adesivos com
    * sombra dura própria) ou "panel" (Settings — linhas segmentadas dentro
@@ -83,6 +85,7 @@ export const PlatformAccountsAccordion: React.FC<
   allowAllClosed = false,
   showTeams = true,
   closeWhenAllConnected = false,
+  preSyncOnConnect = false,
   variant = "stickers",
 }) => {
   const {
@@ -237,6 +240,9 @@ export const PlatformAccountsAccordion: React.FC<
           resetStudentWalletCache();
           notifyFeedListeners();
         }
+        if (preSyncOnConnect) {
+          syncContext?.startOnboardingSigaaSync();
+        }
         // Gaveta seguinte: SIGAA fica marcado como conectado e abre a próxima pendente;
         // sem pendente e com closeWhenAllConnected, fecha as gavetas
         setOpenPlatform(
@@ -272,6 +278,9 @@ export const PlatformAccountsAccordion: React.FC<
     }
     setIsVerifying(true);
     try {
+      if (preSyncOnConnect) {
+        syncContext?.cancelSync();
+      }
       await clearPlatform("sigaa");
       setSigaaSaved(false);
     } catch {
@@ -287,6 +296,9 @@ export const PlatformAccountsAccordion: React.FC<
     setIsDisconnectingAll(true);
     setFormError(null);
     try {
+      if (preSyncOnConnect) {
+        syncContext?.cancelSync();
+      }
       if (aprenderSaved) await clearPlatform("aprender3");
       if (teamsConnected) await clearPlatform("teams");
       await clearPlatform("sigaa");
@@ -326,6 +338,9 @@ export const PlatformAccountsAccordion: React.FC<
         setAprenderSuccessMsg(
           res.detail || "Conectado ao Aprender 3 com sucesso!",
         );
+        if (preSyncOnConnect) {
+          syncContext?.startOnboardingAprender3Sync();
+        }
         setOpenPlatform(
           showTeams && !teamsConnected
             ? "teams"
@@ -351,6 +366,9 @@ export const PlatformAccountsAccordion: React.FC<
     setAprenderSuccessMsg(null);
     setIsVerifying(true);
     try {
+      if (preSyncOnConnect) {
+        syncContext?.cancelOnboardingAprender3Sync();
+      }
       await clearPlatform("aprender3");
       setAprenderSaved(false);
     } catch {
@@ -436,6 +454,9 @@ export const PlatformAccountsAccordion: React.FC<
           return;
         }
         setSigaaSaved(true);
+        if (preSyncOnConnect) {
+          syncContext?.startOnboardingSigaaSync();
+        }
       } finally {
         setIsVerifying(false);
       }
@@ -463,6 +484,9 @@ export const PlatformAccountsAccordion: React.FC<
           return;
         }
         setAprenderSaved(true);
+        if (preSyncOnConnect) {
+          syncContext?.startOnboardingAprender3Sync();
+        }
       } finally {
         setIsVerifying(false);
       }
