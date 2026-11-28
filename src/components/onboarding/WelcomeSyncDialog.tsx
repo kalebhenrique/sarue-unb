@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Compass } from "lucide-react";
 import {
   Button,
   Dialog,
@@ -16,8 +16,8 @@ export interface WelcomeSyncDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Plataformas de fato conectadas, na ordem do cofre (SIGAA, Aprender 3, Teams) */
   platforms: string[];
-  /** Origem da entrada no app: login com contas ou importação local do histórico PDF */
-  mode?: "credentials" | "transcript";
+  /** Origem da entrada no app: login com contas, histórico PDF ou exploração sem login */
+  mode?: "credentials" | "transcript" | "explore";
   /** Indica se a sincronização ainda está em andamento ao abrir o dialog */
   isSyncing?: boolean;
   /** Indica se alguma etapa falhou durante a pré-sincronização */
@@ -31,6 +31,7 @@ const PLATFORM_STICKER_BG: Record<string, string> = {
   "Aprender 3": "bg-platform-aprender3 text-ink",
   "Microsoft Teams": "bg-platform-teams text-white",
   "Histórico PDF": "bg-neo-green text-ink",
+  "Modo sem login": "bg-neo-yellow text-ink",
 };
 
 /**
@@ -51,7 +52,12 @@ export const WelcomeSyncDialog: React.FC<WelcomeSyncDialogProps> = ({
     ? { duration: 0 }
     : { type: "spring" as const, stiffness: 320, damping: 20 };
 
-  const badges = mode === "transcript" ? ["Histórico PDF"] : platforms;
+  const badges =
+    mode === "transcript"
+      ? ["Histórico PDF"]
+      : mode === "explore"
+        ? ["Modo sem login"]
+        : platforms;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -80,13 +86,15 @@ export const WelcomeSyncDialog: React.FC<WelcomeSyncDialogProps> = ({
             Bem-vindo ao Saruê UnB!
           </DialogTitle>
 
-          {/* Adesivos das plataformas conectadas ou do histórico importado */}
+          {/* Adesivos das plataformas conectadas, histórico importado ou modo sem login */}
           <div
             className="flex flex-wrap justify-center gap-2 pt-1"
             aria-label={
               mode === "transcript"
                 ? "Histórico importado em PDF"
-                : `Plataformas conectadas: ${platforms.join(", ")}`
+                : mode === "explore"
+                  ? "Entrou sem login"
+                  : `Plataformas conectadas: ${platforms.join(", ")}`
             }
           >
             {badges.map((name, i) => (
@@ -103,10 +111,17 @@ export const WelcomeSyncDialog: React.FC<WelcomeSyncDialogProps> = ({
                   PLATFORM_STICKER_BG[name] ?? "bg-paper text-black"
                 } font-bold text-xs border-2 border-ink rounded-full shadow-[2px_2px_0px_0px_var(--neo-shadow)] inline-flex items-center gap-1.5`}
               >
-                <CheckCircle2
-                  className="w-3.5 h-3.5 stroke-[2.5] shrink-0"
-                  aria-hidden
-                />
+                {mode === "explore" ? (
+                  <Compass
+                    className="w-3.5 h-3.5 stroke-[2.5] shrink-0"
+                    aria-hidden
+                  />
+                ) : (
+                  <CheckCircle2
+                    className="w-3.5 h-3.5 stroke-[2.5] shrink-0"
+                    aria-hidden
+                  />
+                )}
                 {name}
               </motion.span>
             ))}
@@ -115,11 +130,13 @@ export const WelcomeSyncDialog: React.FC<WelcomeSyncDialogProps> = ({
           <DialogDescription className="text-sm font-medium text-neutral-600 leading-relaxed pt-1">
             {mode === "transcript"
               ? "Seu histórico escolar foi importado! Você já pode explorar o Meu Curso, o Fluxograma, a Calculadora de IRA e o Monte sua Grade. Quando quiser receber avisos e prazos, conecte suas contas em Configurações."
-              : isSyncing
-                ? "Estamos sincronizando suas plataformas agora — isso pode levar um tempo. Enquanto isso, fique à vontade para explorar o app."
-                : hasSyncError
-                  ? "Não foi possível concluir a sincronização de todas as plataformas. Você pode tentar novamente pelo botão Sincronizar."
-                  : "Suas plataformas já foram sincronizadas! Fique à vontade para explorar o app."}
+              : mode === "explore"
+                ? "Você entrou sem conectar uma conta. Já dá para explorar o Cardápio do RU, Docentes, Calendário, Monte sua Grade e simular cursos no Meu Curso. Quando quiser sincronizar avisos, prazos ou importar seu histórico, é só acessar Configurações."
+                : isSyncing
+                  ? "Estamos sincronizando suas plataformas agora — isso pode levar um tempo. Enquanto isso, fique à vontade para explorar o app."
+                  : hasSyncError
+                    ? "Não foi possível concluir a sincronização de todas as plataformas. Você pode tentar novamente pelo botão Sincronizar."
+                    : "Suas plataformas já foram sincronizadas! Fique à vontade para explorar o app."}
           </DialogDescription>
         </DialogHeader>
 
