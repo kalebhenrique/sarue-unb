@@ -48,6 +48,8 @@ export interface SidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   isSyncing?: boolean;
+  /** Primeira sincronização após conexão: no mobile, mantém o botão Mais girando até finalizar */
+  isInitialSync?: boolean;
   isSlowConnection?: boolean;
   onSync?: () => void;
   lastSyncedAt?: string | null;
@@ -62,12 +64,21 @@ export interface SidebarProps {
   onSyncPopoverOpenChange?: (open: boolean) => void;
 }
 
+export function shouldSpinMoreContinuously(
+  isSyncing: boolean,
+  isInitialSync: boolean,
+  lastSyncedAt?: string | null,
+): boolean {
+  return isSyncing && (isInitialSync || !lastSyncedAt);
+}
+
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   onSelectTab,
   isCollapsed,
   onToggleCollapse,
   isSyncing = false,
+  isInitialSync = false,
   isSlowConnection = false,
   onSync,
   lastSyncedAt,
@@ -175,16 +186,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const [isMoreOpen, setIsMoreOpen] = React.useState(false);
   const [moreSyncPulse, setMoreSyncPulse] = React.useState(0);
-  const showMoreSyncIcon = moreSyncPulse > 0;
+  const isContinuousMoreSpin = shouldSpinMoreContinuously(
+    isSyncing,
+    isInitialSync,
+    lastSyncedAt,
+  );
+  const showMoreSyncIcon = isContinuousMoreSpin || moreSyncPulse > 0;
   const wasSyncingRef = React.useRef(false);
 
   React.useEffect(() => {
     const startedSync = isSyncing && !wasSyncingRef.current;
     wasSyncingRef.current = isSyncing;
-    if (startedSync) {
+    if (startedSync && !isContinuousMoreSpin) {
       setMoreSyncPulse((prev) => prev + 1);
     }
-  }, [isSyncing]);
+  }, [isSyncing, isContinuousMoreSpin]);
 
   React.useEffect(() => {
     if (moreSyncPulse === 0) return;
