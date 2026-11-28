@@ -31,6 +31,7 @@ import {
 } from "@/core";
 import { checkForUpdates } from "../hooks/useAppUpdater";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { humanizeError, isAuthErrorMessage } from "@/lib/error-messages";
 
 export const SLOW_SCRAPING_THRESHOLD_MS = 25000;
 
@@ -364,7 +365,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     async (
       isCancelled: () => boolean,
       options?: { isAutoSync?: boolean },
-    ): Promise<"success" | "error" | "cancelled"> => {
+    ): Promise<"success" | "error" | "auth_error" | "cancelled"> => {
       updateStep("sigaa", {
         status: "syncing",
         message: "Conectando ao SIGAA e extraindo turmas e avisos...",
@@ -381,11 +382,15 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         if (res.errors?.sigaa) {
+          const msg = humanizeError(
+            res.errors.sigaa,
+            "Falha na conexão com o SIGAA.",
+          );
           updateStep("sigaa", {
             status: "error",
-            message: res.errors.sigaa,
+            message: msg,
           });
-          return "error";
+          return isAuthErrorMessage(msg) ? "auth_error" : "error";
         }
 
         const sigaaCourses = res.courses.filter((c) => c.platform === "sigaa");
@@ -401,12 +406,12 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         return "success";
       } catch (err: unknown) {
         if (isCancelled()) return "cancelled";
+        const msg = humanizeError(err, "Falha na conexão com o SIGAA.");
         updateStep("sigaa", {
           status: "error",
-          message:
-            err instanceof Error ? err.message : "Falha na conexão com o SIGAA",
+          message: msg,
         });
-        return "error";
+        return isAuthErrorMessage(msg) ? "auth_error" : "error";
       }
     },
     [updateStep, useCases.syncPlatforms],
@@ -416,7 +421,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     async (
       isCancelled: () => boolean,
       options?: { isAutoSync?: boolean },
-    ): Promise<"success" | "error" | "cancelled"> => {
+    ): Promise<"success" | "error" | "auth_error" | "cancelled"> => {
       updateStep("aprender3", {
         status: "syncing",
         message: "Buscando tarefas, atividades e prazos no Aprender 3...",
@@ -433,11 +438,15 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         if (res.errors?.aprender3) {
+          const msg = humanizeError(
+            res.errors.aprender3,
+            "Falha na conexão com o Aprender 3.",
+          );
           updateStep("aprender3", {
             status: "error",
-            message: res.errors.aprender3,
+            message: msg,
           });
-          return "error";
+          return isAuthErrorMessage(msg) ? "auth_error" : "error";
         }
 
         const a3Courses = res.courses.filter((c) => c.platform === "aprender3");
@@ -453,14 +462,12 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         return "success";
       } catch (err: unknown) {
         if (isCancelled()) return "cancelled";
+        const msg = humanizeError(err, "Falha na conexão com o Aprender 3.");
         updateStep("aprender3", {
           status: "error",
-          message:
-            err instanceof Error
-              ? err.message
-              : "Falha na conexão com o Aprender 3",
+          message: msg,
         });
-        return "error";
+        return isAuthErrorMessage(msg) ? "auth_error" : "error";
       }
     },
     [updateStep, useCases.syncPlatforms],
@@ -541,10 +548,10 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
       if (historyError) {
         updateStep("myCourse", {
           status: "error",
-          message:
-            historyError instanceof Error
-              ? historyError.message
-              : "Falha ao sincronizar histórico escolar",
+          message: humanizeError(
+            historyError,
+            "Falha ao sincronizar histórico escolar.",
+          ),
         });
       }
     },
@@ -557,32 +564,42 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
       totalSuccess,
       totalErrors,
       isAutoSync,
+      hasAuthError,
     }: {
       totalConfigured: number;
       totalSuccess: number;
       totalErrors: number;
       isAutoSync?: boolean;
+      hasAuthError?: boolean;
     }) => {
       if (isOnboardingNotificationsBlocked()) return;
 
+      const errorDescription = hasAuthError
+        ? "Credenciais inválidas ou expiradas. Verifique matrícula/CPF e senha em Configurações."
+        : "Não foi possível conectar às plataformas acadêmicas.";
+
       if (totalConfigured > 0 && totalSuccess === 0 && totalErrors > 0) {
         toast.add({
-          title: "Erro na sincronização",
-          description: "Não foi possível conectar às plataformas acadêmicas.",
+          title: hasAuthError ? "Erro de autenticação" : "Erro na sincronização",
+          description: errorDescription,
           type: "danger",
-          timeout: 5000,
+          timeout: 6000,
         });
         if (isAutoSync && getNotificationSettings().backgroundSync) {
           void repos.osNotifier.notify({
-            title: "Falha na sincronização em segundo plano",
-            body: "Não foi possível conectar às plataformas acadêmicas.",
+            title: hasAuthError
+              ? "Credenciais precisam ser atualizadas"
+              : "Falha na sincronização em segundo plano",
+            body: errorDescription,
           });
         }
       } else if (totalErrors > 0 && totalSuccess > 0) {
         if (!isAutoSync) {
           toast.add({
             title: "Sincronização com avisos",
-            description: "Algumas plataformas não puderam ser sincronizadas.",
+            description: hasAuthError
+              ? "Uma plataforma recusou o login. Revise suas credenciais em Configurações."
+              : "Algumas plataformas não puderam ser sincronizadas.",
             type: "warning",
             timeout: 5000,
           });
@@ -642,10 +659,10 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         if (isCancelled()) return;
         updateStep("ghPages", {
           status: "error",
-          message:
-            err instanceof Error
-              ? err.message
-              : "Falha ao acessar CDN do GitHub Pages",
+          message: humanizeError(
+            err,
+            "Não foi possível carregar o catálogo da UnB.",
+          ),
         });
       }
     },
@@ -673,10 +690,10 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         if (isCancelled()) return;
         updateStep("planilha", {
           status: "error",
-          message:
-            err instanceof Error
-              ? err.message
-              : "Falha ao sincronizar a planilha",
+          message: humanizeError(
+            err,
+            "Não foi possível atualizar os relatos de docentes.",
+          ),
         });
       }
     },
@@ -768,6 +785,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         // 2. Sincronização do SIGAA e 3. Aprender 3
         let sigaaSuccess = false;
         let sigaaError = false;
+        let hasAuthError = false;
 
         const aprenderCreds = activeCreds.aprender3;
         const hasAprender =
@@ -819,7 +837,10 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
           try {
             const outcome = await runSigaaStep(isCancelled, options);
             if (outcome === "success") sigaaSuccess = true;
-            else if (outcome === "error") sigaaError = true;
+            else if (outcome === "error" || outcome === "auth_error") {
+              sigaaError = true;
+              if (outcome === "auth_error") hasAuthError = true;
+            }
           } finally {
             sigaaInFlight = false;
           }
@@ -839,7 +860,10 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
           try {
             const outcome = await runAprender3Step(isCancelled, options);
             if (outcome === "success") aprenderSuccess = true;
-            else if (outcome === "error") aprenderError = true;
+            else if (outcome === "error" || outcome === "auth_error") {
+              aprenderError = true;
+              if (outcome === "auth_error") hasAuthError = true;
+            }
           } finally {
             aprenderInFlight = false;
           }
@@ -906,6 +930,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
           totalSuccess: (sigaaSuccess ? 1 : 0) + (aprenderSuccess ? 1 : 0),
           totalErrors: (sigaaError ? 1 : 0) + (aprenderError ? 1 : 0),
           isAutoSync: options?.isAutoSync,
+          hasAuthError,
         });
 
         // 5. Sincronização do Teams (100% não-bloqueante em segundo plano após liberar a UI)
@@ -922,7 +947,10 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
               if (res.errors?.teams) {
                 updateStep("teams", {
                   status: "error",
-                  message: res.errors.teams,
+                  message: humanizeError(
+                    res.errors.teams,
+                    "Falha na sincronização do Teams.",
+                  ),
                 });
               } else {
                 const teamsCourses = res.courses.filter(
@@ -954,10 +982,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
               if (isCancelled()) return;
               updateStep("teams", {
                 status: "error",
-                message:
-                  err instanceof Error
-                    ? err.message
-                    : "Falha na sincronização do Teams",
+                message: humanizeError(err, "Falha na sincronização do Teams."),
               });
             } finally {
               if (!isCancelled()) {
@@ -1127,7 +1152,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
           const outcome = await runSigaaStep(isCancelled);
           if (outcome === "success") session.sigaaSuccess = true;
-          else if (outcome === "error") session.sigaaError = true;
+          else if (outcome === "error" || outcome === "auth_error") {
+            session.sigaaError = true;
+          }
         } finally {
           sigaaInFlight = false;
           clearSlowTimer();
@@ -1227,7 +1254,9 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const outcome = await runAprender3Step(isCancelled);
         if (outcome === "success") session.aprenderSuccess = true;
-        else if (outcome === "error") session.aprenderError = true;
+        else if (outcome === "error" || outcome === "auth_error") {
+          session.aprenderError = true;
+        }
       } finally {
         clearSlowTimer();
         if (preSyncMachineRef.current.finishAprender3(mainGen, isCancelled)) {
