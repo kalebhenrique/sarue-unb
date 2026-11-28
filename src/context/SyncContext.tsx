@@ -96,10 +96,7 @@ export interface OnboardingPreSyncMachine {
     session: OnboardingPreSyncSession;
     isCancelled: () => boolean;
   };
-  finishAprender3: (
-    mainGen: number,
-    isCancelled: () => boolean,
-  ) => boolean;
+  finishAprender3: (mainGen: number, isCancelled: () => boolean) => boolean;
   cancelAprender3: () => { shouldFinalize: boolean; mainGen: number | null };
   clearSessionIfIdle: () => void;
   completeOnboarding: () => { shouldFallbackSyncAll: boolean };
@@ -258,7 +255,7 @@ const INITIAL_STEPS: Record<SyncStepId, SyncStepInfo> = {
   myCourse: {
     id: "myCourse",
     label: "Meu Curso",
-    sublabel: "Histórico escolar e fluxo curricular",
+    sublabel: "Histórico e fluxo curricular",
     status: "idle",
     message: "Pronto para sincronizar",
   },
@@ -407,9 +404,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
         updateStep("sigaa", {
           status: "error",
           message:
-            err instanceof Error
-              ? err.message
-              : "Falha na conexão com o SIGAA",
+            err instanceof Error ? err.message : "Falha na conexão com o SIGAA",
         });
         return "error";
       }
@@ -881,7 +876,11 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
               : "Requer conta do SIGAA configurada",
           });
         } else {
-          await runMyCourseAndWalletStep(sigaaCreds!, sigaaSuccess, isCancelled);
+          await runMyCourseAndWalletStep(
+            sigaaCreds!,
+            sigaaSuccess,
+            isCancelled,
+          );
         }
         if (isCancelled()) return;
 
@@ -1334,7 +1333,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
     // Carrega preferências de notificação, avalia fim do período de aulas e mantém a agenda de alertas do RU atualizada
     const evaluateRuSemesterEndAndSync = async () => {
       try {
-        const calendars = await useCasesRef.current.getAcademicCalendar.execute();
+        const calendars =
+          await useCasesRef.current.getAcademicCalendar.execute();
         const currentCal =
           calendars.find((c) => c.isCurrent) ?? calendars[0] ?? null;
         const disabledBySemesterEnd =
