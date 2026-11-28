@@ -283,16 +283,19 @@ impl SigaaGradeScraper {
 
         let url_raw = format!("{}/{}", CDN_BASE_URL, file_name);
         match client.get(&url_raw).send().await {
-            Ok(res) if res.status().is_success() => res
-                .json::<T>()
-                .await
-                .map_err(|e| format!("Falha ao deserializar JSON de {}: {}", url_raw, e)),
-            Ok(res) => Err(format!(
-                "CDN retornou status HTTP {} para {}",
+            Ok(res) if res.status().is_success() => res.json::<T>().await.map_err(|e| {
+                log::warn!(
+                    "[SigaaData] Falha ao deserializar JSON de {}: {}",
+                    url_raw,
+                    e
+                );
+                "Não foi possível interpretar os dados do catálogo da UnB.".to_string()
+            }),
+            Ok(res) => Err(crate::http_error::describe_http_status(
+                "Catálogo UnB",
                 res.status(),
-                url_raw
             )),
-            Err(e) => Err(format!("Falha ao conectar ao CDN para {}: {}", url_raw, e)),
+            Err(e) => Err(crate::http_error::describe_reqwest_error("Catálogo UnB", &e)),
         }
     }
 
@@ -530,10 +533,7 @@ impl SigaaGradeScraper {
                     e,
                     course_id
                 );
-                Err(format!(
-                    "Falha ao carregar matrizes do curso {}: {}",
-                    course_id, e
-                ))
+                Err(e)
             }
         }
     }

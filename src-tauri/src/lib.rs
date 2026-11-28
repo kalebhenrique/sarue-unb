@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod grade_scraper;
+pub mod http_error;
 pub mod models;
 pub mod moodle;
 pub mod schedule_solver;

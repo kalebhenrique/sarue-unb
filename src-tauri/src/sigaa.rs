@@ -171,13 +171,15 @@ impl SigaaClient {
             .get(CAS_LOGIN_URL)
             .send()
             .await
-            .map_err(|e| format!("Falha de conexão com CAS SSO UnB: {}", e))?;
+            .map_err(|e| crate::http_error::describe_reqwest_error("SIGAA", &e))?;
+
+        crate::http_error::check_http_status("SIGAA", res_cas.status())?;
 
         let cas_url = res_cas.url().to_string();
         let cas_html = res_cas
             .text()
             .await
-            .map_err(|e| format!("Falha ao ler resposta do CAS SSO: {}", e))?;
+            .map_err(|e| crate::http_error::describe_reqwest_error("SIGAA", &e))?;
 
         if cas_html.contains("form_acessarTurmaVirtual")
             || cas_html.contains("Turmas do Semestre")
@@ -212,13 +214,15 @@ impl SigaaClient {
             .form(&form_data)
             .send()
             .await
-            .map_err(|e| format!("Erro ao submeter autenticação ao SIGAA: {}", e))?;
+            .map_err(|e| crate::http_error::describe_reqwest_error("SIGAA", &e))?;
+
+        crate::http_error::check_http_status("SIGAA", res_login.status())?;
 
         let mut landing_url = res_login.url().to_string();
         let mut page_html = res_login
             .text()
             .await
-            .map_err(|e| format!("Erro ao ler resposta pós-login do SIGAA: {}", e))?;
+            .map_err(|e| crate::http_error::describe_reqwest_error("SIGAA", &e))?;
 
         if page_html.contains("Credenciais inválidas")
             || page_html.contains("name=\"lt\"")
@@ -250,13 +254,15 @@ impl SigaaClient {
                     .form(&params)
                     .send()
                     .await
-                    .map_err(|e| format!("Erro ao avançar tela de aviso do SIGAA: {}", e))?;
+                    .map_err(|e| crate::http_error::describe_reqwest_error("SIGAA", &e))?;
+
+                crate::http_error::check_http_status("SIGAA", res_aviso.status())?;
 
                 landing_url = res_aviso.url().to_string();
                 page_html = res_aviso
                     .text()
                     .await
-                    .map_err(|e| format!("Erro ao ler resposta após tela de aviso: {}", e))?;
+                    .map_err(|e| crate::http_error::describe_reqwest_error("SIGAA", &e))?;
             }
         }
 
@@ -270,12 +276,14 @@ impl SigaaClient {
                 .get(DISCENTE_URL)
                 .send()
                 .await
-                .map_err(|e| format!("Erro ao carregar portal discente do SIGAA: {}", e))?;
+                .map_err(|e| crate::http_error::describe_reqwest_error("SIGAA", &e))?;
+
+            crate::http_error::check_http_status("SIGAA", res_portal.status())?;
 
             page_html = res_portal
                 .text()
                 .await
-                .map_err(|e| format!("Erro ao ler conteúdo do portal discente: {}", e))?;
+                .map_err(|e| crate::http_error::describe_reqwest_error("SIGAA", &e))?;
         }
 
         if !page_html.contains("form_acessarTurmaVirtual")
@@ -1969,12 +1977,14 @@ impl SigaaClient {
             .form(&form_data)
             .send()
             .await
-            .map_err(|e| format!("Falha ao conectar para emitir histórico escolar: {}", e))?;
+            .map_err(|e| crate::http_error::describe_reqwest_error("SIGAA", &e))?;
+
+        crate::http_error::check_http_status("SIGAA", res_hist.status())?;
 
         let mut bytes = res_hist
             .bytes()
             .await
-            .map_err(|e| format!("Falha ao baixar PDF do histórico: {}", e))?;
+            .map_err(|e| crate::http_error::describe_reqwest_error("SIGAA", &e))?;
 
         if !bytes.starts_with(b"%PDF") {
             if let Ok(fresh_html) = Self::reload_portal_discente(&active_client).await {
@@ -2659,13 +2669,19 @@ impl SigaaClient {
             .captures(html)
             .and_then(|c| c.get(1))
             .map(|m| m.as_str().to_string())
-            .ok_or_else(|| "Token 'lt' não encontrado no formulário CAS.".to_string())?;
+            .ok_or_else(|| {
+                log::warn!("[SigaaClient] Token 'lt' não encontrado no formulário CAS.");
+                "O portal de login da UnB está instável ou em manutenção. Tente novamente em alguns instantes.".to_string()
+            })?;
 
         let execution = exec_re
             .captures(html)
             .and_then(|c| c.get(1))
             .map(|m| m.as_str().to_string())
-            .ok_or_else(|| "Campo 'execution' não encontrado no formulário CAS.".to_string())?;
+            .ok_or_else(|| {
+                log::warn!("[SigaaClient] Campo 'execution' não encontrado no formulário CAS.");
+                "O portal de login da UnB está instável ou em manutenção. Tente novamente em alguns instantes.".to_string()
+            })?;
 
         let event_id = event_re
             .captures(html)

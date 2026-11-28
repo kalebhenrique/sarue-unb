@@ -539,14 +539,16 @@ pub async fn fetch_ru_menus_cdn() -> Result<String, String> {
         match client.get(*url).send().await {
             Ok(resp) if resp.status().is_success() => match resp.text().await {
                 Ok(text) if !text.trim().is_empty() => return Ok(text),
-                Ok(_) => last_err = "CDN retornou JSON vazio.".to_string(),
-                Err(e) => last_err = format!("Falha ao ler resposta do CDN: {}", e),
+                Ok(_) => last_err = "O cardápio do RU está temporariamente indisponível.".to_string(),
+                Err(e) => last_err = crate::http_error::describe_reqwest_error("cardápio do RU", &e),
             },
             Ok(resp) => {
-                last_err = format!("CDN retornou status HTTP {}", resp.status());
+                if let Err(msg) = crate::http_error::check_http_status("cardápio do RU", resp.status()) {
+                    last_err = msg;
+                }
             }
             Err(e) => {
-                last_err = format!("Falha de rede ao acessar CDN: {}", e);
+                last_err = crate::http_error::describe_reqwest_error("cardápio do RU", &e);
             }
         }
     }
@@ -956,19 +958,14 @@ pub async fn fetch_professor_evaluations_csv(force_refresh: bool) -> Result<Stri
         .get(PROFESSOR_EVALUATIONS_CSV_URL)
         .send()
         .await
-        .map_err(|e| format!("Falha ao conectar à planilha de avaliações: {}", e))?;
+        .map_err(|e| crate::http_error::describe_reqwest_error("planilha de avaliações", &e))?;
 
-    if !response.status().is_success() {
-        return Err(format!(
-            "Planilha retornou status HTTP {}",
-            response.status()
-        ));
-    }
+    crate::http_error::check_http_status("planilha de avaliações", response.status())?;
 
     let text = response
         .text()
         .await
-        .map_err(|e| format!("Falha ao ler conteúdo CSV da planilha: {}", e))?;
+        .map_err(|e| crate::http_error::describe_reqwest_error("planilha de avaliações", &e))?;
 
     if text.trim().is_empty() {
         return Err("Planilha de avaliações retornou conteúdo vazio.".into());
@@ -1556,19 +1553,14 @@ pub async fn check_apk_release_update(
         .get(latest_json_url)
         .send()
         .await
-        .map_err(|e| format!("Falha ao consultar latest.json: {}", e))?;
+        .map_err(|e| crate::http_error::describe_reqwest_error("servidor de atualizações", &e))?;
 
-    if !resp.status().is_success() {
-        return Err(format!(
-            "Servidor de atualizações retornou status HTTP {}",
-            resp.status()
-        ));
-    }
+    crate::http_error::check_http_status("servidor de atualizações", resp.status())?;
 
     let json = resp
         .json::<serde_json::Value>()
         .await
-        .map_err(|e| format!("Falha ao ler manifesto latest.json: {}", e))?;
+        .map_err(|e| crate::http_error::describe_reqwest_error("servidor de atualizações", &e))?;
 
     let remote_version = json
         .get("version")
