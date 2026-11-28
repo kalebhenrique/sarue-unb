@@ -11,7 +11,6 @@ import {
 } from '../domain/entities/credential';
 import type { ICredentialsRepository } from '../domain/interfaces/credentials-repo.interface';
 import type { IFeedRepository } from '../domain/interfaces/feed-repo.interface';
-import { humanizeError } from '@/lib/error-messages';
 
 export interface SaveResult {
   success: boolean;
@@ -51,10 +50,7 @@ export class SaveCredentialsUseCase {
         if (res.status === 'error') {
           return {
             success: false,
-            error: humanizeError(
-              res.error,
-              'Falha ao autenticar no SIGAA. Verifique matrícula e senha.',
-            ),
+            error: res.error || 'Falha ao autenticar no SIGAA. Verifique matrícula e senha.',
           };
         }
 
@@ -70,7 +66,7 @@ export class SaveCredentialsUseCase {
       } catch (e: unknown) {
         return {
           success: false,
-          error: humanizeError(e, 'Falha na conexão com o servidor do SIGAA.'),
+          error: e instanceof Error ? e.message : 'Falha na conexão com o servidor do SIGAA.',
         };
       }
     }
@@ -84,7 +80,7 @@ export class SaveCredentialsUseCase {
     } catch (e: unknown) {
       return {
         success: false,
-        error: humanizeError(e, 'Erro ao salvar credenciais do SIGAA.'),
+        error: e instanceof Error ? e.message : 'Erro ao salvar credenciais do SIGAA.',
       };
     }
   }
@@ -110,10 +106,7 @@ export class SaveCredentialsUseCase {
         if (res.status === 'error') {
           return {
             success: false,
-            error: humanizeError(
-              res.error,
-              'CPF ou senha incorretos no Aprender 3.',
-            ),
+            error: res.error || 'CPF ou senha incorretos no Aprender 3.',
           };
         }
 
@@ -129,7 +122,7 @@ export class SaveCredentialsUseCase {
       } catch (e: unknown) {
         return {
           success: false,
-          error: humanizeError(e, 'Falha na conexão com o servidor do Aprender 3.'),
+          error: e instanceof Error ? e.message : 'Falha na conexão com o servidor do Aprender 3.',
         };
       }
     }
@@ -143,7 +136,7 @@ export class SaveCredentialsUseCase {
     } catch (e: unknown) {
       return {
         success: false,
-        error: humanizeError(e, 'Erro ao salvar credenciais do Aprender 3.'),
+        error: e instanceof Error ? e.message : 'Erro ao salvar credenciais do Aprender 3.',
       };
     }
   }
@@ -161,10 +154,7 @@ export class SaveCredentialsUseCase {
         if (res.status === 'error') {
           return {
             success: false,
-            error: humanizeError(
-              res.error,
-              'Falha ao autenticar no Microsoft Teams.',
-            ),
+            error: res.error || 'Falha ao autenticar no Microsoft Teams.',
           };
         }
 
@@ -226,7 +216,7 @@ export class SaveCredentialsUseCase {
       } catch (e: unknown) {
         return {
           success: false,
-          error: humanizeError(e, 'Falha na autenticação com o Microsoft Teams.'),
+          error: e instanceof Error ? e.message : 'Falha na autenticação com o Microsoft Teams.',
         };
       }
     }
@@ -246,7 +236,7 @@ export class SaveCredentialsUseCase {
     } catch (e: unknown) {
       return {
         success: false,
-        error: humanizeError(e, 'Erro ao salvar estado do Teams.'),
+        error: e instanceof Error ? e.message : 'Erro ao salvar estado do Teams.',
       };
     }
   }

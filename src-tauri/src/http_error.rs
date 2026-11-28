@@ -61,10 +61,7 @@ pub fn describe_http_status(service: &str, status: StatusCode) -> String {
         );
     }
 
-    format!(
-        "Não foi possível acessar o {} (HTTP {}).",
-        service, code
-    )
+    format!("Não foi possível acessar o {} (HTTP {}).", service, code)
 }
 
 /// Valida o status HTTP de uma resposta antes do parsing, traduzindo códigos

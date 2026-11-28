@@ -295,7 +295,10 @@ impl SigaaGradeScraper {
                 "Catálogo UnB",
                 res.status(),
             )),
-            Err(e) => Err(crate::http_error::describe_reqwest_error("Catálogo UnB", &e)),
+            Err(e) => Err(crate::http_error::describe_reqwest_error(
+                "Catálogo UnB",
+                &e,
+            )),
         }
     }
 

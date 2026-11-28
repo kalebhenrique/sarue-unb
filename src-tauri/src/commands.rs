@@ -539,11 +539,17 @@ pub async fn fetch_ru_menus_cdn() -> Result<String, String> {
         match client.get(*url).send().await {
             Ok(resp) if resp.status().is_success() => match resp.text().await {
                 Ok(text) if !text.trim().is_empty() => return Ok(text),
-                Ok(_) => last_err = "O cardápio do RU está temporariamente indisponível.".to_string(),
-                Err(e) => last_err = crate::http_error::describe_reqwest_error("cardápio do RU", &e),
+                Ok(_) => {
+                    last_err = "O cardápio do RU está temporariamente indisponível.".to_string()
+                }
+                Err(e) => {
+                    last_err = crate::http_error::describe_reqwest_error("cardápio do RU", &e)
+                }
             },
             Ok(resp) => {
-                if let Err(msg) = crate::http_error::check_http_status("cardápio do RU", resp.status()) {
+                if let Err(msg) =
+                    crate::http_error::check_http_status("cardápio do RU", resp.status())
+                {
                     last_err = msg;
                 }
             }
@@ -1549,11 +1555,10 @@ pub async fn check_apk_release_update(
     // 2. Fallback: consulta latest.json da release (não sofre rate-limit da API do GitHub)
     let latest_json_url =
         "https://github.com/kalebhenrique/sarue-unb/releases/latest/download/latest.json";
-    let resp = client
-        .get(latest_json_url)
-        .send()
-        .await
-        .map_err(|e| crate::http_error::describe_reqwest_error("servidor de atualizações", &e))?;
+    let resp =
+        client.get(latest_json_url).send().await.map_err(|e| {
+            crate::http_error::describe_reqwest_error("servidor de atualizações", &e)
+        })?;
 
     crate::http_error::check_http_status("servidor de atualizações", resp.status())?;
 
