@@ -2,6 +2,7 @@ import type { FeedItem, PlatformType } from '../domain/entities/feed-item';
 import type { Course } from '../domain/entities/course';
 import type { ISyncRepository, SyncResult } from '../domain/interfaces/sync-repo.interface';
 import type { ICredentialsRepository } from '../domain/interfaces/credentials-repo.interface';
+import { humanizeError } from '@/lib/error-messages';
 
 export class TauriSyncRepository implements ISyncRepository {
   constructor(private readonly credentialsRepo: ICredentialsRepository) {}
@@ -106,19 +107,36 @@ export class TauriSyncRepository implements ISyncRepository {
           maxAbsences: c.maxAbsences !== null && c.maxAbsences !== undefined ? c.maxAbsences : undefined,
         }));
 
+      const sanitizedErrors = response.data.errors
+        ? (Object.fromEntries(
+            Object.entries(response.data.errors).map(([platform, msg]) => [
+              platform,
+              humanizeError(msg, 'Não foi possível sincronizar esta plataforma.'),
+            ]),
+          ) as Partial<Record<PlatformType, string>>)
+        : undefined;
+
       return {
         items: filteredItems,
         courses: filteredCourses,
         syncedAt: response.data.syncedAt,
-        errors: response.data.errors ?? undefined,
+        errors: sanitizedErrors,
       };
     } catch (error) {
       console.error('Erro no comando nativo Tauri de sincronização:', error);
+      const friendly = humanizeError(
+        error,
+        'Falha na comunicação durante a sincronização. Tente novamente.',
+      );
+      const errorsByPlatform: Partial<Record<PlatformType, string>> = {};
+      for (const platform of requestedPlatforms) {
+        errorsByPlatform[platform] = friendly;
+      }
       return {
         items: [],
         courses: [],
         syncedAt: new Date().toISOString(),
-        errors: { aprender3: error instanceof Error ? error.message : String(error) },
+        errors: errorsByPlatform,
       };
     }
   }
