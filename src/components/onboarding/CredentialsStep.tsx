@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Lock } from 'lucide-react';
-import { isMobileDevice } from '@/lib/platform';
 import { PlatformAccountsAccordion } from './PlatformAccountsAccordion';
 
 export interface CredentialsStepProps {
@@ -13,7 +12,7 @@ export interface CredentialsStepProps {
 }
 
 /**
- * Passo 4 do onboarding: título + accordion de plataformas compartilhado com a Settings.
+ * Passo 2 do onboarding: título + accordion de plataformas compartilhado com a Settings.
  */
 export const CredentialsStep: React.FC<CredentialsStepProps> = ({
   onSuccess,
@@ -30,12 +29,12 @@ export const CredentialsStep: React.FC<CredentialsStepProps> = ({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 26, delay: 0.05 }}
-        className="mb-5"
+        className="mb-4"
       >
         <h2 className="text-2xl font-black tracking-tight text-black">Conecte suas plataformas</h2>
-        <p className="text-sm font-medium text-neutral-600 mt-1 flex items-center gap-1.5">
-          <Lock className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />
-          Suas credenciais ficam no cofre local do seu {isMobileDevice() ? 'celular' : 'computador'}.
+        <p className="text-xs sm:text-sm font-medium text-neutral-600 mt-1 flex items-start gap-1.5 leading-snug">
+          <Lock className="w-3.5 h-3.5 stroke-[2.5] shrink-0 mt-0.5" aria-hidden="true" />
+          <span>Suas credenciais ficam criptografadas apenas neste dispositivo.</span>
         </p>
       </motion.div>
 

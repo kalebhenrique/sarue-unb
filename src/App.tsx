@@ -83,6 +83,7 @@ const AppShell: React.FC = () => {
   // Ritual pós-cadastro: dialog de boas-vindas abre ao entrar; ao dispensá-lo,
   // o popover de andamento abre ancorado no botão de Sincronização da Sidebar.
   const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [welcomeMode, setWelcomeMode] = useState<'credentials' | 'transcript'>('credentials');
   const [syncPopoverOpen, setSyncPopoverOpen] = useState(false);
   // Mantém o ícone "Mais" mobile girando continuamente até o fim do primeiro scraping pós-onboarding
   const [isFirstConnectionSync, setIsFirstConnectionSync] = useState(false);
@@ -218,10 +219,19 @@ const AppShell: React.FC = () => {
           setOnboardingNotificationsBlocked(false);
           setIsDemoMode(isDemoModeActive());
           setIsFirstConnectionSync(true);
+          setWelcomeMode('credentials');
           setStep('main');
           // Ritual pós-cadastro: dialog abre; no desktop o popover abre ao dispensar o dialog
           setWelcomeOpen(true);
           completeOnboardingSync();
+        }}
+        onCompleteWithTranscript={() => {
+          setOnboardingNotificationsBlocked(false);
+          setIsDemoMode(false);
+          setIsFirstConnectionSync(false);
+          setWelcomeMode('transcript');
+          setStep('main');
+          setWelcomeOpen(true);
         }}
         onExplore={() => {
           setOnboardingNotificationsBlocked(false);
@@ -290,8 +300,11 @@ const AppShell: React.FC = () => {
         open={welcomeOpen}
         onOpenChange={(open) => {
           setWelcomeOpen(open);
-          if (!open && !isMobile) setSyncPopoverOpen(true);
+          if (!open && !isMobile && welcomeMode === 'credentials') {
+            setSyncPopoverOpen(true);
+          }
         }}
+        mode={welcomeMode}
         platforms={connectedPlatforms}
         isSyncing={isSyncing}
         hasSyncError={Object.values(syncSteps).some((s) => s.status === 'error')}

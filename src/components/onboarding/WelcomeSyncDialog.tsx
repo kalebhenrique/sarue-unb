@@ -16,6 +16,8 @@ export interface WelcomeSyncDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Plataformas de fato conectadas, na ordem do cofre (SIGAA, Aprender 3, Teams) */
   platforms: string[];
+  /** Origem da entrada no app: login com contas ou importação local do histórico PDF */
+  mode?: "credentials" | "transcript";
   /** Indica se a sincronização ainda está em andamento ao abrir o dialog */
   isSyncing?: boolean;
   /** Indica se alguma etapa falhou durante a pré-sincronização */
@@ -28,19 +30,19 @@ const PLATFORM_STICKER_BG: Record<string, string> = {
   SIGAA: "bg-platform-sigaa text-ink",
   "Aprender 3": "bg-platform-aprender3 text-ink",
   "Microsoft Teams": "bg-platform-teams text-white",
+  "Histórico PDF": "bg-neo-green text-ink",
 };
 
 /**
  * Boas-vindas do primeiro cadastro: celebra a conexão com adesivos das
- * plataformas conectadas, avisa que a sincronização pode levar um tempo
- * (e que dá para explorar o app enquanto isso) e entrega o usuário ao
- * popover de andamento — qualquer dismiss (CTA, Esc, X ou clique fora)
- * abre o painel de status.
+ * plataformas conectadas (ou do histórico PDF importado), avisa o próximo
+ * passo e entrega o usuário ao app.
  */
 export const WelcomeSyncDialog: React.FC<WelcomeSyncDialogProps> = ({
   open,
   onOpenChange,
   platforms,
+  mode = "credentials",
   isSyncing = true,
   hasSyncError = false,
 }) => {
@@ -48,6 +50,8 @@ export const WelcomeSyncDialog: React.FC<WelcomeSyncDialogProps> = ({
   const springy = reduced
     ? { duration: 0 }
     : { type: "spring" as const, stiffness: 320, damping: 20 };
+
+  const badges = mode === "transcript" ? ["Histórico PDF"] : platforms;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -76,12 +80,16 @@ export const WelcomeSyncDialog: React.FC<WelcomeSyncDialogProps> = ({
             Bem-vindo ao Saruê UnB!
           </DialogTitle>
 
-          {/* Adesivos das plataformas conectadas */}
+          {/* Adesivos das plataformas conectadas ou do histórico importado */}
           <div
             className="flex flex-wrap justify-center gap-2 pt-1"
-            aria-label={`Plataformas conectadas: ${platforms.join(", ")}`}
+            aria-label={
+              mode === "transcript"
+                ? "Histórico importado em PDF"
+                : `Plataformas conectadas: ${platforms.join(", ")}`
+            }
           >
-            {platforms.map((name, i) => (
+            {badges.map((name, i) => (
               <motion.span
                 key={name}
                 initial={reduced ? false : { scale: 0, y: 8, opacity: 0 }}
@@ -105,11 +113,13 @@ export const WelcomeSyncDialog: React.FC<WelcomeSyncDialogProps> = ({
           </div>
 
           <DialogDescription className="text-sm font-medium text-neutral-600 leading-relaxed pt-1">
-            {isSyncing
-              ? "Estamos sincronizando suas plataformas agora — isso pode levar um tempo. Enquanto isso, fique à vontade para explorar o app."
-              : hasSyncError
-                ? "Não foi possível concluir a sincronização de todas as plataformas. Você pode tentar novamente pelo botão Sincronizar."
-                : "Suas plataformas já foram sincronizadas! Fique à vontade para explorar o app."}
+            {mode === "transcript"
+              ? "Seu histórico escolar foi importado! Você já pode explorar o Meu Curso, o Fluxograma, a Calculadora de IRA e o Monte sua Grade. Quando quiser receber avisos e prazos, conecte suas contas em Configurações."
+              : isSyncing
+                ? "Estamos sincronizando suas plataformas agora — isso pode levar um tempo. Enquanto isso, fique à vontade para explorar o app."
+                : hasSyncError
+                  ? "Não foi possível concluir a sincronização de todas as plataformas. Você pode tentar novamente pelo botão Sincronizar."
+                  : "Suas plataformas já foram sincronizadas! Fique à vontade para explorar o app."}
           </DialogDescription>
         </DialogHeader>
 
