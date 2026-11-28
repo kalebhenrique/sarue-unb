@@ -3,6 +3,7 @@ import { check, type Update, type DownloadEvent } from '@tauri-apps/plugin-updat
 import { relaunch } from '@tauri-apps/plugin-process';
 import { getVersion } from '@tauri-apps/api/app';
 import { isMobileDevice } from '@/lib/platform';
+import { humanizeError } from '@/lib/error-messages';
 
 export type UpdaterStatus =
   | 'idle'
@@ -223,7 +224,7 @@ export async function checkForUpdates(silent = false): Promise<Update | null> {
       }
       return null;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = humanizeError(err, 'Não foi possível verificar atualizações.');
       if (!silent) {
         console.error('Falha ao verificar atualizações de APK:', err);
         setStore({ status: 'error', errorMessage: msg });
@@ -267,7 +268,7 @@ export async function checkForUpdates(silent = false): Promise<Update | null> {
       return null;
     }
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = humanizeError(err, 'Não foi possível verificar atualizações.');
     if (!silent) {
       console.error('Falha ao verificar atualizações:', err);
       setStore({ status: 'error', errorMessage: msg });
@@ -344,7 +345,7 @@ export async function downloadUpdate(): Promise<void> {
     setStore({ status: 'ready-to-restart' });
   } catch (err) {
     console.error('Falha no download da atualização:', err);
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = humanizeError(err, 'Não foi possível baixar a atualização.');
     setStore({ status: 'error', errorMessage: msg });
   }
 }
@@ -391,7 +392,7 @@ export async function relaunchApp(): Promise<void> {
         console.warn('Não foi possível restaurar estado via cancelPrepareForUpdate:', cancelErr);
       }
     }
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = humanizeError(err, 'Não foi possível aplicar a atualização.');
     setStore({ status: 'error', errorMessage: msg });
   }
 }

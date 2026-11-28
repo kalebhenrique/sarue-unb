@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useContainer } from '../context/ContainerContext';
+import { humanizeError } from '@/lib/error-messages';
 import type {
   AllPlatformCredentials,
   SigaaCredentials,
@@ -82,11 +83,11 @@ export function useCredentials() {
         notifyListeners();
         return { success: true, detail: res.detail };
       }
-      const err = res.error || 'Erro ao validar credenciais do SIGAA';
+      const err = humanizeError(res.error, 'Erro ao validar credenciais do SIGAA.');
       setError(err);
       return { success: false, error: err };
     } catch (e) {
-      const err = e instanceof Error ? e.message : 'Erro inesperado';
+      const err = humanizeError(e, 'Erro inesperado ao validar credenciais do SIGAA.');
       setError(err);
       return { success: false, error: err };
     } finally {
@@ -108,11 +109,11 @@ export function useCredentials() {
         notifyListeners();
         return { success: true, detail: res.detail };
       }
-      const err = res.error || 'Erro ao validar credenciais do Aprender 3';
+      const err = humanizeError(res.error, 'Erro ao validar credenciais do Aprender 3.');
       setError(err);
       return { success: false, error: err };
     } catch (e) {
-      const err = e instanceof Error ? e.message : 'Erro inesperado';
+      const err = humanizeError(e, 'Erro inesperado ao validar credenciais do Aprender 3.');
       setError(err);
       return { success: false, error: err };
     } finally {
@@ -134,11 +135,11 @@ export function useCredentials() {
         notifyListeners();
         return { success: true, detail: res.detail || 'Microsoft Teams conectado com sucesso!' };
       }
-      const err = res.error || 'Erro ao conectar conta do Teams';
+      const err = humanizeError(res.error, 'Erro ao conectar conta do Teams.');
       setError(err);
       return { success: false, error: err };
     } catch (e) {
-      const err = e instanceof Error ? e.message : 'Erro inesperado';
+      const err = humanizeError(e, 'Erro inesperado ao conectar conta do Teams.');
       setError(err);
       return { success: false, error: err };
     } finally {
@@ -176,11 +177,16 @@ export function useCredentials() {
     }
   };
 
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   return {
     allCredentials,
     hasCredentials,
     isLoading,
     error,
+    clearError,
     saveSigaa,
     saveAprender3,
     saveTeams,
