@@ -14,7 +14,6 @@ export interface CompletedDiscipline {
   classCode?: string;
 }
 
-/** Um evento de trancamento no histórico (conta mesmo se aprovado depois). */
 export interface TrancadaEvent {
   code: string;
   period?: string;
@@ -22,9 +21,7 @@ export interface TrancadaEvent {
 
 export interface StudentAcademicProfile {
   matricula: string;
-  /** CPF do aluno (11 dígitos numéricos), extraído do histórico escolar ou Aprender 3. */
   cpf?: string;
-  /** Eventos de trancamento acumulados do curso (fator de trancamento do IRA). */
   trancadaEvents?: TrancadaEvent[];
   studentName?: string;
   courseName: string;
@@ -93,9 +90,7 @@ export interface FlowchartMetrics {
   chTotalCurriculo?: number;
   chComplementarPendente?: number;
   percentualIntegralizado?: number;
-  /** Indica se as métricas refletem uma simulação com marcações manuais ativas ou matriz alternativa */
   isSimulated?: boolean;
-  /** Indica se a matriz em exibição é diferente da matriz/curso oficial do discente no SIGAA */
   isAlternativeCurriculum?: boolean;
   nativeCourseName?: string;
   nativeCurriculumCode?: string;
@@ -108,4 +103,15 @@ export interface FlowchartData {
   metrics: FlowchartMetrics;
   electiveCompletedDisciplines: CompletedDiscipline[];
   inProgressDisciplines?: FlowchartDiscipline[];
+}
+
+export function hasImportedTranscriptProfile(
+  profile?: StudentAcademicProfile | null,
+): boolean {
+  return Boolean(
+    profile &&
+    (profile.matricula ||
+      profile.completedDisciplines.length > 0 ||
+      profile.nativeCurriculumCode),
+  );
 }
