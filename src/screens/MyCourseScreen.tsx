@@ -72,6 +72,8 @@ export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }
     isLoading,
     toggleDiscipline,
     resetOverrides,
+    updateIntegralizationPercentage,
+    isConnectedWithTranscript,
     selectCurriculum,
     resetToNativeCurriculum,
     isAlternativeCurriculum,
@@ -348,6 +350,9 @@ export const MyCourseScreen: React.FC<MyCourseScreenProps> = ({ onOpenSettings }
               <FlowchartStats
                 metrics={flowchartData.metrics}
                 onOpenIraCalculator={() => setView("ira-calculator")}
+                canEditIntegralization={isConnectedWithTranscript}
+                hasCustomIntegralization={profile.percentualIntegralizado != null}
+                onSaveIntegralization={updateIntegralizationPercentage}
               />
             ) : !isLoading ? (
               <EmptyState

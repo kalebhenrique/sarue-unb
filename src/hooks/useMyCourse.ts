@@ -3,6 +3,8 @@ import { useContainer } from '../context/ContainerContext';
 import { useCredentials } from './useCredentials';
 import { toast } from '@/components/ui';
 import {
+  hasImportedTranscriptProfile,
+  isDemoModeActive,
   preferShiftCompatible,
   resolveCourseIdFromCatalog,
   resolveCurriculumByAdmissionYear,
@@ -493,6 +495,42 @@ export function useMyCourse() {
     }
   }, [useCases]);
 
+  const updateIntegralizationPercentage = useCallback(async (percentual?: number): Promise<boolean> => {
+    try {
+      const updated = await useCases.manageAcademicProfile.updateIntegralizationPercentage(percentual);
+      cachedProfile = updated;
+      setProfile(updated);
+      notifyMyCourseListeners();
+      const formatted = updated.percentualIntegralizado
+        ?.toFixed(1)
+        .replace('.0', '')
+        .replace('.', ',');
+      toast.add({
+        title: percentual === undefined ? 'Integralização restaurada' : 'Integralização atualizada',
+        description:
+          percentual === undefined
+            ? 'O percentual voltou a ser estimado automaticamente pelo histórico.'
+            : `Integralização total definida em ${formatted}%.`,
+        type: 'success',
+        timeout: 3000,
+      });
+      return true;
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Não foi possível salvar a integralização.';
+      toast.add({
+        title: 'Erro ao salvar',
+        description: msg,
+        type: 'error',
+      });
+      return false;
+    }
+  }, [useCases]);
+
+  const isConnectedWithTranscript = useMemo(() => {
+    if (allCredentials.sigaa || isDemoModeActive()) return false;
+    return hasImportedTranscriptProfile(profile);
+  }, [allCredentials.sigaa, profile]);
+
   const loadAllCurricula = useCallback(async (): Promise<CurriculumStructure[]> => {
     try {
       const all = await useCases.manageAcademicProfile.getAllCurricula();
@@ -590,6 +628,8 @@ export function useMyCourse() {
     resetOverrides,
     saveCustomCurriculum,
     resetCustomCurriculum,
+    updateIntegralizationPercentage,
+    isConnectedWithTranscript,
     syncSigaa,
     selectCurriculum,
     resetToNativeCurriculum,
