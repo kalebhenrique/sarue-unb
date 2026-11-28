@@ -145,6 +145,9 @@ export const PlatformAccountsAccordion: React.FC<
   const [isSigaaDisconnectDialogOpen, setIsSigaaDisconnectDialogOpen] =
     useState(false);
   const [isDisconnectingAll, setIsDisconnectingAll] = useState(false);
+  // Diálogo de aviso ao conectar SIGAA sobre um histórico escolar já importado via PDF
+  const [isReplaceTranscriptDialogOpen, setIsReplaceTranscriptDialogOpen] =
+    useState(false);
 
   const allConnected =
     sigaaSaved && aprenderSaved && (showTeams ? teamsConnected : true);
@@ -190,6 +193,64 @@ export const PlatformAccountsAccordion: React.FC<
     );
   };
 
+  const executeConnectSigaa = async (replaceImportedTranscript: boolean) => {
+    setIsVerifying(true);
+    try {
+      const res = await saveSigaa({
+        matricula: sigaaMatricula.trim(),
+        senha: sigaaSenha,
+      });
+      if (res.success) {
+        setSigaaSaved(true);
+        setSigaaSuccessMsg(res.detail || "Conectado ao SIGAA com sucesso!");
+        setIsReplaceTranscriptDialogOpen(false);
+        // Login real encerra o Modo Demonstração: limpa os dados fictícios
+        // para o sync real não conviver com o conteúdo do demo.
+        if (isDemoModeActive()) {
+          await exitDemoMode({
+            feedRepo: repos.feedRepo,
+            academicProfileRepo: repos.academicProfileRepo,
+            iraScenarioRepo: repos.iraScenarioRepo,
+            gradeRepo: repos.gradeRepo,
+            deadlineNotificationRepo: repos.deadlineNotificationRepo,
+          });
+          resetGradeCache();
+          resetMyCourseCache();
+          resetStudentWalletCache();
+          notifyFeedListeners();
+        } else if (replaceImportedTranscript) {
+          // Não apaga o perfil importado antes do sync confirmar: se o SIGAA falhar,
+          // o histórico em PDF continua intacto; ao concluir, o sync substitui os dados.
+          void syncContext?.syncAll();
+        }
+        if (preSyncOnConnect) {
+          syncContext?.startOnboardingSigaaSync();
+        }
+        // Gaveta seguinte: SIGAA fica marcado como conectado e abre a próxima pendente;
+        // sem pendente e com closeWhenAllConnected, fecha as gavetas
+        setOpenPlatform(
+          !aprenderSaved
+            ? "aprender3"
+            : showTeams && !teamsConnected
+              ? "teams"
+              : closeWhenAllConnected
+                ? null
+                : "sigaa",
+        );
+      } else {
+        setSigaaSaved(false);
+        setSigaaSuccessMsg(null);
+        setIsReplaceTranscriptDialogOpen(false);
+        setFormError(
+          res.error ||
+            "Falha ao autenticar no SIGAA. Verifique matrícula e senha.",
+        );
+      }
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   const handleConnectSigaa = async () => {
     setFormError(null);
     if (!sigaaMatricula.trim()) {
@@ -216,55 +277,24 @@ export const PlatformAccountsAccordion: React.FC<
       }
       return;
     }
-    setIsVerifying(true);
-    try {
-      const res = await saveSigaa({
-        matricula: sigaaMatricula.trim(),
-        senha: sigaaSenha,
-      });
-      if (res.success) {
-        setSigaaSaved(true);
-        setSigaaSuccessMsg(res.detail || "Conectado ao SIGAA com sucesso!");
-        // Login real encerra o Modo Demonstração: limpa os dados fictícios
-        // para o sync real não conviver com o conteúdo do demo.
-        if (isDemoModeActive()) {
-          await exitDemoMode({
-            feedRepo: repos.feedRepo,
-            academicProfileRepo: repos.academicProfileRepo,
-            iraScenarioRepo: repos.iraScenarioRepo,
-            gradeRepo: repos.gradeRepo,
-            deadlineNotificationRepo: repos.deadlineNotificationRepo,
-          });
-          resetGradeCache();
-          resetMyCourseCache();
-          resetStudentWalletCache();
-          notifyFeedListeners();
+    // Em Configurações, se o usuário entrou por histórico PDF e agora conecta
+    // o SIGAA, avisa que o histórico importado será substituído pelo oficial.
+    if (!preSyncOnConnect && !sigaaSaved && !isDemoModeActive()) {
+      try {
+        const existingProfile = await repos.academicProfileRepo.getProfile();
+        if (
+          existingProfile &&
+          (existingProfile.completedDisciplines.length > 0 ||
+            Boolean(existingProfile.matricula))
+        ) {
+          setIsReplaceTranscriptDialogOpen(true);
+          return;
         }
-        if (preSyncOnConnect) {
-          syncContext?.startOnboardingSigaaSync();
-        }
-        // Gaveta seguinte: SIGAA fica marcado como conectado e abre a próxima pendente;
-        // sem pendente e com closeWhenAllConnected, fecha as gavetas
-        setOpenPlatform(
-          !aprenderSaved
-            ? "aprender3"
-            : showTeams && !teamsConnected
-              ? "teams"
-              : closeWhenAllConnected
-                ? null
-                : "sigaa",
-        );
-      } else {
-        setSigaaSaved(false);
-        setSigaaSuccessMsg(null);
-        setFormError(
-          res.error ||
-            "Falha ao autenticar no SIGAA. Verifique matrícula e senha.",
-        );
+      } catch {
+        // Segue com a conexão normalmente se não foi possível consultar o perfil local
       }
-    } finally {
-      setIsVerifying(false);
     }
+    await executeConnectSigaa(false);
   };
 
   const handleDisconnectSigaa = async () => {
@@ -956,6 +986,56 @@ export const PlatformAccountsAccordion: React.FC<
             >
               <LogOut className="w-4 h-4 stroke-[2.5]" />
               <span>Desconectar Tudo</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo: aviso ao conectar SIGAA quando já existe histórico importado via PDF */}
+      <Dialog
+        open={isReplaceTranscriptDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && !isVerifying) {
+            setIsReplaceTranscriptDialogOpen(false);
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={!isVerifying}
+          className="sm:max-w-md"
+        >
+          <DialogHeader>
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="w-9 h-9 rounded-lg bg-neo-yellow text-ink border-2 border-ink flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <DialogTitle>Substituir histórico importado?</DialogTitle>
+            </div>
+            <DialogDescription>
+              Você já possui um histórico escolar importado via PDF neste
+              dispositivo. Ao conectar sua conta do SIGAA, os dados acadêmicos
+              serão substituídos pelo histórico oficial sincronizado da sua
+              conta.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              disabled={isVerifying}
+              onClick={() => setIsReplaceTranscriptDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="md"
+              isLoading={isVerifying}
+              onClick={() => void executeConnectSigaa(true)}
+            >
+              <span>Conectar e substituir</span>
             </Button>
           </DialogFooter>
         </DialogContent>
