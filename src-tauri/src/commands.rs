@@ -1297,6 +1297,95 @@ pub async fn is_play_store_install(app: AppHandle) -> Result<bool, String> {
         .map_err(|e| e.to_string())
 }
 
+fn decode_base64_bytes(input: &str) -> Result<Vec<u8>, String> {
+    let mut out = Vec::with_capacity((input.len() * 3) / 4);
+    let mut buf: u32 = 0;
+    let mut bits: u32 = 0;
+    for b in input.bytes() {
+        let val = match b {
+            b'A'..=b'Z' => (b - b'A') as u32,
+            b'a'..=b'z' => (b - b'a' + 26) as u32,
+            b'0'..=b'9' => (b - b'0' + 52) as u32,
+            b'+' => 62,
+            b'/' => 63,
+            b'=' => break,
+            b' ' | b'\n' | b'\r' | b'\t' => continue,
+            _ => return Err("Base64 inválido no PDF.".to_string()),
+        };
+        buf = (buf << 6) | val;
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push(((buf >> bits) & 0xFF) as u8);
+        }
+    }
+    Ok(out)
+}
+
+const MAX_PDF_BYTES: u64 = 25 * 1024 * 1024;
+const MAX_PDF_BASE64_LEN: usize = 35 * 1024 * 1024;
+
+#[command]
+#[specta::specta]
+pub async fn extract_pdf_text(pdf_base64: String) -> Result<String, String> {
+    if pdf_base64.len() > MAX_PDF_BASE64_LEN {
+        return Err("O arquivo PDF é muito grande (limite de 25 MB).".to_string());
+    }
+    let bytes = decode_base64_bytes(&pdf_base64)?;
+    if bytes.is_empty() {
+        return Err("O arquivo PDF selecionado está vazio.".to_string());
+    }
+    if bytes.len() as u64 > MAX_PDF_BYTES {
+        return Err("O arquivo PDF é muito grande (limite de 25 MB).".to_string());
+    }
+    let text = tokio::task::spawn_blocking(move || pdf_extract::extract_text_from_mem(&bytes))
+        .await
+        .map_err(|e| format!("Falha interna ao ler o PDF: {e}"))?
+        .map_err(|e| format!("Não foi possível extrair texto do PDF: {e}"))?;
+    if text.trim().is_empty() {
+        return Err("O PDF não contém texto legível.".to_string());
+    }
+    Ok(text)
+}
+
+#[command]
+#[specta::specta]
+pub async fn extract_pdf_text_from_path(path: String) -> Result<String, String> {
+    let trimmed = path.trim().to_string();
+    if !trimmed.to_lowercase().ends_with(".pdf") {
+        return Err("Envie um arquivo no formato PDF (.pdf) emitido pelo SIGAA.".to_string());
+    }
+    let text = tokio::task::spawn_blocking(move || -> Result<String, String> {
+        use std::io::Read;
+        let file = std::fs::File::open(&trimmed)
+            .map_err(|_| "Não foi possível acessar o arquivo PDF selecionado.".to_string())?;
+        let meta = file
+            .metadata()
+            .map_err(|_| "Não foi possível acessar o arquivo PDF selecionado.".to_string())?;
+        if !meta.is_file() {
+            return Err("O item arrastado não é um arquivo PDF válido.".to_string());
+        }
+        let mut bytes = Vec::new();
+        file.take(MAX_PDF_BYTES + 1)
+            .read_to_end(&mut bytes)
+            .map_err(|e| format!("Falha ao ler o arquivo PDF: {e}"))?;
+        if bytes.is_empty() {
+            return Err("O arquivo PDF selecionado está vazio.".to_string());
+        }
+        if bytes.len() as u64 > MAX_PDF_BYTES {
+            return Err("O arquivo PDF é muito grande (limite de 25 MB).".to_string());
+        }
+        pdf_extract::extract_text_from_mem(&bytes)
+            .map_err(|e| format!("Não foi possível extrair texto do PDF: {e}"))
+    })
+    .await
+    .map_err(|e| format!("Falha interna ao ler o PDF: {e}"))??;
+    if text.trim().is_empty() {
+        return Err("O PDF não contém texto legível.".to_string());
+    }
+    Ok(text)
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ApkReleaseUpdateDto {
@@ -1590,5 +1679,15 @@ mod tests {
         }
 
         let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_decode_base64_roundtrip_and_invalid() {
+        let sample = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\n";
+        let encoded = crate::sigaa::base64_encode(sample);
+        let decoded = decode_base64_bytes(&encoded).expect("decode válido deve passar");
+        assert_eq!(decoded, sample);
+
+        assert!(decode_base64_bytes("%%%invalid%%%").is_err());
     }
 }

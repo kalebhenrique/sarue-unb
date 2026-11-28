@@ -86,6 +86,8 @@ pub fn builder() -> Builder<tauri::Wry> {
         commands::share_image,
         commands::share_text_file,
         commands::render_student_card_pdf,
+        commands::extract_pdf_text,
+        commands::extract_pdf_text_from_path,
         commands::is_play_store_install,
         commands::check_apk_release_update,
     ])
