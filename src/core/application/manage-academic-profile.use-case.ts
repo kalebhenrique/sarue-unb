@@ -203,24 +203,10 @@ export class ManageAcademicProfileUseCase {
   }> {
     const rawRes = await this.repo.fetchSigaaHistory(creds);
 
-    // Baixa apenas matrizes do curso para evitar download do catálogo completo
-    let curriculaCatalog: CurriculumStructure[] = [];
-    let usedFullCatalog = false;
-    try {
-      const courseId = await this.resolveCourseId(rawRes.curso, rawRes.turno);
-      if (courseId) {
-        curriculaCatalog = await this.repo.getCurriculaForCourse(courseId);
-      }
-    } catch (e) {
-      console.warn(
-        '[ManageAcademicProfile] Catálogo por curso falhou, usando catálogo completo:',
-        e
-      );
-    }
-    if (curriculaCatalog.length === 0) {
-      curriculaCatalog = await this.repo.getAllCurricula();
-      usedFullCatalog = true;
-    }
+    const { curriculaCatalog, usedFullCatalog } = await this.resolveCurriculaCatalog(
+      rawRes.curso,
+      rawRes.turno
+    );
 
     const parseInput = {
       rawText: rawRes.pdfText,
@@ -274,7 +260,11 @@ export class ManageAcademicProfileUseCase {
     parseResult.profile.nativeCurriculumId = parseResult.profile.curriculumId;
 
     const currentProfile = await this.repo.getProfile();
-    if (currentProfile) {
+    const isSameStudent =
+      !currentProfile?.matricula ||
+      !parseResult.profile.matricula ||
+      currentProfile.matricula === parseResult.profile.matricula;
+    if (currentProfile && isSameStudent) {
       if (currentProfile.nativeCourseName) {
         parseResult.profile.nativeCourseName = currentProfile.nativeCourseName;
         parseResult.profile.nativeCurriculumCode = currentProfile.nativeCurriculumCode;
@@ -338,6 +328,140 @@ export class ManageAcademicProfileUseCase {
 
     await this.repo.saveProfile(parseResult.profile);
     return parseResult;
+  }
+
+  /**
+   * Importa um PDF de histórico escolar do SIGAA UnB localmente (sem login),
+   * enriquecendo com o catálogo de matrizes curriculares e persistindo no SQLite.
+   */
+  async importFromPdf(pdfData: Uint8Array): Promise<{
+    profile: StudentAcademicProfile;
+    matchedCurriculum?: CurriculumStructure;
+  }> {
+    if (!pdfData || pdfData.byteLength === 0) {
+      throw new Error('O arquivo PDF selecionado está vazio.');
+    }
+
+    // 1. Extrai texto via Rust (Desktop + Android, pulando unpdf no WebView) ou cai para unpdf fora do Tauri
+    let preExtractedText: string | undefined;
+    try {
+      const rustText = await this.repo.extractPdfText?.(pdfData);
+      if (rustText && rustText.trim().length > 0) {
+        preExtractedText = rustText;
+      }
+    } catch (e) {
+      console.warn('[ManageAcademicProfile] Extração via Rust indisponível, usando fallback JS:', e);
+    }
+
+    const probe = await this.parseHistoricoUseCase.execute(
+      preExtractedText ? { rawText: preExtractedText } : { pdfData }
+    );
+    const extractedText = probe.rawText || preExtractedText || '';
+    return this.finalizePdfImport(probe, extractedText);
+  }
+
+  /**
+   * Importa um PDF de histórico a partir do caminho local (drag-and-drop nativo no Tauri).
+   */
+  async importFromPdfPath(path: string): Promise<{
+    profile: StudentAcademicProfile;
+    matchedCurriculum?: CurriculumStructure;
+  }> {
+    if (!path || !path.trim()) {
+      throw new Error('Caminho do arquivo PDF inválido.');
+    }
+    const extractedText = await this.repo.extractPdfTextFromPath?.(path);
+    if (!extractedText || !extractedText.trim()) {
+      throw new Error(
+        'Não foi possível ler o PDF arrastado. Tente usar o botão "Escolher arquivo PDF".'
+      );
+    }
+    const probe = await this.parseHistoricoUseCase.execute({ rawText: extractedText });
+    return this.finalizePdfImport(probe, extractedText);
+  }
+
+  private async finalizePdfImport(
+    probe: { profile: StudentAcademicProfile; matchedCurriculum?: CurriculumStructure },
+    extractedText: string
+  ): Promise<{
+    profile: StudentAcademicProfile;
+    matchedCurriculum?: CurriculumStructure;
+  }> {
+    const hasDisciplines = probe.profile.completedDisciplines.length > 0;
+    const hasIdentity = Boolean(
+      probe.profile.matricula ||
+        (probe.profile.courseName && probe.profile.courseName !== 'Curso UnB')
+    );
+    if (!hasDisciplines && !hasIdentity) {
+      throw new Error(
+        'Não foi possível reconhecer um histórico escolar do SIGAA UnB neste PDF. Verifique se o arquivo foi emitido pelo SIGAA.'
+      );
+    }
+
+    // 2. Carrega catálogo de matrizes do curso (com fallback/auto-cura) reutilizando o texto já extraído
+    const { curriculaCatalog, usedFullCatalog } = await this.resolveCurriculaCatalog(
+      probe.profile.courseName,
+      probe.profile.shift
+    );
+
+    let parseResult = await this.parseHistoricoUseCase.execute({
+      rawText: extractedText,
+      curriculaCatalog,
+    });
+
+    const curriculumPrefix = parseResult.profile.curriculumCode?.match(/^(\d{3,5})\//)?.[1];
+    if (
+      !usedFullCatalog &&
+      curriculumPrefix &&
+      !curriculaCatalog.some((c) => c.code.startsWith(curriculumPrefix))
+    ) {
+      try {
+        const fullCatalog = await this.repo.getAllCurricula();
+        if (fullCatalog.some((c) => c.code.startsWith(curriculumPrefix))) {
+          parseResult = await this.parseHistoricoUseCase.execute({
+            rawText: extractedText,
+            curriculaCatalog: fullCatalog,
+          });
+        }
+      } catch (e) {
+        console.warn(
+          '[ManageAcademicProfile] Auto-cura com catálogo completo falhou na importação de PDF:',
+          e
+        );
+      }
+    }
+
+    parseResult.profile.nativeCourseName = parseResult.profile.courseName;
+    parseResult.profile.nativeCurriculumCode = parseResult.profile.curriculumCode;
+    parseResult.profile.nativeCurriculumId = parseResult.profile.curriculumId;
+
+    await this.repo.saveProfile(parseResult.profile);
+    return parseResult;
+  }
+
+  /** Carrega matrizes do curso resolvido ou cai para o catálogo completo. */
+  private async resolveCurriculaCatalog(
+    courseName: string,
+    shiftToken?: string | null
+  ): Promise<{ curriculaCatalog: CurriculumStructure[]; usedFullCatalog: boolean }> {
+    let curriculaCatalog: CurriculumStructure[] = [];
+    let usedFullCatalog = false;
+    try {
+      const courseId = await this.resolveCourseId(courseName, shiftToken);
+      if (courseId) {
+        curriculaCatalog = await this.repo.getCurriculaForCourse(courseId);
+      }
+    } catch (e) {
+      console.warn(
+        '[ManageAcademicProfile] Catálogo por curso falhou, usando catálogo completo:',
+        e
+      );
+    }
+    if (curriculaCatalog.length === 0) {
+      curriculaCatalog = await this.repo.getAllCurricula();
+      usedFullCatalog = true;
+    }
+    return { curriculaCatalog, usedFullCatalog };
   }
 
   /** Resolve o course_id no catálogo pequeno de cursos (~48KB, via Rust). */

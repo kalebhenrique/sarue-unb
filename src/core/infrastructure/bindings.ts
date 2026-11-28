@@ -54,6 +54,8 @@ export const commands = {
 	croppedDataUrl: string,
 	fullPageDataUrl: string,
 } | null, string>(__TAURI_INVOKE("render_student_card_pdf", { pdfBase64 })),
+	extractPdfText: (pdfBase64: string) => typedError<string, string>(__TAURI_INVOKE("extract_pdf_text", { pdfBase64 })),
+	extractPdfTextFromPath: (path: string) => typedError<string, string>(__TAURI_INVOKE("extract_pdf_text_from_path", { path })),
 	isPlayStoreInstall: () => typedError<boolean, string>(__TAURI_INVOKE("is_play_store_install")),
 	checkApkReleaseUpdate: () => typedError<{
 	version: string,
