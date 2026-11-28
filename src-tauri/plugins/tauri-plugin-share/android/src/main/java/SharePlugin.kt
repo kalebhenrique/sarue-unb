@@ -30,6 +30,14 @@ class ShareImageArgs {
 }
 
 @InvokeArg
+class ShareTextFileArgs {
+  lateinit var content: String
+  var filename: String = "sarue-backup.json"
+  var mimeType: String = "application/json"
+  var title: String? = null
+}
+
+@InvokeArg
 class RenderStudentCardArgs {
   lateinit var pdfBase64: String
 }
@@ -234,6 +242,61 @@ class SharePlugin(private val activity: Activity) : Plugin(activity) {
       }
     } catch (ex: Exception) {
       invoke.reject(ex.message ?: "Falha ao preparar imagem para compartilhamento")
+    }
+  }
+
+  @Command
+  fun shareTextFile(invoke: Invoke) {
+    val args = try {
+      invoke.parseArgs(ShareTextFileArgs::class.java)
+    } catch (ex: Exception) {
+      invoke.reject(ex.message ?: "Argumentos inválidos para shareTextFile")
+      return
+    }
+
+    try {
+      val sanitizedName = args.filename
+        .substringAfterLast('/')
+        .substringAfterLast('\\')
+        .replace(Regex("[^a-zA-Z0-9._-]"), "_")
+        .ifBlank { "sarue-backup.json" }
+
+      val shareDir = File(activity.cacheDir, "shared_files").apply { mkdirs() }
+      // Limpa exportações anteriores antes de gravar a nova (nunca após startActivity,
+      // pois o app receptor lê a URI de forma assíncrona).
+      shareDir.listFiles()?.forEach { old ->
+        try { old.delete() } catch (_: Exception) {}
+      }
+      val targetFile = File(shareDir, sanitizedName)
+      targetFile.writeText(args.content, Charsets.UTF_8)
+
+      val uri = FileProvider.getUriForFile(
+        activity,
+        "${activity.packageName}.fileprovider",
+        targetFile
+      )
+
+      val shareTitle = args.title ?: "Exportar backup"
+      val mime = args.mimeType.ifBlank { "application/json" }
+      val sendIntent = Intent(Intent.ACTION_SEND).apply {
+        type = mime
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_SUBJECT, shareTitle)
+        clipData = ClipData.newRawUri("", uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+      }
+
+      val chooserIntent = Intent.createChooser(sendIntent, shareTitle)
+      activity.runOnUiThread {
+        try {
+          activity.startActivity(chooserIntent)
+          invoke.resolve()
+        } catch (ex: Exception) {
+          invoke.reject(ex.message ?: "Não foi possível abrir o seletor de compartilhamento")
+        }
+      }
+    } catch (ex: Exception) {
+      invoke.reject(ex.message ?: "Falha ao preparar arquivo para compartilhamento")
     }
   }
 }

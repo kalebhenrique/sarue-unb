@@ -17,6 +17,8 @@ export interface ParseHistoricoInput {
 export interface ParseHistoricoResult {
   profile: StudentAcademicProfile;
   matchedCurriculum?: CurriculumStructure;
+  /** Texto extraído do PDF (permite re-parsear com outro catálogo sem reler o PDF). */
+  rawText?: string;
 }
 
 /**
@@ -111,11 +113,11 @@ export function extractPrecedingPeriod(fullText: string, matchIndex: number): st
 function normalizeSituation(raw: string): string {
   const s = raw.toUpperCase();
   if (s.startsWith('MATR')) return 'MATR';
+  if (s.startsWith('APROVEIT') || s.startsWith('CUMP') || s.startsWith('DISP')) return 'DISP';
   if (s.startsWith('APROV') || s === 'APR') return 'APR';
   if (s.startsWith('REPROV')) return 'REP';
   if (s === 'TRAN' || s.startsWith('TRANC')) return 'TR';
   if (s.startsWith('CANC')) return 'CANC';
-  if (s.startsWith('DISP')) return 'DISP';
   return s;
 }
 
@@ -140,7 +142,8 @@ export class ParseHistoricoUseCase {
       if (uint8) {
         try {
           const { extractText } = await import('unpdf');
-          const res = await extractText(uint8);
+          // Copia defensiva: unpdf transfere o ArrayBuffer interno via postMessage (detaching o buffer original)
+          const res = await extractText(new Uint8Array(uint8));
           if (Array.isArray(res.text)) {
             fullText = res.text.join('\n');
           } else if (typeof res.text === 'string') {
@@ -182,8 +185,12 @@ export class ParseHistoricoUseCase {
       || fullText.match(/Estrutura\s*Curricular:\s*([\d/]+)/i);
     const curriculumCode = curriculoMatch?.[1] || input.defaultProfile?.curriculumCode;
 
-    // Ano de Ingresso
-    const anoMatch = fullText.match(/(?:Ano\s*\/\s*Per[íi]odo\s*Letivo\s*Inicial|Entrada):\s*(\d{4}\.[12]|\d{4})/i);
+    // Ano de Ingresso (suporta rótulo inline ou valor acima da forma de ingresso no iText / pdf-extract)
+    const anoMatch =
+      fullText.match(/(?:Ano\s*\/\s*Per[íi]odo\s*Letivo\s*Inicial|Entrada):\s*(\d{4}\.[12]|\d{4})/i) ||
+      headerPortion.match(
+        /(?:^|\n)\s*(\d{4}\.[12])\s+(?:PROGRAMA\s+DE\s+AVALIA|VESTIBULAR|ENEM|SISU|TRANSFER|PORTADOR|CONV[EÊ]NIO|PEC-G|REINTEGR|MUDAN)/i
+      );
     const admissionYear = anoMatch?.[1] || input.defaultProfile?.admissionYear || '';
 
     // Turno do curso: token do SIGAA ou palavra-chave no cabeçalho
@@ -254,6 +261,8 @@ export class ParseHistoricoUseCase {
           ...entry,
           name: resolvedName,
           classCode: resolvedClassCode,
+          period: resolvedPeriod,
+          workloadHours: existing.workloadHours ?? entry.workloadHours,
           situation: 'MATR',
           isCompleted: false,
         });
@@ -327,6 +336,34 @@ export class ParseHistoricoUseCase {
       });
       if (situation === 'TR') {
         recordTrancada(code, extractPrecedingPeriod(fullText, match.index));
+      }
+    }
+
+    // Padrão 3 (Histórico Analítico / com Ementas do SIGAA UnB — compatível com unpdf e pdf-extract Rust):
+    // 2022.1\n 90ALGORITMOS E PROGRAMAÇÃO DE COMPUTADORES APROVADO(A)\n\nCIC0004
+    const patternAnalytical =
+      /(?:^|\n)\s*(\d{4}\.[12])\s*\n+\s*(\d{2,3})\s*([^\n]+?)\s+(APROVADO(?:\(A\))?(?:\s+POR\s+[\w\s]+?)?|REPROVADO(?:\(A\))?(?:\s+POR\s+[\w\s]+?)?|MATRICULADO(?:\(A\))?|TRANCADO(?:\(A\))?|DISPENSADO(?:\(A\))?|CANCELADO(?:\(A\))?|CUMPRIU|APROVEITADO(?:\(A\))?)\s*\n+\s*([A-Z]{3}\d{4})\b/gi;
+    while ((match = patternAnalytical.exec(fullText)) !== null) {
+      const period = match[1];
+      const ch = parseInt(match[2], 10);
+      const name = match[3].replace(/\s+/g, ' ').trim();
+      const rawSit = match[4].trim().toUpperCase();
+      const code = match[5].toUpperCase();
+
+      const situation = normalizeSituation(rawSit);
+      const isCompleted = situation === 'APR' || situation === 'DISP';
+
+      setOrUpdateDiscipline({
+        code,
+        name: name || code,
+        workloadHours: ch,
+        grade: situation === 'MATR' ? '-' : undefined,
+        situation,
+        isCompleted: situation === 'MATR' ? false : isCompleted,
+        period,
+      });
+      if (situation === 'TR') {
+        recordTrancada(code, period);
       }
     }
 
@@ -557,6 +594,7 @@ export class ParseHistoricoUseCase {
     return {
       profile,
       matchedCurriculum,
+      rawText: fullText,
     };
   }
 }

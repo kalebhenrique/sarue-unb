@@ -28,6 +28,7 @@ import { parseSavedGradeClassesJson } from "./persistence-codec";
 const inMemorySavedGrades = new Map<string, SavedGrade>();
 let inMemoryLatestGrade: SavedGrade | null = null;
 let cachedDepartments: Department[] | null = null;
+let cachedSemesters: SemesterOption[] | null = null;
 let cachedProfessors: ScrapedProfessor[] | null = null;
 let cachedCoursesCatalog: CourseCatalogItem[] | null = null;
 const cachedCurriculaByCourse = new Map<string, CurriculumStructure[]>();
@@ -63,6 +64,32 @@ export class TauriGradeRepository implements IGradeRepository {
   }
 
   async getSemesters(): Promise<SemesterOption[]> {
+    if (cachedSemesters && cachedSemesters.length > 0) {
+      return cachedSemesters;
+    }
+    try {
+      const { commands } = await import("@/core/infrastructure/bindings");
+      const response = await commands.getSigaaSemesters();
+      if (response.status === "error") {
+        throw new Error(response.error);
+      }
+      if (response.data && response.data.length > 0) {
+        cachedSemesters = response.data
+          .filter((s) => s.period !== "3")
+          .map((s) => ({
+            value: s.value,
+            year: s.year,
+            period: s.period,
+            label: s.label,
+            isCurrent: s.is_current ?? false,
+          }));
+        if (cachedSemesters.length > 0) {
+          return cachedSemesters;
+        }
+      }
+    } catch {
+      // Fallback para o semesters.json embutido no app
+    }
     return this.fallbackRepo.getSemesters();
   }
 

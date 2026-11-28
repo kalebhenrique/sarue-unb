@@ -60,7 +60,7 @@ export const AppUpdateDialog: React.FC<AppUpdateDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className="flex items-center gap-2.5 mb-1">
+          <div className="flex items-center gap-2.5 mb-1 pr-9">
             <div className="w-9 h-9 rounded-lg bg-neo-yellow text-ink border-2 border-ink flex items-center justify-center shadow-neo-sm shrink-0">
               <Sparkles className="w-5 h-5 stroke-[2.5]" />
             </div>

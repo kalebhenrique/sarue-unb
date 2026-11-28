@@ -16,6 +16,7 @@ export const commands = {
 } | null) => typedError<SyncResult, string>(__TAURI_INVOKE("sync_platforms", { platforms, sigaa, aprender3, teams })),
 	checkVaultStatus: () => __TAURI_INVOKE<VaultStatus>("check_vault_status"),
 	getSigaaDepartments: () => typedError<Department[], string>(__TAURI_INVOKE("get_sigaa_departments")),
+	getSigaaSemesters: () => typedError<SemesterOption[], string>(__TAURI_INVOKE("get_sigaa_semesters")),
 	getSigaaProfessors: () => typedError<ScrapedProfessor[], string>(__TAURI_INVOKE("get_sigaa_professors")),
 	scrapeSigaaClasses: (departmentId: string, year: string, period: string) => typedError<ScrapedDiscipline[], string>(__TAURI_INVOKE("scrape_sigaa_classes", { departmentId, year, period })),
 	getCoursesCatalog: () => typedError<CourseCatalogItem[], string>(__TAURI_INVOKE("get_courses_catalog")),
@@ -47,11 +48,14 @@ export const commands = {
 	fetchRuMenusCdn: () => typedError<string, string>(__TAURI_INVOKE("fetch_ru_menus_cdn")),
 	fetchStudentWallet: (matricula: string, senha: string) => typedError<StudentWalletSyncPayload, string>(__TAURI_INVOKE("fetch_student_wallet", { matricula, senha })),
 	setMaxBrightness: (enable: boolean) => typedError<null, string>(__TAURI_INVOKE("set_max_brightness", { enable })),
-	shareImage: (base64Png: string, filename: string, title: string | null) => typedError<boolean, string>(__TAURI_INVOKE("share_image", { base64Png, filename, title })),
+	shareImage: (base64Png: string, filename: string, title: string | null) => typedError<FileExportResult, string>(__TAURI_INVOKE("share_image", { base64Png, filename, title })),
+	shareTextFile: (content: string, filename: string, mimeType: string, title: string | null) => typedError<FileExportResult, string>(__TAURI_INVOKE("share_text_file", { content, filename, mimeType, title })),
 	renderStudentCardPdf: (pdfBase64: string) => typedError<{
 	croppedDataUrl: string,
 	fullPageDataUrl: string,
 } | null, string>(__TAURI_INVOKE("render_student_card_pdf", { pdfBase64 })),
+	extractPdfText: (pdfBase64: string) => typedError<string, string>(__TAURI_INVOKE("extract_pdf_text", { pdfBase64 })),
+	extractPdfTextFromPath: (path: string) => typedError<string, string>(__TAURI_INVOKE("extract_pdf_text_from_path", { path })),
 	isPlayStoreInstall: () => typedError<boolean, string>(__TAURI_INVOKE("is_play_store_install")),
 	checkApkReleaseUpdate: () => typedError<{
 	version: string,
@@ -162,6 +166,14 @@ export type FeedItem = {
 
 export type FeedItemType = "post" | "assignment";
 
+export type FileExportOutcome = "saved" | "shared" | "cancelled";
+
+export type FileExportResult = {
+	/**  `"saved"` (desktop), `"shared"` (mobile) ou `"cancelled"` (usuário fechou o diálogo). */
+	outcome: FileExportOutcome,
+	path: string | null,
+};
+
 export type NetworkStatus = {
 	connectionType: ConnectionType,
 	isMetered: boolean,
@@ -230,6 +242,14 @@ export type ScrapedProfessor = {
 	department_ids?: string[],
 	discipline_codes?: string[],
 	photo_url?: string | null,
+};
+
+export type SemesterOption = {
+	value: string,
+	year: string,
+	period: string,
+	label: string,
+	is_current?: boolean,
 };
 
 export type SigaaCreds = {

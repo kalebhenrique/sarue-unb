@@ -62,6 +62,16 @@ struct ShareImageArgs {
     title: Option<String>,
 }
 
+#[cfg(mobile)]
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ShareTextFileArgs {
+    content: String,
+    filename: String,
+    mime_type: String,
+    title: Option<String>,
+}
+
 /// Acesso às APIs nativas de compartilhamento de imagem.
 pub struct Share<R: Runtime> {
     #[cfg(desktop)]
@@ -97,6 +107,42 @@ impl<R: Runtime> Share<R> {
                 ShareImageArgs {
                     base64_png,
                     filename,
+                    title,
+                },
+            )
+            .map(|_| true)
+            .map_err(Into::into)
+    }
+
+    /// Abre a folha nativa de compartilhamento no mobile para um arquivo de texto (ex.: backup JSON).
+    /// Retorna `Ok(true)` quando compartilhado nativamente, ou `Ok(false)` em desktop (fallback).
+    #[cfg(desktop)]
+    pub fn share_text_file(
+        &self,
+        content: String,
+        filename: String,
+        mime_type: String,
+        title: Option<String>,
+    ) -> Result<bool> {
+        let _ = (content, filename, mime_type, title);
+        Ok(false)
+    }
+
+    #[cfg(mobile)]
+    pub fn share_text_file(
+        &self,
+        content: String,
+        filename: String,
+        mime_type: String,
+        title: Option<String>,
+    ) -> Result<bool> {
+        self.mobile_plugin_handle
+            .run_mobile_plugin::<()>(
+                "shareTextFile",
+                ShareTextFileArgs {
+                    content,
+                    filename,
+                    mime_type,
                     title,
                 },
             )
@@ -170,6 +216,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![commands::share_image])
+        .invoke_handler(tauri::generate_handler![
+            commands::share_image,
+            commands::share_text_file
+        ])
         .build()
 }

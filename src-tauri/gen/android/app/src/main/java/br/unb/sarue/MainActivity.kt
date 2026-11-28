@@ -19,7 +19,7 @@ class MainActivity : TauriActivity() {
     ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { v, insets ->
       val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
       v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-      insets
+      insets.inset(bars.left, bars.top, bars.right, bars.bottom)
     }
 
     SarueSyncWorker.syncSchedule(this)

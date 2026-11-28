@@ -36,4 +36,8 @@ export interface IAcademicProfileRepository {
    */
   getCurriculaForCourse(courseId: string): Promise<CurriculumStructure[]>;
   fetchSigaaHistory(creds: SigaaCredentials): Promise<SigaaHistoryRawResponse>;
+  /** Extrai texto de um PDF localmente via Rust (pula o unpdf no WebView). */
+  extractPdfText?(pdfData: Uint8Array): Promise<string | null>;
+  /** Extrai texto de um PDF a partir do caminho local (drag-and-drop nativo no Tauri). */
+  extractPdfTextFromPath?(path: string): Promise<string | null>;
 }

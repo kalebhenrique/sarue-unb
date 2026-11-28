@@ -57,6 +57,8 @@ export interface PlatformAccountsAccordionProps {
   showTeams?: boolean;
   /** Fecha as gavetas automaticamente quando todas as plataformas estiverem conectadas (onboarding) */
   closeWhenAllConnected?: boolean;
+  /** Inicia scraping silencioso em segundo plano assim que SIGAA/Aprender 3 conectarem (onboarding) */
+  preSyncOnConnect?: boolean;
   /**
    * Anatomia das gavetas: "stickers" (padrão, onboarding — adesivos com
    * sombra dura própria) ou "panel" (Settings — linhas segmentadas dentro
@@ -83,6 +85,7 @@ export const PlatformAccountsAccordion: React.FC<
   allowAllClosed = false,
   showTeams = true,
   closeWhenAllConnected = false,
+  preSyncOnConnect = false,
   variant = "stickers",
 }) => {
   const {
@@ -93,6 +96,7 @@ export const PlatformAccountsAccordion: React.FC<
     allCredentials,
     isLoading,
     error,
+    clearError,
   } = useCredentials();
   const syncContext = useOptionalSync();
   const { repos, useCases } = useContainer();
@@ -142,6 +146,9 @@ export const PlatformAccountsAccordion: React.FC<
   const [isSigaaDisconnectDialogOpen, setIsSigaaDisconnectDialogOpen] =
     useState(false);
   const [isDisconnectingAll, setIsDisconnectingAll] = useState(false);
+  // Diálogo de aviso ao conectar SIGAA sobre um histórico escolar já importado via PDF
+  const [isReplaceTranscriptDialogOpen, setIsReplaceTranscriptDialogOpen] =
+    useState(false);
 
   const allConnected =
     sigaaSaved && aprenderSaved && (showTeams ? teamsConnected : true);
@@ -150,6 +157,7 @@ export const PlatformAccountsAccordion: React.FC<
   // ou quando allowAllClosed (Settings). Aprender 3 e Teams exigem o SIGAA primeiro.
   const togglePlatform = (id: PlatformType) => {
     setFormError(null);
+    clearError();
     setOpenPlatform((cur) => {
       if (cur !== id) {
         if (id !== "sigaa" && !sigaaSaved) return cur;
@@ -187,6 +195,64 @@ export const PlatformAccountsAccordion: React.FC<
     );
   };
 
+  const executeConnectSigaa = async (replaceImportedTranscript: boolean) => {
+    setIsVerifying(true);
+    try {
+      const res = await saveSigaa({
+        matricula: sigaaMatricula.trim(),
+        senha: sigaaSenha,
+      });
+      if (res.success) {
+        setSigaaSaved(true);
+        setSigaaSuccessMsg(res.detail || "Conectado ao SIGAA com sucesso!");
+        setIsReplaceTranscriptDialogOpen(false);
+        // Login real encerra o Modo Demonstração: limpa os dados fictícios
+        // para o sync real não conviver com o conteúdo do demo.
+        if (isDemoModeActive()) {
+          await exitDemoMode({
+            feedRepo: repos.feedRepo,
+            academicProfileRepo: repos.academicProfileRepo,
+            iraScenarioRepo: repos.iraScenarioRepo,
+            gradeRepo: repos.gradeRepo,
+            deadlineNotificationRepo: repos.deadlineNotificationRepo,
+          });
+          resetGradeCache();
+          resetMyCourseCache();
+          resetStudentWalletCache();
+          notifyFeedListeners();
+        } else if (replaceImportedTranscript) {
+          // Não apaga o perfil importado antes do sync confirmar: se o SIGAA falhar,
+          // o histórico em PDF continua intacto; ao concluir, o sync substitui os dados.
+          void syncContext?.syncAll();
+        }
+        if (preSyncOnConnect) {
+          syncContext?.startOnboardingSigaaSync();
+        }
+        // Gaveta seguinte: SIGAA fica marcado como conectado e abre a próxima pendente;
+        // sem pendente e com closeWhenAllConnected, fecha as gavetas
+        setOpenPlatform(
+          !aprenderSaved
+            ? "aprender3"
+            : showTeams && !teamsConnected
+              ? "teams"
+              : closeWhenAllConnected
+                ? null
+                : "sigaa",
+        );
+      } else {
+        setSigaaSaved(false);
+        setSigaaSuccessMsg(null);
+        setIsReplaceTranscriptDialogOpen(false);
+        setFormError(
+          res.error ||
+            "Falha ao autenticar no SIGAA. Verifique matrícula e senha.",
+        );
+      }
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   const handleConnectSigaa = async () => {
     setFormError(null);
     if (!sigaaMatricula.trim()) {
@@ -213,52 +279,24 @@ export const PlatformAccountsAccordion: React.FC<
       }
       return;
     }
-    setIsVerifying(true);
-    try {
-      const res = await saveSigaa({
-        matricula: sigaaMatricula.trim(),
-        senha: sigaaSenha,
-      });
-      if (res.success) {
-        setSigaaSaved(true);
-        setSigaaSuccessMsg(res.detail || "Conectado ao SIGAA com sucesso!");
-        // Login real encerra o Modo Demonstração: limpa os dados fictícios
-        // para o sync real não conviver com o conteúdo do demo.
-        if (isDemoModeActive()) {
-          await exitDemoMode({
-            feedRepo: repos.feedRepo,
-            academicProfileRepo: repos.academicProfileRepo,
-            iraScenarioRepo: repos.iraScenarioRepo,
-            gradeRepo: repos.gradeRepo,
-            deadlineNotificationRepo: repos.deadlineNotificationRepo,
-          });
-          resetGradeCache();
-          resetMyCourseCache();
-          resetStudentWalletCache();
-          notifyFeedListeners();
+    // Em Configurações, se o usuário entrou por histórico PDF e agora conecta
+    // o SIGAA, avisa que o histórico importado será substituído pelo oficial.
+    if (!preSyncOnConnect && !sigaaSaved && !isDemoModeActive()) {
+      try {
+        const existingProfile = await repos.academicProfileRepo.getProfile();
+        if (
+          existingProfile &&
+          (existingProfile.completedDisciplines.length > 0 ||
+            Boolean(existingProfile.matricula))
+        ) {
+          setIsReplaceTranscriptDialogOpen(true);
+          return;
         }
-        // Gaveta seguinte: SIGAA fica marcado como conectado e abre a próxima pendente;
-        // sem pendente e com closeWhenAllConnected, fecha as gavetas
-        setOpenPlatform(
-          !aprenderSaved
-            ? "aprender3"
-            : showTeams && !teamsConnected
-              ? "teams"
-              : closeWhenAllConnected
-                ? null
-                : "sigaa",
-        );
-      } else {
-        setSigaaSaved(false);
-        setSigaaSuccessMsg(null);
-        setFormError(
-          res.error ||
-            "Falha ao autenticar no SIGAA. Verifique matrícula e senha.",
-        );
+      } catch {
+        // Segue com a conexão normalmente se não foi possível consultar o perfil local
       }
-    } finally {
-      setIsVerifying(false);
     }
+    await executeConnectSigaa(false);
   };
 
   const handleDisconnectSigaa = async () => {
@@ -272,6 +310,9 @@ export const PlatformAccountsAccordion: React.FC<
     }
     setIsVerifying(true);
     try {
+      if (preSyncOnConnect) {
+        syncContext?.cancelSync();
+      }
       await clearPlatform("sigaa");
       setSigaaSaved(false);
     } catch {
@@ -287,6 +328,9 @@ export const PlatformAccountsAccordion: React.FC<
     setIsDisconnectingAll(true);
     setFormError(null);
     try {
+      if (preSyncOnConnect) {
+        syncContext?.cancelSync();
+      }
       if (aprenderSaved) await clearPlatform("aprender3");
       if (teamsConnected) await clearPlatform("teams");
       await clearPlatform("sigaa");
@@ -326,6 +370,9 @@ export const PlatformAccountsAccordion: React.FC<
         setAprenderSuccessMsg(
           res.detail || "Conectado ao Aprender 3 com sucesso!",
         );
+        if (preSyncOnConnect) {
+          syncContext?.startOnboardingAprender3Sync();
+        }
         setOpenPlatform(
           showTeams && !teamsConnected
             ? "teams"
@@ -351,6 +398,9 @@ export const PlatformAccountsAccordion: React.FC<
     setAprenderSuccessMsg(null);
     setIsVerifying(true);
     try {
+      if (preSyncOnConnect) {
+        syncContext?.cancelOnboardingAprender3Sync();
+      }
       await clearPlatform("aprender3");
       setAprenderSaved(false);
     } catch {
@@ -436,6 +486,9 @@ export const PlatformAccountsAccordion: React.FC<
           return;
         }
         setSigaaSaved(true);
+        if (preSyncOnConnect) {
+          syncContext?.startOnboardingSigaaSync();
+        }
       } finally {
         setIsVerifying(false);
       }
@@ -463,6 +516,9 @@ export const PlatformAccountsAccordion: React.FC<
           return;
         }
         setAprenderSaved(true);
+        if (preSyncOnConnect) {
+          syncContext?.startOnboardingAprender3Sync();
+        }
       } finally {
         setIsVerifying(false);
       }
@@ -670,6 +726,8 @@ export const PlatformAccountsAccordion: React.FC<
                                 setSigaaMatricula(e.target.value);
                                 setSigaaSaved(false);
                                 setSigaaSuccessMsg(null);
+                                setFormError(null);
+                                clearError();
                               }}
                               disabled={isLoading || isVerifying}
                             />
@@ -682,6 +740,8 @@ export const PlatformAccountsAccordion: React.FC<
                                 setSigaaSenha(e.target.value);
                                 setSigaaSaved(false);
                                 setSigaaSuccessMsg(null);
+                                setFormError(null);
+                                clearError();
                               }}
                               disabled={isLoading || isVerifying}
                             />
@@ -745,6 +805,8 @@ export const PlatformAccountsAccordion: React.FC<
                                 setAprenderCpf(e.target.value);
                                 setAprenderSaved(false);
                                 setAprenderSuccessMsg(null);
+                                setFormError(null);
+                                clearError();
                               }}
                               disabled={isLoading || isVerifying}
                             />
@@ -757,6 +819,8 @@ export const PlatformAccountsAccordion: React.FC<
                                 setAprenderSenha(e.target.value);
                                 setAprenderSaved(false);
                                 setAprenderSuccessMsg(null);
+                                setFormError(null);
+                                clearError();
                               }}
                               disabled={isLoading || isVerifying}
                             />
@@ -866,12 +930,12 @@ export const PlatformAccountsAccordion: React.FC<
                       {formError || error ? (
                         <div
                           role="alert"
-                          className="p-3 bg-pastel-red border-2 border-ink rounded-lg flex items-start gap-2.5"
+                          className="p-3 bg-pastel-red border-2 border-ink rounded-lg flex items-start gap-2.5 overflow-hidden"
                         >
                           <span className="p-1 bg-paper border-2 border-ink rounded-md shadow-[1px_1px_0px_0px_var(--neo-shadow)] shrink-0">
                             <AlertCircle className="w-3.5 h-3.5 text-ink-error stroke-[3]" />
                           </span>
-                          <span className="text-xs font-bold text-ink-error leading-relaxed pt-0.5">
+                          <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere] text-xs font-bold text-ink-error leading-relaxed pt-0.5">
                             {formError || error}
                           </span>
                         </div>
@@ -932,6 +996,56 @@ export const PlatformAccountsAccordion: React.FC<
             >
               <LogOut className="w-4 h-4 stroke-[2.5]" />
               <span>Desconectar Tudo</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo: aviso ao conectar SIGAA quando já existe histórico importado via PDF */}
+      <Dialog
+        open={isReplaceTranscriptDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && !isVerifying) {
+            setIsReplaceTranscriptDialogOpen(false);
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={!isVerifying}
+          className="sm:max-w-md"
+        >
+          <DialogHeader>
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="w-9 h-9 rounded-lg bg-neo-yellow text-ink border-2 border-ink flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <DialogTitle>Substituir histórico importado?</DialogTitle>
+            </div>
+            <DialogDescription>
+              Você já possui um histórico escolar importado via PDF neste
+              dispositivo. Ao conectar sua conta do SIGAA, os dados acadêmicos
+              serão substituídos pelo histórico oficial sincronizado da sua
+              conta.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              disabled={isVerifying}
+              onClick={() => setIsReplaceTranscriptDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="md"
+              isLoading={isVerifying}
+              onClick={() => void executeConnectSigaa(true)}
+            >
+              <span>Conectar e substituir</span>
             </Button>
           </DialogFooter>
         </DialogContent>

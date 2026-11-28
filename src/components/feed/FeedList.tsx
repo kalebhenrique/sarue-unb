@@ -182,7 +182,7 @@ export const FeedList: React.FC<FeedListProps> = ({
             <div className="min-w-0 flex-1">
               <span
                 title={item.title}
-                className={`block truncate text-sm font-bold ${titleTone}`}
+                className={`block line-clamp-2 leading-snug sm:line-clamp-none sm:truncate text-sm font-bold ${titleTone}`}
               >
                 {item.title}
               </span>

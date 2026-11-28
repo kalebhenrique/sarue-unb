@@ -321,7 +321,7 @@ let inMemoryLatestGrade: SavedGrade | null = null;
 export class InMemoryGradeRepository implements IGradeRepository {
   private departmentsCache: Department[] | null = null;
   private semestersCache: SemesterOption[] | null = null;
-  private classesCache: ScrapedDiscipline[] | null = null;
+  private classesCache = new Map<string, ScrapedDiscipline[]>();
   private coursesCache: CourseCatalogItem[] | null = null;
   private curriculaCache: CurriculumStructure[] | null = null;
   private professorsCache: ScrapedProfessor[] | null = null;
@@ -428,21 +428,37 @@ export class InMemoryGradeRepository implements IGradeRepository {
 
   async scrapeDepartmentClasses(
     deptId: string,
-    _year: string,
-    _period: string,
+    year: string,
+    period: string,
   ): Promise<ScrapedDiscipline[]> {
+    const semKey = `${year}-${period}`;
     if (
-      !this.classesCache &&
+      !this.classesCache.has(semKey) &&
       typeof fetch !== "undefined" &&
       !this.isUnitTest()
     ) {
-      const candidateUrls = this.isTauriRuntime()
+      const semesters = await this.getSemesters();
+      const isCurrentSem =
+        semesters.length === 0 ||
+        semesters.some(
+          (s) => s.year === year && s.period === period && s.isCurrent,
+        );
+      const semFile = `classes-${semKey}.json`;
+      const semUrls = this.isTauriRuntime()
+        ? [`/data/${semFile}`]
+        : [
+            `/data/${semFile}`,
+            `https://kalebhenrique.github.io/sarue-unb/data/${semFile}`,
+            `https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/${semFile}`,
+          ];
+      const legacyUrls = this.isTauriRuntime()
         ? ["/data/classes.json"]
         : [
             "/data/classes.json",
             "https://kalebhenrique.github.io/sarue-unb/data/classes.json",
             "https://raw.githubusercontent.com/kalebhenrique/sarue-unb/gh-pages/data/classes.json",
           ];
+      const candidateUrls = isCurrentSem ? [...semUrls, ...legacyUrls] : semUrls;
       for (const url of candidateUrls) {
         try {
           const res = await fetch(url);
@@ -479,8 +495,8 @@ export class InMemoryGradeRepository implements IGradeRepository {
               }>;
             }>;
 
-            if (Array.isArray(raw) && raw.length > 0) {
-              this.classesCache = raw.map((d) => {
+            if (Array.isArray(raw)) {
+              const mapped = raw.map((d) => {
                 const gen = generateAcronyms(d.name);
                 return {
                   code: d.code,
@@ -531,18 +547,23 @@ export class InMemoryGradeRepository implements IGradeRepository {
                   }),
                 };
               });
+              this.classesCache.set(semKey, mapped);
               break;
             }
           }
         } catch {}
       }
+      if (!this.classesCache.has(semKey) && !isCurrentSem) {
+        this.classesCache.set(semKey, []);
+      }
     }
 
-    if (this.classesCache) {
+    const cachedForSemester = this.classesCache.get(semKey);
+    if (cachedForSemester) {
       if (!deptId || deptId.toUpperCase() === "ALL" || deptId === "*") {
-        return this.classesCache;
+        return cachedForSemester;
       }
-      const filtered = this.classesCache.filter(
+      const filtered = cachedForSemester.filter(
         (d) => d.departmentId === deptId,
       );
       if (filtered.length > 0) {

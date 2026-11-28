@@ -393,6 +393,12 @@ pub async fn get_sigaa_departments() -> Result<Vec<crate::grade_scraper::Departm
 
 #[command]
 #[specta::specta]
+pub async fn get_sigaa_semesters() -> Result<Vec<crate::grade_scraper::SemesterOption>, String> {
+    crate::grade_scraper::SigaaGradeScraper::fetch_semesters().await
+}
+
+#[command]
+#[specta::specta]
 pub async fn get_sigaa_professors() -> Result<Vec<crate::grade_scraper::ScrapedProfessor>, String> {
     crate::grade_scraper::SigaaGradeScraper::fetch_professors().await
 }
@@ -533,14 +539,22 @@ pub async fn fetch_ru_menus_cdn() -> Result<String, String> {
         match client.get(*url).send().await {
             Ok(resp) if resp.status().is_success() => match resp.text().await {
                 Ok(text) if !text.trim().is_empty() => return Ok(text),
-                Ok(_) => last_err = "CDN retornou JSON vazio.".to_string(),
-                Err(e) => last_err = format!("Falha ao ler resposta do CDN: {}", e),
+                Ok(_) => {
+                    last_err = "O cardápio do RU está temporariamente indisponível.".to_string()
+                }
+                Err(e) => {
+                    last_err = crate::http_error::describe_reqwest_error("cardápio do RU", &e)
+                }
             },
             Ok(resp) => {
-                last_err = format!("CDN retornou status HTTP {}", resp.status());
+                if let Err(msg) =
+                    crate::http_error::check_http_status("cardápio do RU", resp.status())
+                {
+                    last_err = msg;
+                }
             }
             Err(e) => {
-                last_err = format!("Falha de rede ao acessar CDN: {}", e);
+                last_err = crate::http_error::describe_reqwest_error("cardápio do RU", &e);
             }
         }
     }
@@ -950,19 +964,14 @@ pub async fn fetch_professor_evaluations_csv(force_refresh: bool) -> Result<Stri
         .get(PROFESSOR_EVALUATIONS_CSV_URL)
         .send()
         .await
-        .map_err(|e| format!("Falha ao conectar à planilha de avaliações: {}", e))?;
+        .map_err(|e| crate::http_error::describe_reqwest_error("planilha de avaliações", &e))?;
 
-    if !response.status().is_success() {
-        return Err(format!(
-            "Planilha retornou status HTTP {}",
-            response.status()
-        ));
-    }
+    crate::http_error::check_http_status("planilha de avaliações", response.status())?;
 
     let text = response
         .text()
         .await
-        .map_err(|e| format!("Falha ao ler conteúdo CSV da planilha: {}", e))?;
+        .map_err(|e| crate::http_error::describe_reqwest_error("planilha de avaliações", &e))?;
 
     if text.trim().is_empty() {
         return Err("Planilha de avaliações retornou conteúdo vazio.".into());
@@ -1096,6 +1105,59 @@ pub async fn set_max_brightness(app: AppHandle, enable: bool) -> Result<(), Stri
         .map_err(|e| e.to_string())
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, specta::Type)]
+#[serde(rename_all = "lowercase")]
+pub enum FileExportOutcome {
+    Saved,
+    Shared,
+    Cancelled,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FileExportResult {
+    /// `"saved"` (desktop), `"shared"` (mobile) ou `"cancelled"` (usuário fechou o diálogo).
+    pub outcome: FileExportOutcome,
+    pub path: Option<String>,
+}
+
+#[cfg(desktop)]
+async fn pick_desktop_save_path(
+    app: &AppHandle,
+    filename: &str,
+    title: Option<&str>,
+    filter_name: &str,
+    filter_extensions: &[&str],
+) -> Result<Option<std::path::PathBuf>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    let mut builder = app
+        .dialog()
+        .file()
+        .set_file_name(filename)
+        .add_filter(filter_name, filter_extensions);
+    if let Some(t) = title {
+        builder = builder.set_title(t);
+    }
+
+    builder.save_file(move |file_path| {
+        let _ = tx.send(file_path);
+    });
+
+    let picked = rx
+        .await
+        .map_err(|_| "Diálogo de salvamento interrompido".to_string())?;
+
+    match picked {
+        Some(fp) => fp
+            .into_path()
+            .map(Some)
+            .map_err(|e| format!("Caminho inválido selecionado: {e}")),
+        None => Ok(None),
+    }
+}
+
 #[command]
 #[specta::specta]
 pub async fn share_image(
@@ -1103,11 +1165,106 @@ pub async fn share_image(
     base64_png: String,
     filename: String,
     title: Option<String>,
-) -> Result<bool, String> {
-    use tauri_plugin_share::ShareExt;
-    app.share()
-        .share_image(base64_png, filename, title)
-        .map_err(|e| e.to_string())
+) -> Result<FileExportResult, String> {
+    #[cfg(desktop)]
+    {
+        use base64::Engine as _;
+
+        let Some(path) = pick_desktop_save_path(
+            &app,
+            &filename,
+            title.as_deref().or(Some("Salvar imagem")),
+            "Imagem PNG",
+            &["png"],
+        )
+        .await?
+        else {
+            return Ok(FileExportResult {
+                outcome: FileExportOutcome::Cancelled,
+                path: None,
+            });
+        };
+
+        let clean_b64 = base64_png
+            .split_once("base64,")
+            .map(|(_, rest)| rest)
+            .unwrap_or(&base64_png)
+            .trim();
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(clean_b64)
+            .map_err(|e| format!("Imagem PNG inválida: {e}"))?;
+
+        tokio::fs::write(&path, bytes)
+            .await
+            .map_err(|e| format!("Falha ao salvar arquivo: {e}"))?;
+
+        Ok(FileExportResult {
+            outcome: FileExportOutcome::Saved,
+            path: Some(path.to_string_lossy().into_owned()),
+        })
+    }
+
+    #[cfg(not(desktop))]
+    {
+        use tauri_plugin_share::ShareExt;
+        app.share()
+            .share_image(base64_png, filename, title)
+            .map_err(|e| e.to_string())?;
+        Ok(FileExportResult {
+            outcome: FileExportOutcome::Shared,
+            path: None,
+        })
+    }
+}
+
+#[command]
+#[specta::specta]
+pub async fn share_text_file(
+    app: AppHandle,
+    content: String,
+    filename: String,
+    mime_type: String,
+    title: Option<String>,
+) -> Result<FileExportResult, String> {
+    #[cfg(desktop)]
+    {
+        let _ = mime_type;
+        let Some(path) = pick_desktop_save_path(
+            &app,
+            &filename,
+            title.as_deref().or(Some("Salvar backup")),
+            "Backup JSON",
+            &["json"],
+        )
+        .await?
+        else {
+            return Ok(FileExportResult {
+                outcome: FileExportOutcome::Cancelled,
+                path: None,
+            });
+        };
+
+        tokio::fs::write(&path, content.as_bytes())
+            .await
+            .map_err(|e| format!("Falha ao salvar arquivo: {e}"))?;
+
+        Ok(FileExportResult {
+            outcome: FileExportOutcome::Saved,
+            path: Some(path.to_string_lossy().into_owned()),
+        })
+    }
+
+    #[cfg(not(desktop))]
+    {
+        use tauri_plugin_share::ShareExt;
+        app.share()
+            .share_text_file(content, filename, mime_type, title)
+            .map_err(|e| e.to_string())?;
+        Ok(FileExportResult {
+            outcome: FileExportOutcome::Shared,
+            path: None,
+        })
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
@@ -1141,6 +1298,95 @@ pub async fn is_play_store_install(app: AppHandle) -> Result<bool, String> {
     app.share()
         .is_play_store_install()
         .map_err(|e| e.to_string())
+}
+
+fn decode_base64_bytes(input: &str) -> Result<Vec<u8>, String> {
+    let mut out = Vec::with_capacity((input.len() * 3) / 4);
+    let mut buf: u32 = 0;
+    let mut bits: u32 = 0;
+    for b in input.bytes() {
+        let val = match b {
+            b'A'..=b'Z' => (b - b'A') as u32,
+            b'a'..=b'z' => (b - b'a' + 26) as u32,
+            b'0'..=b'9' => (b - b'0' + 52) as u32,
+            b'+' => 62,
+            b'/' => 63,
+            b'=' => break,
+            b' ' | b'\n' | b'\r' | b'\t' => continue,
+            _ => return Err("Base64 inválido no PDF.".to_string()),
+        };
+        buf = (buf << 6) | val;
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push(((buf >> bits) & 0xFF) as u8);
+        }
+    }
+    Ok(out)
+}
+
+const MAX_PDF_BYTES: u64 = 25 * 1024 * 1024;
+const MAX_PDF_BASE64_LEN: usize = 35 * 1024 * 1024;
+
+#[command]
+#[specta::specta]
+pub async fn extract_pdf_text(pdf_base64: String) -> Result<String, String> {
+    if pdf_base64.len() > MAX_PDF_BASE64_LEN {
+        return Err("O arquivo PDF é muito grande (limite de 25 MB).".to_string());
+    }
+    let bytes = decode_base64_bytes(&pdf_base64)?;
+    if bytes.is_empty() {
+        return Err("O arquivo PDF selecionado está vazio.".to_string());
+    }
+    if bytes.len() as u64 > MAX_PDF_BYTES {
+        return Err("O arquivo PDF é muito grande (limite de 25 MB).".to_string());
+    }
+    let text = tokio::task::spawn_blocking(move || pdf_extract::extract_text_from_mem(&bytes))
+        .await
+        .map_err(|e| format!("Falha interna ao ler o PDF: {e}"))?
+        .map_err(|e| format!("Não foi possível extrair texto do PDF: {e}"))?;
+    if text.trim().is_empty() {
+        return Err("O PDF não contém texto legível.".to_string());
+    }
+    Ok(text)
+}
+
+#[command]
+#[specta::specta]
+pub async fn extract_pdf_text_from_path(path: String) -> Result<String, String> {
+    let trimmed = path.trim().to_string();
+    if !trimmed.to_lowercase().ends_with(".pdf") {
+        return Err("Envie um arquivo no formato PDF (.pdf) emitido pelo SIGAA.".to_string());
+    }
+    let text = tokio::task::spawn_blocking(move || -> Result<String, String> {
+        use std::io::Read;
+        let file = std::fs::File::open(&trimmed)
+            .map_err(|_| "Não foi possível acessar o arquivo PDF selecionado.".to_string())?;
+        let meta = file
+            .metadata()
+            .map_err(|_| "Não foi possível acessar o arquivo PDF selecionado.".to_string())?;
+        if !meta.is_file() {
+            return Err("O item arrastado não é um arquivo PDF válido.".to_string());
+        }
+        let mut bytes = Vec::new();
+        file.take(MAX_PDF_BYTES + 1)
+            .read_to_end(&mut bytes)
+            .map_err(|e| format!("Falha ao ler o arquivo PDF: {e}"))?;
+        if bytes.is_empty() {
+            return Err("O arquivo PDF selecionado está vazio.".to_string());
+        }
+        if bytes.len() as u64 > MAX_PDF_BYTES {
+            return Err("O arquivo PDF é muito grande (limite de 25 MB).".to_string());
+        }
+        pdf_extract::extract_text_from_mem(&bytes)
+            .map_err(|e| format!("Não foi possível extrair texto do PDF: {e}"))
+    })
+    .await
+    .map_err(|e| format!("Falha interna ao ler o PDF: {e}"))??;
+    if text.trim().is_empty() {
+        return Err("O PDF não contém texto legível.".to_string());
+    }
+    Ok(text)
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
@@ -1309,23 +1555,17 @@ pub async fn check_apk_release_update(
     // 2. Fallback: consulta latest.json da release (não sofre rate-limit da API do GitHub)
     let latest_json_url =
         "https://github.com/kalebhenrique/sarue-unb/releases/latest/download/latest.json";
-    let resp = client
-        .get(latest_json_url)
-        .send()
-        .await
-        .map_err(|e| format!("Falha ao consultar latest.json: {}", e))?;
+    let resp =
+        client.get(latest_json_url).send().await.map_err(|e| {
+            crate::http_error::describe_reqwest_error("servidor de atualizações", &e)
+        })?;
 
-    if !resp.status().is_success() {
-        return Err(format!(
-            "Servidor de atualizações retornou status HTTP {}",
-            resp.status()
-        ));
-    }
+    crate::http_error::check_http_status("servidor de atualizações", resp.status())?;
 
     let json = resp
         .json::<serde_json::Value>()
         .await
-        .map_err(|e| format!("Falha ao ler manifesto latest.json: {}", e))?;
+        .map_err(|e| crate::http_error::describe_reqwest_error("servidor de atualizações", &e))?;
 
     let remote_version = json
         .get("version")
@@ -1436,5 +1676,15 @@ mod tests {
         }
 
         let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_decode_base64_roundtrip_and_invalid() {
+        let sample = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\n";
+        let encoded = crate::sigaa::base64_encode(sample);
+        let decoded = decode_base64_bytes(&encoded).expect("decode válido deve passar");
+        assert_eq!(decoded, sample);
+
+        assert!(decode_base64_bytes("%%%invalid%%%").is_err());
     }
 }

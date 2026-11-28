@@ -495,7 +495,7 @@ export class GetFlowchartUseCase {
       chTotalCurriculo: officialTotalHours,
       chComplementarPendente: isNativeCurriculum ? profile.chComplementarPendente : (curriculum.minComplementaryHours || 0),
       percentualIntegralizado: effectiveProgressPercentage,
-      isSimulated: hasManualOverrides || isAlternativeCurriculum || !profile.percentualIntegralizado,
+      isSimulated: hasManualOverrides || isAlternativeCurriculum || profile.percentualIntegralizado == null,
       isAlternativeCurriculum,
       nativeCourseName,
       nativeCurriculumCode,

@@ -66,7 +66,7 @@ export class SaveCredentialsUseCase {
       } catch (e: unknown) {
         return {
           success: false,
-          error: e instanceof Error ? e.message : 'Falha na conexão com o servidor do SIGAA',
+          error: e instanceof Error ? e.message : 'Falha na conexão com o servidor do SIGAA.',
         };
       }
     }
@@ -78,7 +78,10 @@ export class SaveCredentialsUseCase {
       });
       return { success: true, detail: 'Credenciais salvas com sucesso' };
     } catch (e: unknown) {
-      return { success: false, error: e instanceof Error ? e.message : 'Erro ao salvar credenciais do SIGAA' };
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : 'Erro ao salvar credenciais do SIGAA.',
+      };
     }
   }
 
@@ -119,7 +122,7 @@ export class SaveCredentialsUseCase {
       } catch (e: unknown) {
         return {
           success: false,
-          error: e instanceof Error ? e.message : 'Falha na conexão com o servidor do Aprender 3',
+          error: e instanceof Error ? e.message : 'Falha na conexão com o servidor do Aprender 3.',
         };
       }
     }
@@ -131,7 +134,10 @@ export class SaveCredentialsUseCase {
       });
       return { success: true, detail: 'Credenciais salvas com sucesso' };
     } catch (e: unknown) {
-      return { success: false, error: e instanceof Error ? e.message : 'Erro ao salvar credenciais do Aprender 3' };
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : 'Erro ao salvar credenciais do Aprender 3.',
+      };
     }
   }
 
@@ -210,7 +216,7 @@ export class SaveCredentialsUseCase {
       } catch (e: unknown) {
         return {
           success: false,
-          error: e instanceof Error ? e.message : 'Falha na autenticação com o Microsoft Teams',
+          error: e instanceof Error ? e.message : 'Falha na autenticação com o Microsoft Teams.',
         };
       }
     }
@@ -228,7 +234,10 @@ export class SaveCredentialsUseCase {
       await this.credentialsRepo.saveTeams(credentials);
       return { success: true, detail: credentials.isConnected ? 'Microsoft Teams conectado com sucesso' : 'Microsoft Teams desconectado' };
     } catch (e: unknown) {
-      return { success: false, error: e instanceof Error ? e.message : 'Erro ao salvar estado do Teams' };
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : 'Erro ao salvar estado do Teams.',
+      };
     }
   }
 

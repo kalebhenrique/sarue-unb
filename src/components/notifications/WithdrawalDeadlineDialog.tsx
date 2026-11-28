@@ -146,8 +146,14 @@ export const WithdrawalDeadlineDialog: React.FC<WithdrawalDeadlineDialogProps> =
         </div>
 
         <DialogFooter className="sm:justify-end">
-          <Button type="button" variant="primary" size="md" onClick={handleDismiss} className="w-full sm:w-auto">
-            <span>Entendi, fechar aviso</span>
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            onClick={handleDismiss}
+            className="w-full sm:w-auto sm:min-w-32"
+          >
+            <span>Okay</span>
           </Button>
         </DialogFooter>
       </DialogContent>

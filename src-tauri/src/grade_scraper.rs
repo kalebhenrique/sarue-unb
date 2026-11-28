@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::OnceLock;
 use tokio::sync::RwLock;
 
@@ -7,15 +8,20 @@ const CDN_BASE_URL: &str =
 const GITHUB_PAGES_BASE_URL: &str = "https://kalebhenrique.github.io/sarue-unb/data";
 const USER_AGENT: &str = "Sarue-UnB/0.1.0 (Desktop App; Tauri)";
 
-// Cache em memória para evitar múltiplos downloads de classes.json durante a sessão
-static CLASSES_CACHE: OnceLock<RwLock<Option<Vec<ScrapedDiscipline>>>> = OnceLock::new();
+// Cache em memória indexado por semestre ("{year}-{period}") para evitar múltiplos downloads
+static CLASSES_CACHE: OnceLock<RwLock<HashMap<String, Vec<ScrapedDiscipline>>>> = OnceLock::new();
+static SEMESTERS_CACHE: OnceLock<RwLock<Option<Vec<SemesterOption>>>> = OnceLock::new();
 static DEPARTMENTS_CACHE: OnceLock<RwLock<Option<Vec<Department>>>> = OnceLock::new();
 static COURSES_CACHE: OnceLock<RwLock<Option<Vec<CourseCatalogItem>>>> = OnceLock::new();
 static CURRICULA_CACHE: OnceLock<RwLock<Option<Vec<CurriculumStructure>>>> = OnceLock::new();
 static PROFESSORS_CACHE: OnceLock<RwLock<Option<Vec<ScrapedProfessor>>>> = OnceLock::new();
 
-fn get_classes_lock() -> &'static RwLock<Option<Vec<ScrapedDiscipline>>> {
-    CLASSES_CACHE.get_or_init(|| RwLock::new(None))
+fn get_classes_lock() -> &'static RwLock<HashMap<String, Vec<ScrapedDiscipline>>> {
+    CLASSES_CACHE.get_or_init(|| RwLock::new(HashMap::new()))
+}
+
+fn get_semesters_lock() -> &'static RwLock<Option<Vec<SemesterOption>>> {
+    SEMESTERS_CACHE.get_or_init(|| RwLock::new(None))
 }
 
 fn get_depts_lock() -> &'static RwLock<Option<Vec<Department>>> {
@@ -45,6 +51,16 @@ fn get_course_curricula_lock() -> &'static RwLock<CourseCurriculaEntry> {
 pub struct Department {
     pub id: String,
     pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+pub struct SemesterOption {
+    pub value: String,
+    pub year: String,
+    pub period: String,
+    pub label: String,
+    #[serde(default)]
+    pub is_current: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
@@ -167,6 +183,9 @@ impl SigaaGradeScraper {
     /// Libera todos os caches estáticos em memória RAM (chamado em eventos de pressão de memória / onTrimMemory no Android).
     pub fn clear_memory_caches() {
         if let Ok(mut lock) = get_classes_lock().try_write() {
+            lock.clear();
+        }
+        if let Ok(mut lock) = get_semesters_lock().try_write() {
             *lock = None;
         }
         if let Ok(mut lock) = get_curricula_lock().try_write() {
@@ -264,16 +283,22 @@ impl SigaaGradeScraper {
 
         let url_raw = format!("{}/{}", CDN_BASE_URL, file_name);
         match client.get(&url_raw).send().await {
-            Ok(res) if res.status().is_success() => res
-                .json::<T>()
-                .await
-                .map_err(|e| format!("Falha ao deserializar JSON de {}: {}", url_raw, e)),
-            Ok(res) => Err(format!(
-                "CDN retornou status HTTP {} para {}",
+            Ok(res) if res.status().is_success() => res.json::<T>().await.map_err(|e| {
+                log::warn!(
+                    "[SigaaData] Falha ao deserializar JSON de {}: {}",
+                    url_raw,
+                    e
+                );
+                "Não foi possível interpretar os dados do catálogo da UnB.".to_string()
+            }),
+            Ok(res) => Err(crate::http_error::describe_http_status(
+                "Catálogo UnB",
                 res.status(),
-                url_raw
             )),
-            Err(e) => Err(format!("Falha ao conectar ao CDN para {}: {}", url_raw, e)),
+            Err(e) => Err(crate::http_error::describe_reqwest_error(
+                "Catálogo UnB",
+                &e,
+            )),
         }
     }
 
@@ -301,20 +326,47 @@ impl SigaaGradeScraper {
         }
     }
 
-    /// Obtém as turmas ofertadas filtrando pelo ID do departamento (ou todas se department_id for "ALL" ou vazio)
+    /// Obtém a lista de semestres ofertados consumindo o semesters.json estático (CDN/disco)
+    pub async fn fetch_semesters() -> Result<Vec<SemesterOption>, String> {
+        {
+            let lock = get_semesters_lock().read().await;
+            if let Some(cached) = &*lock {
+                return Ok(cached.clone());
+            }
+        }
+
+        match Self::fetch_static_json::<Vec<SemesterOption>>("semesters.json").await {
+            Ok(semesters) if !semesters.is_empty() => {
+                let clean: Vec<SemesterOption> =
+                    semesters.into_iter().filter(|s| s.period != "3").collect();
+                if !clean.is_empty() {
+                    let mut lock = get_semesters_lock().write().await;
+                    *lock = Some(clean.clone());
+                    return Ok(clean);
+                }
+            }
+            Ok(_) | Err(_) => {}
+        }
+
+        Ok(Vec::new())
+    }
+
+    /// Obtém as turmas ofertadas para o semestre `(year, period)` filtrando pelo ID do departamento
+    /// (ou todas se `department_id` for "ALL" ou vazio).
     pub async fn scrape_department_classes(
         department_id: &str,
-        _year: &str,
-        _period: &str,
+        year: &str,
+        period: &str,
     ) -> Result<Vec<ScrapedDiscipline>, String> {
         let is_all = department_id.is_empty()
             || department_id.eq_ignore_ascii_case("all")
             || department_id == "*";
+        let sem_key = format!("{year}-{period}");
 
-        // 1. Tenta cache em memória primeiro
+        // 1. Tenta cache em memória para este semestre
         {
             let lock = get_classes_lock().read().await;
-            if let Some(cached) = &*lock {
+            if let Some(cached) = lock.get(&sem_key) {
                 if is_all {
                     return Ok(cached.clone());
                 }
@@ -331,8 +383,39 @@ impl SigaaGradeScraper {
             }
         }
 
-        // 2. Faz fetch do classes.json estático do disco local ou CDN
-        let fetch_result = Self::fetch_static_json::<Vec<ScrapedDiscipline>>("classes.json").await;
+        // 2. Busca o arquivo específico do semestre (`classes-{year}-{period}.json`)
+        let semester_filename = format!("classes-{year}-{period}.json");
+        let mut fetch_result =
+            Self::fetch_static_json::<Vec<ScrapedDiscipline>>(&semester_filename).await;
+
+        // Fallback para `classes.json` apenas quando o semestre solicitado é o semestre atual
+        // (evita retornar turmas do semestre atual ao selecionar um semestre futuro ainda sem oferta)
+        if fetch_result.is_err() {
+            let semesters = Self::fetch_semesters().await.unwrap_or_default();
+            let is_current_semester = if semesters.is_empty() {
+                use chrono::Datelike;
+                let now = chrono::Local::now();
+                let current_year = now.year().to_string();
+                let current_period = if now.month() <= 6 { "1" } else { "2" };
+                year == current_year && period == current_period
+            } else {
+                semesters
+                    .iter()
+                    .any(|s| s.year == year && s.period == period && s.is_current)
+            };
+            if is_current_semester {
+                fetch_result =
+                    Self::fetch_static_json::<Vec<ScrapedDiscipline>>("classes.json").await;
+            } else {
+                log::info!(
+                    "[SigaaData] Sem arquivo {} publicado ainda para semestre não-corrente.",
+                    semester_filename
+                );
+                let mut lock = get_classes_lock().write().await;
+                lock.insert(sem_key, Vec::new());
+                return Ok(Vec::new());
+            }
+        }
 
         match fetch_result {
             Ok(all_disciplines) => {
@@ -346,9 +429,9 @@ impl SigaaGradeScraper {
                         .collect()
                 };
 
-                // Armazena no cache
+                // Armazena no cache indexado pelo semestre
                 let mut lock = get_classes_lock().write().await;
-                *lock = Some(all_disciplines);
+                lock.insert(sem_key, all_disciplines);
 
                 if filtered.is_empty() && !is_all {
                     Ok(Self::fallback_disciplines_for_dept(department_id))
@@ -453,10 +536,7 @@ impl SigaaGradeScraper {
                     e,
                     course_id
                 );
-                Err(format!(
-                    "Falha ao carregar matrizes do curso {}: {}",
-                    course_id, e
-                ))
+                Err(e)
             }
         }
     }

@@ -759,8 +759,15 @@ async function main() {
     return idx >= 0 && args[idx + 1] ? args[idx + 1] : def;
   };
 
-  const year = getArg("--year", process.env.SCRAPER_YEAR || "2026");
-  const period = getArg("--period", process.env.SCRAPER_PERIOD || "2");
+  const yearArg = getArg("--year", process.env.SCRAPER_YEAR || "");
+  const periodArg = getArg("--period", process.env.SCRAPER_PERIOD || "");
+  const scrapeAllSemesters =
+    args.includes("--all-semesters") || (!yearArg && !periodArg);
+  const defaultNow = new Date();
+  const defaultYear = String(defaultNow.getFullYear());
+  const defaultPeriod = defaultNow.getMonth() + 1 <= 6 ? "1" : "2";
+  const year = yearArg || defaultYear;
+  const period = periodArg || defaultPeriod;
   const outDir = path.resolve(
     getArg("--out-dir", process.env.OUTPUT_DIR || "./public/data"),
   );
@@ -769,7 +776,9 @@ async function main() {
   const limit = limitStr ? parseInt(limitStr, 10) : undefined;
 
   console.log(
-    `[GradeScraper] Iniciando coleta de turmas: ano=${year}, período=${period}`,
+    scrapeAllSemesters
+      ? `[GradeScraper] Iniciando coleta multi-semestre (atual + próximo detectados do SIGAA)`
+      : `[GradeScraper] Iniciando coleta de turmas: ano=${year}, período=${period}`,
   );
   console.log(`[GradeScraper] Diretório de saída: ${outDir}`);
 
@@ -840,42 +849,100 @@ async function main() {
     deptsToScrape = deptsToScrape.slice(0, limit);
   }
 
-  console.log(
-    `[GradeScraper] Coletando turmas para ${deptsToScrape.length} departamentos...`,
+  const fallbackSemester: SemesterOption = {
+    value: `${year}-${period}`,
+    year,
+    period,
+    label: `${year} • ${period}º semestre`,
+    is_current: scrapeAllSemesters,
+  };
+  const filteredSemesters = semesters.filter(
+    (s) => s.period === "1" || s.period === "2",
   );
+  const targetSemesters: SemesterOption[] = scrapeAllSemesters
+    ? filteredSemesters.length > 0
+      ? filteredSemesters
+      : [fallbackSemester]
+    : [
+        semesters.find((s) => s.year === year && s.period === period) ??
+          fallbackSemester,
+      ];
 
-  const allDisciplines: ScrapedDiscipline[] = [];
-  let processed = 0;
+  const primarySemester =
+    targetSemesters.find((s) => s.is_current) ?? targetSemesters[0];
+  let primaryDisciplines: ScrapedDiscipline[] = [];
+  let wroteLegacyClasses = false;
+  const semestersSummary: Record<
+    string,
+    { total_disciplines: number; total_classes: number }
+  > = {};
 
-  for (const dept of deptsToScrape) {
-    try {
-      const disciplines = await scraper.scrapeDepartment(dept.id, year, period);
-      allDisciplines.push(...disciplines);
-      processed++;
-      if (disciplines.length > 0) {
-        console.log(
-          `[GradeScraper] [${processed}/${deptsToScrape.length}] ${dept.name} (${dept.id}): ${disciplines.length} disciplinas.`,
+  for (const sem of targetSemesters) {
+    console.log(
+      `[GradeScraper] Coletando turmas de ${sem.year}.${sem.period} para ${deptsToScrape.length} departamentos...`,
+    );
+
+    const semDisciplines: ScrapedDiscipline[] = [];
+    let processed = 0;
+
+    for (const dept of deptsToScrape) {
+      try {
+        const disciplines = await scraper.scrapeDepartment(
+          dept.id,
+          sem.year,
+          sem.period,
+        );
+        semDisciplines.push(...disciplines);
+        processed++;
+        if (disciplines.length > 0) {
+          console.log(
+            `[GradeScraper] [${sem.value}] [${processed}/${deptsToScrape.length}] ${dept.name} (${dept.id}): ${disciplines.length} disciplinas.`,
+          );
+        }
+      } catch (e) {
+        console.warn(
+          `[GradeScraper] [${sem.value}] Erro ao raspar depto ${dept.id} (${dept.name}):`,
+          e,
         );
       }
-    } catch (e) {
-      console.warn(
-        `[GradeScraper] Erro ao raspar depto ${dept.id} (${dept.name}):`,
-        e,
-      );
+      // Breve pausa para não sobrecarregar o servidor do SIGAA
+      await new Promise((r) => setTimeout(r, 200));
     }
-    // Breve pausa para não sobrecarregar o servidor do SIGAA
-    await new Promise((r) => setTimeout(r, 200));
-  }
 
-  const classesPath = path.join(outDir, "classes.json");
-  await fs.writeFile(
-    classesPath,
-    JSON.stringify(allDisciplines),
-    "utf-8",
-  );
-  console.log(
-    `[GradeScraper] Salvo: ${classesPath} (${allDisciplines.length} disciplinas coletadas)`,
-  );
+    const semClassesPath = path.join(outDir, `classes-${sem.value}.json`);
+    await fs.writeFile(
+      semClassesPath,
+      JSON.stringify(semDisciplines),
+      "utf-8",
+    );
+    console.log(
+      `[GradeScraper] Salvo: ${semClassesPath} (${semDisciplines.length} disciplinas coletadas)`,
+    );
+
+    semestersSummary[sem.value] = {
+      total_disciplines: semDisciplines.length,
+      total_classes: semDisciplines.reduce(
+        (acc, d) => acc + d.classes.length,
+        0,
+      ),
+    };
+
+    if (sem.value === primarySemester.value) {
+      primaryDisciplines = semDisciplines;
+      if (primarySemester.is_current) {
+        const legacyClassesPath = path.join(outDir, "classes.json");
+        await fs.writeFile(
+          legacyClassesPath,
+          JSON.stringify(semDisciplines),
+          "utf-8",
+        );
+        wroteLegacyClasses = true;
+        console.log(
+          `[GradeScraper] Salvo alias retrocompatível: ${legacyClassesPath} (${semDisciplines.length} disciplinas)`,
+        );
+      }
+    }
+  }
 
   // O catálogo de docentes é coletado pelo scraper próprio
   // (professors-scraper.ts, `pnpm run scrape:professors`), publicado por
@@ -884,12 +951,16 @@ async function main() {
   const metaPath = path.join(outDir, "grade-meta.json");
   const meta = {
     scraped_at: new Date().toISOString(),
-    year,
-    period,
+    year: primarySemester.year,
+    period: primarySemester.period,
     semesters,
+    semesters_summary: semestersSummary,
     total_departments: departments.length,
-    total_disciplines: allDisciplines.length,
-    total_classes: allDisciplines.reduce((acc, d) => acc + d.classes.length, 0),
+    total_disciplines: primaryDisciplines.length,
+    total_classes: primaryDisciplines.reduce(
+      (acc, d) => acc + d.classes.length,
+      0,
+    ),
   };
   await fs.writeFile(metaPath, JSON.stringify(meta, null, 2), "utf-8");
   console.log(`[GradeScraper] Concluído com sucesso! Metadados em ${metaPath}`);
@@ -899,7 +970,17 @@ async function main() {
   if (!targetDept && !limit && path.resolve(outDir) !== publicDataDir) {
     try {
       await fs.mkdir(publicDataDir, { recursive: true });
-      await fs.copyFile(classesPath, path.join(publicDataDir, "classes.json"));
+      if (wroteLegacyClasses) {
+        const legacyClassesPath = path.join(outDir, "classes.json");
+        await fs.copyFile(legacyClassesPath, path.join(publicDataDir, "classes.json"));
+      }
+      for (const sem of targetSemesters) {
+        const semFile = `classes-${sem.value}.json`;
+        await fs.copyFile(
+          path.join(outDir, semFile),
+          path.join(publicDataDir, semFile),
+        );
+      }
       await fs.copyFile(deptPath, path.join(publicDataDir, "departments.json"));
       await fs.copyFile(semPath, path.join(publicDataDir, "semesters.json"));
       await fs.copyFile(metaPath, path.join(publicDataDir, "grade-meta.json"));

@@ -174,4 +174,38 @@ export class TauriAcademicProfileRepository implements IAcademicProfileRepositor
 
     return this.fallbackRepo.fetchSigaaHistory(creds);
   }
+
+  async extractPdfText(pdfData: Uint8Array): Promise<string | null> {
+    if (!pdfData || pdfData.byteLength === 0) return null;
+    try {
+      const { commands } = await import('@/core/infrastructure/bindings');
+      // Converte Uint8Array para base64 em blocos para evitar estouro de pilha em PDFs grandes
+      const chunkSize = 0x8000;
+      const chunks: string[] = [];
+      for (let i = 0; i < pdfData.length; i += chunkSize) {
+        chunks.push(String.fromCharCode(...pdfData.subarray(i, i + chunkSize)));
+      }
+      const pdfBase64 = btoa(chunks.join(''));
+      const response = await commands.extractPdfText(pdfBase64);
+      if (response.status === 'ok' && response.data) {
+        return response.data;
+      }
+    } catch (e) {
+      console.warn('[TauriAcademicProfileRepository] Erro ao extrair texto do PDF via Rust:', e);
+    }
+    return null;
+  }
+
+  async extractPdfTextFromPath(path: string): Promise<string | null> {
+    if (!path || !path.trim()) return null;
+    const { commands } = await import('@/core/infrastructure/bindings');
+    const response = await commands.extractPdfTextFromPath(path);
+    if (response.status === 'ok' && response.data) {
+      return response.data;
+    }
+    if (response.status === 'error') {
+      throw new Error(response.error);
+    }
+    return null;
+  }
 }

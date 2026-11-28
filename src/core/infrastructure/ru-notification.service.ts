@@ -28,10 +28,12 @@ import {
 import { isOnboardingNotificationsBlocked } from './tauri-os-notifier';
 
 const RU_NOTIFICATION_CHANNEL_ID = 'ru-menu';
+const RU_STALE_FETCH_COOLDOWN_MS = 30 * 60 * 1000;
 
 let channelInitialized = false;
 let syncInProgress = false;
 let pendingResyncOptions: SyncRuNotificationOptions | null = null;
+let lastStaleFetchAttemptMs = 0;
 
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -321,20 +323,76 @@ export async function syncRuMenuNotifications(
           const scheduledIds: number[] = [];
           const scheduledTimes: Record<string, string> = {};
 
-          for (const item of planned) {
-            sendNotification({
-              id: item.id,
-              channelId: RU_NOTIFICATION_CHANNEL_ID,
-              title: item.payload.title,
-              body: item.payload.body,
-              largeBody: item.payload.largeBody,
-              autoCancel: true,
-              schedule: Schedule.at(item.fireAt, false, true),
+          if (planned.length > 0) {
+            const batchPayload = planned.map((item) => {
+              const normalizedFireAt = new Date(item.fireAt.getTime());
+              normalizedFireAt.setMilliseconds(0);
+              return {
+                id: item.id,
+                channelId: RU_NOTIFICATION_CHANNEL_ID,
+                title: item.payload.title,
+                body: item.payload.body,
+                largeBody: item.payload.largeBody,
+                autoCancel: true,
+                schedule: {
+                  at: {
+                    date: normalizedFireAt.toISOString(),
+                    repeating: false,
+                    allowWhileIdle: true,
+                  },
+                },
+              };
             });
-            scheduledIds.push(item.id);
-            scheduledTimes[
-              ruMealNotificationKey(campus, item.dateIso, item.meal)
-            ] = item.fireAt.toISOString();
+
+            let scheduledViaBatch = false;
+            try {
+              const { invoke } = await import('@tauri-apps/api/core');
+              await invoke('plugin:notification|batch', {
+                notifications: batchPayload,
+              });
+              scheduledViaBatch = true;
+            } catch (batchErr) {
+              console.warn(
+                '[ru-notification] Falha no agendamento via batch, tentando fallback individual:',
+                batchErr,
+              );
+            }
+
+            if (scheduledViaBatch) {
+              for (const item of planned) {
+                scheduledIds.push(item.id);
+                scheduledTimes[
+                  ruMealNotificationKey(campus, item.dateIso, item.meal)
+                ] = item.fireAt.toISOString();
+              }
+            } else {
+              for (const item of planned) {
+                try {
+                  const normalizedFireAt = new Date(item.fireAt.getTime());
+                  normalizedFireAt.setMilliseconds(0);
+                  sendNotification({
+                    id: item.id,
+                    channelId: RU_NOTIFICATION_CHANNEL_ID,
+                    title: item.payload.title,
+                    body: item.payload.body,
+                    largeBody: item.payload.largeBody,
+                    autoCancel: true,
+                    schedule: Schedule.at(normalizedFireAt, false, true),
+                  });
+                  scheduledIds.push(item.id);
+                  scheduledTimes[
+                    ruMealNotificationKey(campus, item.dateIso, item.meal)
+                  ] = normalizedFireAt.toISOString();
+                } catch (sendErr) {
+                  console.warn(
+                    '[ru-notification] Falha ao agendar refeição individual:',
+                    item.dateIso,
+                    item.meal,
+                    sendErr,
+                  );
+                }
+              }
+            }
           }
 
           writeStoredScheduledIds(scheduledIds);
@@ -358,13 +416,27 @@ export async function syncRuMenuNotifications(
   }
 }
 
-/** Verifica rapidamente o cache local do campus atual e notifica refeição devida. */
+/** Verifica rapidamente o cache local do campus atual (atualizando se expirado) e notifica refeição devida. */
 export async function checkDueRuMenuNotification(): Promise<void> {
   if (!isTauriRuntime() || isOnboardingNotificationsBlocked()) return;
   const settings = getNotificationSettings().ruMenu;
   if (!settings.enabled || settings.weekdays.length === 0) return;
   const campus = getSavedRuCampus();
-  const { menus } = await loadCachedRuMenus(campus);
+  let { menus } = await loadCachedRuMenus(campus);
+  const todayIso = getBrasiliaTodayIso();
+  const hasCurrentOrFuture = menus.some((m) => m.date >= todayIso);
+  if (menus.length === 0 || !hasCurrentOrFuture) {
+    const nowMs = Date.now();
+    if (nowMs - lastStaleFetchAttemptMs >= RU_STALE_FETCH_COOLDOWN_MS) {
+      lastStaleFetchAttemptMs = nowMs;
+      try {
+        const fresh = await fetchAndCacheRuMenus(campus);
+        menus = fresh.menus;
+      } catch {
+        // Offline — segue com o que houver em cache (próxima tentativa após cooldown)
+      }
+    }
+  }
   if (menus.length === 0) return;
   await notifyDueRuMealsNow(menus, campus);
 }

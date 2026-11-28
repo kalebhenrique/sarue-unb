@@ -59,15 +59,18 @@ impl MoodleClient {
             .header("Referer", base_url)
             .send()
             .await
-            .map_err(|e| format!("Falha ao conectar no Aprender 3: {}", e))?;
+            .map_err(|e| crate::http_error::describe_reqwest_error("Aprender 3", &e))?;
+
+        crate::http_error::check_http_status("Aprender 3", login_page_res.status())?;
 
         let login_html = login_page_res
             .text()
             .await
-            .map_err(|e| format!("Falha ao ler página de login do Aprender 3: {}", e))?;
+            .map_err(|e| crate::http_error::describe_reqwest_error("Aprender 3", &e))?;
 
         let logintoken = extract_logintoken(&login_html).ok_or_else(|| {
-            "Não foi possível extrair o logintoken de segurança do Aprender 3.".to_string()
+            log::warn!("[MoodleClient] Não foi possível extrair o logintoken da página de login do Aprender 3.");
+            "O Aprender 3 está instável ou em manutenção no momento. Tente novamente em alguns instantes.".to_string()
         })?;
 
         // 2. POST de autenticação com cookies preservados
@@ -85,13 +88,15 @@ impl MoodleClient {
             .header("Origin", base_url)
             .send()
             .await
-            .map_err(|e| format!("Falha ao enviar credenciais para o Aprender 3: {}", e))?;
+            .map_err(|e| crate::http_error::describe_reqwest_error("Aprender 3", &e))?;
+
+        crate::http_error::check_http_status("Aprender 3", post_res.status())?;
 
         let final_url = post_res.url().to_string();
         let post_text = post_res
             .text()
             .await
-            .map_err(|e| format!("Falha ao processar resposta de login do Aprender 3: {}", e))?;
+            .map_err(|e| crate::http_error::describe_reqwest_error("Aprender 3", &e))?;
 
         // Validação de erro de login
         if final_url.contains("login/index.php") {
@@ -119,12 +124,14 @@ impl MoodleClient {
             .header("Referer", base_url)
             .send()
             .await
-            .map_err(|e| format!("Falha ao acessar Meus Cursos no Aprender 3: {}", e))?;
+            .map_err(|e| crate::http_error::describe_reqwest_error("Aprender 3", &e))?;
+
+        crate::http_error::check_http_status("Aprender 3", courses_res.status())?;
 
         let courses_html = courses_res
             .text()
             .await
-            .map_err(|e| format!("Falha ao carregar conteúdo de Meus Cursos: {}", e))?;
+            .map_err(|e| crate::http_error::describe_reqwest_error("Aprender 3", &e))?;
 
         let (sesskey, user_id) = extract_session_info(&courses_html)
             .ok_or_else(|| "Sessão expirada ou não autenticada no Aprender 3.".to_string())?;

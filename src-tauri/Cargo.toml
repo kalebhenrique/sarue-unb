@@ -1,9 +1,11 @@
 [package]
 name = "sarue_unb"
-version = "0.4.0"
-description = "Saruê UnB Desktop App"
-authors = ["UnB Open Source Contributors"]
+version = "0.5.2"
+description = "Saruê UnB — Assistente acadêmico para estudantes da UnB"
+authors = ["Kaleb Henrique <kaleb.dev@outlook.com>"]
 license = "Apache-2.0"
+homepage = "https://www.sarue.app.br"
+repository = "https://github.com/kalebhenrique/sarue-unb"
 edition = "2021"
 
 [lib]
@@ -49,6 +51,8 @@ tauri-plugin-window-state = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-autostart = "2"
+tauri-plugin-dialog = "2"
+base64 = "0.22"
 keyring = "3"
 
 [target.'cfg(target_os = "android")'.dependencies]

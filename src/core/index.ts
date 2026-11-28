@@ -10,6 +10,7 @@ export * from './domain/entities/deadline-notification';
 export * from './domain/entities/professor-evaluation';
 export * from './domain/entities/user-calendar-event';
 export * from './domain/entities/notification-settings';
+export * from './domain/entities/user-backup';
 // Domain Utils
 export * from './domain/utils/grade-acronym';
 export * from './domain/utils/course-shift';
@@ -69,9 +70,12 @@ export * from './infrastructure/demo-mode.service';
 export * from './infrastructure/ru-wallet.service';
 export * from './infrastructure/network-sync-settings.service';
 export * from './infrastructure/notification-settings.service';
+export * from './infrastructure/discipline-grades.service';
 export * from './infrastructure/ru-notification.service';
+export * from './infrastructure/user-backup.service';
 export {
   isOnboardingNotificationsBlocked,
   setOnboardingNotificationsBlocked,
+  subscribeOnboardingNotificationsGate,
 } from './infrastructure/tauri-os-notifier';
 

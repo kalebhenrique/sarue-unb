@@ -9,42 +9,25 @@ import {
   TriangleAlert,
   Info,
 } from "lucide-react";
-import { calculateAbsenceRisk, convertSigaaHoursToClassAbsences } from "@/core";
+import {
+  calculateAbsenceRisk,
+  convertSigaaHoursToClassAbsences,
+  getDisciplineAbsenceOverride,
+  saveDisciplineAbsenceOverride,
+} from "@/core";
 import type { Discipline } from "@/core";
 
-/** Chave de persistência do ajuste manual de faltas por disciplina */
-const overrideStorageKey = (id: string) =>
-  `sarue:discipline_absences:${id}:override`;
-
-/** Lê o ajuste manual de faltas persistido (undefined = usar valor do SIGAA) */
-export function readAbsenceOverride(disciplineId: string): number | null {
-  try {
-    const raw = localStorage.getItem(overrideStorageKey(disciplineId));
-    if (raw === null) return null;
-    const parsed = Number(raw);
-    return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : null;
-  } catch {
-    return null;
-  }
+/** Lê o ajuste manual de faltas persistido (null = usar valor do SIGAA) */
+export function readAbsenceOverride(discipline: Discipline | string): number | null {
+  return getDisciplineAbsenceOverride(discipline);
 }
 
-/** Persiste o ajuste manual de faltas (null = remover override) */
+/** Persiste o ajuste manual de faltas no SQLite + localStorage (null = remover override) */
 export function writeAbsenceOverride(
-  disciplineId: string,
+  discipline: Discipline | string,
   value: number | null,
 ): void {
-  try {
-    if (value === null) {
-      localStorage.removeItem(overrideStorageKey(disciplineId));
-    } else {
-      localStorage.setItem(
-        overrideStorageKey(disciplineId),
-        String(Math.floor(value)),
-      );
-    }
-  } catch {
-    // localStorage indisponível (ex.: modo privado): segue sem persistir
-  }
+  saveDisciplineAbsenceOverride(discipline, value);
 }
 
 interface AbsenceSectionProps {

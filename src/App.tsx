@@ -52,7 +52,14 @@ const SCREEN_LABELS: Record<NavTab, string> = {
 const AppShell: React.FC = () => {
   const { repos, useCases } = useContainer();
   const { hasCredentials, isLoading: isCheckingAuth, allCredentials } = useCredentials();
-  const { syncAll, isSyncing, isSlowConnection, lastSyncedAt, steps: syncSteps } = useSync();
+  const {
+    syncAll,
+    completeOnboardingSync,
+    isSyncing,
+    isSlowConnection,
+    lastSyncedAt,
+    steps: syncSteps,
+  } = useSync();
   const hasUpdateAvailable = useUpdateAvailable();
 
   // Plataformas de fato conectadas (ordem do cofre), para o dialog de boas-vindas
@@ -76,7 +83,10 @@ const AppShell: React.FC = () => {
   // Ritual pós-cadastro: dialog de boas-vindas abre ao entrar; ao dispensá-lo,
   // o popover de andamento abre ancorado no botão de Sincronização da Sidebar.
   const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [welcomeMode, setWelcomeMode] = useState<'credentials' | 'transcript' | 'explore'>('credentials');
   const [syncPopoverOpen, setSyncPopoverOpen] = useState(false);
+  // Mantém o ícone "Mais" mobile girando continuamente até o fim do primeiro scraping pós-onboarding
+  const [isFirstConnectionSync, setIsFirstConnectionSync] = useState(false);
   // Modo Demonstração: entrado pelo botão do onboarding ou restaurado no boot
   // (fast-path de dados locais) para o badge da Sidebar e o banner de Settings.
   const [isDemoMode, setIsDemoMode] = useState(() => isDemoModeActive());
@@ -116,6 +126,12 @@ const AppShell: React.FC = () => {
   React.useEffect(() => {
     setOnboardingNotificationsBlocked(step === 'onboarding');
   }, [step]);
+
+  React.useEffect(() => {
+    if (isFirstConnectionSync && !isSyncing) {
+      setIsFirstConnectionSync(false);
+    }
+  }, [isFirstConnectionSync, isSyncing]);
 
   // Carteirinha é exclusiva do mobile; Cardápio RU pode ser ocultado na sidebar desktop
   React.useEffect(() => {
@@ -202,15 +218,28 @@ const AppShell: React.FC = () => {
         onComplete={() => {
           setOnboardingNotificationsBlocked(false);
           setIsDemoMode(isDemoModeActive());
+          setIsFirstConnectionSync(true);
+          setWelcomeMode('credentials');
           setStep('main');
           // Ritual pós-cadastro: dialog abre; no desktop o popover abre ao dispensar o dialog
           setWelcomeOpen(true);
-          syncAll();
+          completeOnboardingSync();
+        }}
+        onCompleteWithTranscript={() => {
+          setOnboardingNotificationsBlocked(false);
+          setIsDemoMode(false);
+          setIsFirstConnectionSync(false);
+          setWelcomeMode('transcript');
+          setStep('main');
+          setWelcomeOpen(true);
         }}
         onExplore={() => {
           setOnboardingNotificationsBlocked(false);
           setIsDemoMode(isDemoModeActive());
+          setIsFirstConnectionSync(false);
+          setWelcomeMode('explore');
           setStep('main');
+          setWelcomeOpen(true);
         }}
       />
     );
@@ -228,6 +257,7 @@ const AppShell: React.FC = () => {
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         isSyncing={isSyncing}
+        isInitialSync={isFirstConnectionSync}
         isSlowConnection={isSlowConnection}
         onSync={syncAll}
         lastSyncedAt={lastSyncedAt}
@@ -257,6 +287,7 @@ const AppShell: React.FC = () => {
                   setOnboardingNotificationsBlocked(true);
                   setSyncPopoverOpen(false);
                   setWelcomeOpen(false);
+                  setIsFirstConnectionSync(false);
                   setIsDemoMode(isDemoModeActive());
                   setStep('onboarding');
                   setCurrentTab('home');
@@ -272,9 +303,14 @@ const AppShell: React.FC = () => {
         open={welcomeOpen}
         onOpenChange={(open) => {
           setWelcomeOpen(open);
-          if (!open && !isMobile) setSyncPopoverOpen(true);
+          if (!open && !isMobile && welcomeMode === 'credentials') {
+            setSyncPopoverOpen(true);
+          }
         }}
+        mode={welcomeMode}
         platforms={connectedPlatforms}
+        isSyncing={isSyncing}
+        hasSyncError={Object.values(syncSteps).some((s) => s.status === 'error')}
       />
       <WithdrawalDeadlineDialog calendar={currentCalendar} />
     </div>
