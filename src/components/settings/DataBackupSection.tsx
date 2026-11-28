@@ -282,6 +282,18 @@ export const DataBackupSection: React.FC<DataBackupSectionProps> = ({
           <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-1">
             <Button
               type="button"
+              variant="outline"
+              size="md"
+              disabled={isExporting || isImporting}
+              onClick={handleOpenFilePicker}
+              className="w-full sm:w-auto"
+            >
+              <Upload className="w-4 h-4 stroke-[2.5]" />
+              <span>Importar Backup</span>
+            </Button>
+
+            <Button
+              type="button"
               variant="primary"
               size="md"
               isLoading={isExporting}
@@ -291,18 +303,6 @@ export const DataBackupSection: React.FC<DataBackupSectionProps> = ({
             >
               <Download className="w-4 h-4 stroke-[2.5]" />
               <span>Exportar Backup</span>
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="md"
-              disabled={isExporting || isImporting}
-              onClick={handleOpenFilePicker}
-              className="w-full sm:w-auto"
-            >
-              <Upload className="w-4 h-4 stroke-[2.5]" />
-              <span>Importar Backup</span>
             </Button>
 
             <input
