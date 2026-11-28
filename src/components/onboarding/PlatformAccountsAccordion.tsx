@@ -96,6 +96,7 @@ export const PlatformAccountsAccordion: React.FC<
     allCredentials,
     isLoading,
     error,
+    clearError,
   } = useCredentials();
   const syncContext = useOptionalSync();
   const { repos, useCases } = useContainer();
@@ -156,6 +157,7 @@ export const PlatformAccountsAccordion: React.FC<
   // ou quando allowAllClosed (Settings). Aprender 3 e Teams exigem o SIGAA primeiro.
   const togglePlatform = (id: PlatformType) => {
     setFormError(null);
+    clearError();
     setOpenPlatform((cur) => {
       if (cur !== id) {
         if (id !== "sigaa" && !sigaaSaved) return cur;
@@ -724,6 +726,8 @@ export const PlatformAccountsAccordion: React.FC<
                                 setSigaaMatricula(e.target.value);
                                 setSigaaSaved(false);
                                 setSigaaSuccessMsg(null);
+                                setFormError(null);
+                                clearError();
                               }}
                               disabled={isLoading || isVerifying}
                             />
@@ -736,6 +740,8 @@ export const PlatformAccountsAccordion: React.FC<
                                 setSigaaSenha(e.target.value);
                                 setSigaaSaved(false);
                                 setSigaaSuccessMsg(null);
+                                setFormError(null);
+                                clearError();
                               }}
                               disabled={isLoading || isVerifying}
                             />
@@ -799,6 +805,8 @@ export const PlatformAccountsAccordion: React.FC<
                                 setAprenderCpf(e.target.value);
                                 setAprenderSaved(false);
                                 setAprenderSuccessMsg(null);
+                                setFormError(null);
+                                clearError();
                               }}
                               disabled={isLoading || isVerifying}
                             />
@@ -811,6 +819,8 @@ export const PlatformAccountsAccordion: React.FC<
                                 setAprenderSenha(e.target.value);
                                 setAprenderSaved(false);
                                 setAprenderSuccessMsg(null);
+                                setFormError(null);
+                                clearError();
                               }}
                               disabled={isLoading || isVerifying}
                             />
@@ -920,12 +930,12 @@ export const PlatformAccountsAccordion: React.FC<
                       {formError || error ? (
                         <div
                           role="alert"
-                          className="p-3 bg-pastel-red border-2 border-ink rounded-lg flex items-start gap-2.5"
+                          className="p-3 bg-pastel-red border-2 border-ink rounded-lg flex items-start gap-2.5 overflow-hidden"
                         >
                           <span className="p-1 bg-paper border-2 border-ink rounded-md shadow-[1px_1px_0px_0px_var(--neo-shadow)] shrink-0">
                             <AlertCircle className="w-3.5 h-3.5 text-ink-error stroke-[3]" />
                           </span>
-                          <span className="text-xs font-bold text-ink-error leading-relaxed pt-0.5">
+                          <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere] text-xs font-bold text-ink-error leading-relaxed pt-0.5">
                             {formError || error}
                           </span>
                         </div>
