@@ -7,15 +7,13 @@ import { useCredentials } from "@/hooks/useCredentials";
 import { useContainer } from "@/context/ContainerContext";
 import type { StudentAcademicProfile } from "@/core";
 
-/**
- * Seção "Contas conectadas" de Configurações: o accordion de gavetas do
- * cofre dentro do card padrão da página (variante "panel" — linhas
- * segmentadas, sem sombra própria, para o card não aninhar adesivos,
- * com inputs em linha no desktop e coluna em telas menores).
- * Quando não há conta SIGAA conectada, exibe também a importação local
- * de histórico escolar em PDF.
- */
-export const ConnectedAccountsCard: React.FC = () => {
+export interface ConnectedAccountsCardProps {
+  onTranscriptImported?: (profile: StudentAcademicProfile) => void;
+}
+
+export const ConnectedAccountsCard: React.FC<ConnectedAccountsCardProps> = ({
+  onTranscriptImported,
+}) => {
   const { allCredentials } = useCredentials();
   const { repos } = useContainer();
   const hasSigaa = Boolean(allCredentials.sigaa);
@@ -49,7 +47,10 @@ export const ConnectedAccountsCard: React.FC = () => {
           <TranscriptImportDropzone
             variant="compact"
             initialProfile={localProfile}
-            onImported={({ profile }) => setLocalProfile(profile)}
+            onImported={({ profile }) => {
+              setLocalProfile(profile);
+              onTranscriptImported?.(profile);
+            }}
           />
         )}
       </div>

@@ -57,6 +57,7 @@ import {
   clearAllLocalUserData,
   clearCachedStudentWallet,
   getSavedRuCampus,
+  hasImportedTranscriptProfile,
   syncRuMenuNotifications,
   type RuMealType,
   type UserBackupSettings,
@@ -128,14 +129,32 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     useAccessibility();
   const { themeMode, setThemeMode } = useTheme();
 
-  // Modo explorar: nenhuma conta conectada — o botão da zona de perigo vira
-  // "Voltar para o Onboarding", mas a ação continua apagando tudo (grades,
-  // feed e dados locais editados durante a exploração).
   const hasAnyAccount = Boolean(
     allCredentials.sigaa ||
     allCredentials.aprender3 ||
     allCredentials.teams?.isConnected,
   );
+  const [hasImportedTranscript, setHasImportedTranscript] = useState<
+    boolean | null
+  >(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void repos.academicProfileRepo
+      .getProfile()
+      .then((profile) => {
+        if (cancelled) return;
+        setHasImportedTranscript(hasImportedTranscriptProfile(profile));
+      })
+      .catch(() => {
+        if (!cancelled) setHasImportedTranscript(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [repos.academicProfileRepo]);
+
+  const hasConnectedData = hasAnyAccount || hasImportedTranscript === true;
 
   const [isWiping, setIsWiping] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -266,6 +285,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           STORAGE_KEYS.LAST_SYNCED_AT,
           STORAGE_KEYS.EVALUATIONS_ENRICHED,
           STORAGE_KEYS.EVALUATIONS_FILTER_BY_COURSE,
+          STORAGE_KEYS.EVALUATIONS_ABOUT_SEEN,
           STORAGE_KEYS.THEME,
           STORAGE_KEYS.UI_ZOOM,
           STORAGE_KEYS.REDUCED_MOTION,
@@ -329,8 +349,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       <div className="space-y-6">
         <PageHeader icon={Settings} title="Configurações" />
 
-        {/* Contas conectadas: accordion do cofre dentro do card padrão */}
-        <ConnectedAccountsCard />
+        <ConnectedAccountsCard
+          onTranscriptImported={() => setHasImportedTranscript(true)}
+        />
 
         {/* Preferências do aplicativo */}
         <SettingsSection icon={SlidersHorizontal} label="Preferências">
@@ -764,18 +785,22 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 onClick={() => {
                   // Interrompe imediatamente qualquer sincronização que esteja rodando
                   syncContext?.cancelSync();
-                  if (hasAnyAccount) setIsConfirmDialogOpen(true);
-                  else void handleConfirmWipe();
+                  // Fail-safe: enquanto o perfil ainda carrega (null), exige confirmação
+                  if (hasConnectedData || hasImportedTranscript === null) {
+                    setIsConfirmDialogOpen(true);
+                  } else {
+                    void handleConfirmWipe();
+                  }
                 }}
                 className="w-full sm:w-auto shrink-0"
               >
-                {hasAnyAccount ? (
+                {hasConnectedData ? (
                   <Trash2 className="w-4 h-4 stroke-[2.5]" />
                 ) : (
                   <RotateCcw className="w-4 h-4 stroke-[2.5]" />
                 )}
                 <span>
-                  {hasAnyAccount
+                  {hasConnectedData
                     ? "Apagar Dados e Credenciais"
                     : "Voltar para o Onboarding"}
                 </span>
@@ -852,7 +877,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 <Trash2 className="w-5 h-5 stroke-[2.5]" />
               </div>
               <DialogTitle>
-                {hasAnyAccount
+                {hasConnectedData
                   ? "Apagar Todos os Dados e Credenciais?"
                   : "Apagar Dados e Voltar ao Onboarding?"}
               </DialogTitle>
