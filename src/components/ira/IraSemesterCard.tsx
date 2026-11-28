@@ -63,7 +63,10 @@ export const IraSemesterCard: React.FC<IraSemesterCardProps> = ({
   const [mobileOpen, setMobileOpen] = React.useState(defaultExpandedMobile);
   const hasDisciplines = semester.disciplines.length > 0;
   const isFuture = semester.kind === 'future';
-  const showIdentity = semester.kind === 'history' || semester.kind === 'unknown';
+  const showIdentity =
+    semester.kind === 'history' ||
+    semester.kind === 'unknown' ||
+    semester.kind === 'current';
   const mobileTitle = semester.period
     ? `${semester.label} • ${semester.period}`
     : semester.label;
