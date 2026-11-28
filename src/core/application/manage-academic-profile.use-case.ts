@@ -154,6 +154,30 @@ export class ManageAcademicProfileUseCase {
     return updated;
   }
 
+  async updateIntegralizationPercentage(percentual?: number): Promise<StudentAcademicProfile> {
+    const current = await this.repo.getProfile();
+    if (!current) {
+      throw new Error('Nenhum perfil acadêmico carregado para atualizar a integralização.');
+    }
+
+    let nextValue: number | undefined;
+    if (percentual !== undefined) {
+      if (!Number.isFinite(percentual) || percentual < 0 || percentual > 100) {
+        throw new Error('Informe um percentual válido entre 0% e 100%.');
+      }
+      nextValue = Math.round(percentual * 10) / 10;
+    }
+
+    const updated: StudentAcademicProfile = {
+      ...current,
+      percentualIntegralizado: nextValue,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.repo.saveProfile(updated);
+    return updated;
+  }
+
   async setCurriculum(curriculum: CurriculumStructure): Promise<StudentAcademicProfile> {
     const current = (await this.repo.getProfile()) || {
       matricula: '',
