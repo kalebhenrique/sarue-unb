@@ -385,9 +385,9 @@ export const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
                 variant="primary"
                 size="md"
                 onClick={() => onOpenChange(false)}
-                className="cursor-pointer font-bold"
+                className="w-full sm:w-auto sm:min-w-32"
               >
-                Fechar
+                <span>Okay</span>
               </Button>
             ) : (
               <>

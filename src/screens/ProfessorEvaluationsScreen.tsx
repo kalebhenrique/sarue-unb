@@ -577,7 +577,6 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={() => openExternalUrl(PROFESSOR_EVALUATIONS_SHEET_URL)}
-              className="min-h-11 md:min-h-8"
             >
               <span>Planilha</span>
               <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -587,7 +586,6 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={() => openExternalUrl(PROFESSOR_EVALUATIONS_FORM_URL)}
-              className="min-h-11 md:min-h-8"
             >
               <span>Formulário</span>
               <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -600,9 +598,9 @@ export const ProfessorEvaluationsScreen: React.FC = () => {
               variant="primary"
               size="md"
               onClick={() => handleAboutDialogOpenChange(false)}
-              className="w-full sm:w-auto min-h-11 md:min-h-10"
+              className="w-full sm:w-auto sm:min-w-32"
             >
-              Entendi
+              <span>Okay</span>
             </Button>
           </DialogFooter>
         </DialogContent>

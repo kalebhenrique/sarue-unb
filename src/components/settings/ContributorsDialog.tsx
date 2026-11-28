@@ -174,8 +174,9 @@ export const ContributorsDialog: React.FC<ContributorsDialogProps> = ({
             variant="primary"
             size="md"
             onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto sm:min-w-32"
           >
-            <span>Fechar</span>
+            <span>Okay</span>
           </Button>
         </DialogFooter>
       </DialogContent>
